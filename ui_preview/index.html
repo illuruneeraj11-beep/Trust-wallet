@@ -1,0 +1,1498 @@
+<!doctype html><!-- TW Preview v4 --><html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Trust Wallet UI Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:#0D0D0D;
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:20px; color:#fff;
+}
+
+/* ── Phone Shell ── */
+.phone{
+  width:min(390px,100%); height:844px;
+  background:#000; border-radius:44px; overflow:hidden;
+  position:relative; color:#fff; border:1px solid #222;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+  display:flex; flex-direction:column;
+}
+
+/* ── Screens ── */
+.screens-container { flex:1; position:relative; overflow:hidden; min-height:0; }
+.screen { display:none; width:100%; height:100%; flex-direction:column; overflow-y:auto; overflow-x:hidden; padding-bottom:90px; background:#000; position:absolute; top:0; left:0; }
+.screen.active { display:flex; z-index:1; }
+.screen > * { flex-shrink:0; }
+.screen::-webkit-scrollbar { display:none; }
+
+.push-screen {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  background:#000; z-index:200; transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1); overflow-y:auto; overflow-x:hidden;
+}
+.push-screen.visible { transform:translateX(0); }
+.push-screen::-webkit-scrollbar { display:none; }
+
+/* ── Status Bar ── */
+.status-bar{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 24px 4px; font-size:13px; font-weight:800; flex-shrink:0;
+}
+.status-icons { display:flex; align-items:center; gap:5px; }
+
+/* ── Generic Header ── */
+.scr-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; height:56px; position:sticky; top:0; background:#000; z-index:10; flex-shrink:0;
+}
+.scr-title {
+  position:absolute; left:50%; transform:translateX(-50%);
+  font-size:17px; font-weight:700; color:#fff; white-space:nowrap;
+}
+.back-btn { width:40px; height:40px; display:grid; place-items:center; background:none; border:none; color:#fff; cursor:pointer; border-radius:50%; }
+.icon-btn { width:44px; height:44px; display:grid; place-items:center; cursor:pointer; flex-shrink:0; }
+
+/* ── HOME ── */
+.home-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px 6px; }
+.home-search-bar {
+  flex:1; display:flex; align-items:center; gap:8px;
+  background:#1C1C1E; border-radius:12px; padding:9px 14px; margin:0 10px; cursor:pointer;
+}
+.home-search-bar span { font-size:14px; color:#636366; flex:1; }
+
+.wallet-row { display:flex; align-items:center; justify-content:center; gap:8px; padding:6px 16px 12px; }
+.wallet-label { font-size:15px; font-weight:700; cursor:pointer; }
+.wallet-copy-icon { width:28px; height:28px; border:1.5px solid #333; border-radius:6px; display:grid; place-items:center; cursor:pointer; }
+
+.home-bal-row { text-align:center; padding:2px 0 16px; }
+.home-balance { font-size:32px; font-weight:800; letter-spacing:-0.5px; }
+
+/* Action Row */
+.action-row { display:flex; justify-content:center; gap:20px; padding:0 16px 20px; }
+.action-btn { display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; }
+.action-circle { 
+  width:54px; height:54px; border-radius:16px; background:#1C1C1E; 
+  display:grid; place-items:center; transition:transform 0.15s;
+}
+.action-circle:active { transform:scale(0.92); }
+.action-circle svg { width:22px; height:22px; }
+.action-label { font-size:12px; font-weight:600; color:#fff; }
+
+/* Tab Bar */
+.tab-bar { 
+  display:flex; align-items:center; padding:0 16px; 
+  border-bottom:1px solid #1C1C1C; flex-shrink:0;
+}
+.tab-bar .tab {
+  padding:11px 14px; font-size:14px; font-weight:600; color:#636366; cursor:pointer; position:relative;
+}
+.tab-bar .tab.active { color:#fff; }
+.tab-bar .tab.active::after {
+  content:''; position:absolute; bottom:-1px; left:14px; right:14px; height:2px; background:#00FFA3; border-radius:2px;
+}
+.tab-icons { display:flex; gap:14px; margin-left:auto; align-items:center; color:#636366; cursor:pointer; }
+.tab-icons svg { width:20px; height:20px; }
+
+/* Home Tab Panels */
+.home-tab-panel { display:none; flex-direction:column; }
+.home-tab-panel.active { display:flex; }
+
+/* Fund Section */
+.fund-section {
+  background:#1A1A1A; border-radius:20px; margin:12px 16px;
+  padding:24px 20px 20px; display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+.fund-illustration { font-size:56px; margin-bottom:14px; }
+.fund-title { font-size:17px; font-weight:700; line-height:1.5; margin-bottom:18px; }
+.fund-btn {
+  width:100%; padding:15px; border-radius:50px; background:#00FFA3; color:#000;
+  font-size:16px; font-weight:800; border:none; cursor:pointer; margin-bottom:12px;
+}
+.receive-btn {
+  width:100%; padding:14px; border-radius:50px; background:transparent; color:#00FFA3;
+  font-size:16px; font-weight:700; border:1.5px solid #00FFA3; cursor:pointer;
+}
+
+/* Dash Sections */
+.dash-section { padding:20px 0 0; }
+.dash-section-hdr { display:flex; align-items:center; justify-content:space-between; padding:0 16px 14px; cursor:pointer; }
+.dash-section-hdr .title { font-size:20px; font-weight:800; color:#fff; }
+.dash-section-hdr .arr { color:#636366; font-size:20px; }
+
+.horizontal-scroll { display:flex; gap:14px; padding:0 16px 20px; overflow-x:auto; scrollbar-width:none; }
+.horizontal-scroll::-webkit-scrollbar { display:none; }
+
+/* Prediction Cards */
+.predict-card { min-width:280px; background:#1A1A1A; border-radius:20px; padding:16px; flex-shrink:0; }
+.predict-top { display:flex; align-items:center; margin-bottom:12px; }
+.predict-meta-right { flex:1; font-size:12px; color:#8E8E93; text-align:right; }
+.predict-img { width:40px; height:40px; border-radius:10px; object-fit:cover; margin-right:10px; flex-shrink:0; }
+.predict-prov-icon { width:20px; height:20px; border-radius:50%; overflow:hidden; margin-right:0; }
+.predict-title { font-size:15px; font-weight:700; line-height:1.45; color:#fff; margin-bottom:16px; min-height:42px; }
+.predict-btns { display:flex; gap:10px; margin-bottom:14px; }
+.p-btn { flex:1; height:42px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer; border:none; }
+.p-btn.yes { background:rgba(0,180,100,0.2); color:#00C878; }
+.p-btn.no { background:rgba(234,57,67,0.2); color:#EA3943; }
+.predict-footer { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#8E8E93; }
+.predict-footer .timer { display:flex; align-items:center; gap:4px; }
+.predict-footer .provider { display:flex; align-items:center; gap:4px; font-weight:600; }
+
+/* Perps */
+.perps-scroll { display:flex; gap:14px; padding:0 16px 20px; overflow-x:auto; scrollbar-width:none; }
+.perps-scroll::-webkit-scrollbar { display:none; }
+.perp-card { min-width:150px; background:#1A1A1A; border-radius:20px; padding:16px; flex-shrink:0; }
+.perp-top { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.perp-icon { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; }
+.perp-pair { font-size:13px; font-weight:800; color:#fff; }
+.perp-main { font-size:13px; font-weight:600; line-height:1.4; margin-bottom:8px; color:#fff; }
+.perp-label { font-size:12px; color:#8E8E93; }
+
+/* Earn Cards */
+.earn-card { min-width:155px; background:#1A1A1A; border-radius:20px; padding:18px; flex-shrink:0; }
+.earn-icon { width:40px; height:40px; border-radius:50%; margin-bottom:14px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.earn-text { font-size:12px; color:#8E8E93; margin-bottom:4px; }
+.earn-apy { font-size:16px; font-weight:800; color:#fff; margin-bottom:2px; }
+.earn-on { font-size:12px; color:#8E8E93; }
+
+/* History */
+.hist-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.hist-icon { width:42px; height:42px; border-radius:50%; background:#1A1A1A; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+.hist-meta { flex:1; }
+.hist-title { font-size:15px; font-weight:700; }
+.hist-time { font-size:12px; color:#8E8E93; margin-top:2px; }
+.hist-status { font-size:13px; font-weight:700; }
+.green { color:#00FFA3; } .red { color:#EA3943; }
+
+/* Watchlist */
+.watchlist-panel { padding:8px 0; }
+.watchlist-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); cursor:pointer; }
+.watchlist-icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:18px; font-weight:800; flex-shrink:0; }
+.watchlist-meta { flex:1; }
+.watchlist-meta .sym { font-size:16px; font-weight:700; }
+.watchlist-meta .cap { font-size:12px; color:#8E8E93; margin-top:2px; }
+.watchlist-price { text-align:right; }
+.watchlist-price .val { font-size:16px; font-weight:800; }
+.watchlist-price .chg { font-size:13px; font-weight:700; margin-top:2px; }
+.watchlist-price .chg.up { color:#00FFA3; }
+.watchlist-price .chg.down { color:#EA3943; }
+.add-token-link { display:block; padding:16px; color:#00FFA3; font-size:15px; font-weight:700; cursor:pointer; }
+
+/* NFT Panel */
+.nft-panel { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; }
+.nft-emoji { font-size:60px; margin-bottom:16px; }
+.nft-caption { font-size:15px; color:#636366; text-align:center; }
+
+/* ── TRENDING ── */
+.trending-header { 
+  display:flex; align-items:center; justify-content:space-between; 
+  padding:14px 16px 10px; sticky; top:0; background:#000; z-index:10; flex-shrink:0;
+}
+.trending-title { font-size:28px; font-weight:800; flex:1; text-align:center; }
+
+.section-label { padding:16px 16px 12px; font-size:16px; color:#fff; font-weight:700; }
+
+.top-traded-scroll { display:flex; gap:12px; padding:0 16px 20px; overflow-x:auto; scrollbar-width:none; }
+.top-traded-scroll::-webkit-scrollbar { display:none; }
+.traded-card { 
+  min-width:140px; background:#1C1C1E; border-radius:18px; 
+  padding:14px; flex-shrink:0; cursor:pointer;
+}
+.tc-name { font-size:12px; color:#8E8E93; font-weight:600; display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+.tc-ticker { font-size:12px; font-weight:700; color:#fff; }
+.tc-price { font-size:16px; font-weight:800; color:#fff; margin-bottom:6px; }
+.tc-chg { font-size:13px; font-weight:700; }
+.tc-chart { margin-top:8px; }
+
+/* Trending Filter Pills */
+.filter-row { display:flex; gap:8px; padding:0 16px 14px; overflow-x:auto; scrollbar-width:none; align-items:center; }
+.filter-row::-webkit-scrollbar { display:none; }
+.star-pill { 
+  width:36px; height:36px; background:#1C1C1E; border-radius:50%;
+  display:grid; place-items:center; flex-shrink:0; cursor:pointer; font-size:16px; color:#636366;
+}
+.fpill { 
+  background:#1C1C1E; color:#fff; padding:8px 16px; border-radius:20px; 
+  font-size:13px; font-weight:700; cursor:pointer; border:none; white-space:nowrap; flex-shrink:0;
+}
+.fpill.sel { background:#00FFA3; color:#000; }
+
+/* Dropdown row */
+.drop-row { display:flex; gap:10px; padding:0 16px 14px; }
+.dpill { 
+  font-size:13px; color:#8E8E93; font-weight:600; cursor:pointer;
+  background:#1C1C1E; padding:7px 14px; border-radius:12px; 
+  display:flex; align-items:center; gap:4px;
+}
+
+/* Token List */
+.token-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); cursor:pointer; }
+.token-row:active { background:rgba(255,255,255,0.03); }
+.token-icon-wrap { width:44px; height:44px; flex-shrink:0; position:relative; }
+.token-info { flex:1; }
+.token-info .name { font-size:16px; font-weight:700; color:#fff; }
+.token-info .mcap { font-size:12px; color:#8E8E93; margin-top:3px; }
+.token-right { text-align:right; }
+.token-right .price { font-size:16px; font-weight:800; color:#fff; }
+.token-right .change { font-size:13px; font-weight:700; margin-top:3px; }
+
+/* ── REWARDS ── */
+.rewards-page { display:flex; flex-direction:column; }
+.rewards-header-title { 
+  font-size:24px; font-weight:800; text-align:center; 
+  padding:20px 16px 0; flex-shrink:0;
+}
+.rewards-illustration { 
+  display:flex; justify-content:center; padding:20px;
+  font-size:70px;
+}
+.xp-cards { display:flex; gap:12px; padding:0 16px 20px; }
+.xp-card { 
+  flex:1; background:#1C1C1E; border-radius:16px; padding:14px 16px;
+}
+.xc-label { font-size:12px; color:#8E8E93; margin-bottom:8px; }
+.xc-val { font-size:18px; font-weight:800; color:#fff; line-height:1.3; }
+
+.section-hdr { display:flex; align-items:center; justify-content:space-between; padding:4px 16px 12px; }
+.section-hdr .lbl { font-size:20px; font-weight:800; }
+.section-hdr .arr { color:#636366; font-size:22px; cursor:pointer; }
+
+.toggle-pills { display:flex; gap:0; padding:0 16px 14px; }
+.tpill { 
+  padding:8px 18px; font-size:14px; font-weight:700; cursor:pointer;
+  background:#1C1C1E; color:#636366; border-radius:20px; margin-right:8px;
+}
+.tpill.on { background:#2C2C2E; color:#fff; }
+
+.campaign-card { background:#1C1C1E; border-radius:20px; margin:0 16px 14px; overflow:hidden; }
+.camp-row { display:flex; align-items:flex-start; gap:14px; padding:18px; }
+.camp-icon { width:52px; height:52px; border-radius:14px; display:grid; place-items:center; font-size:28px; flex-shrink:0; }
+.camp-text .ct { font-size:13px; color:#8E8E93; margin-bottom:4px; font-weight:500; }
+.camp-text .cb { font-size:16px; font-weight:700; line-height:1.45; }
+
+.x-handle { 
+  display:flex; align-items:center; gap:10px; padding:14px 18px;
+  border-top:1px solid rgba(255,255,255,0.06); cursor:pointer;
+}
+.x-icon { 
+  width:38px; height:38px; background:#000; border-radius:10px; border:1px solid #333;
+  display:grid; place-items:center; font-size:18px; flex-shrink:0; color:#fff;
+}
+.x-handle-name { font-size:16px; font-weight:600; flex:1; }
+.x-arrow { 
+  width:36px; height:36px; background:#00FFA3; border-radius:50%; 
+  display:grid; place-items:center; flex-shrink:0;
+}
+.x-arrow svg { color:#000; width:18px; height:18px; }
+
+/* ── DISCOVER ── */
+.disc-header { 
+  display:flex; align-items:center; justify-content:space-between; 
+  padding:14px 16px 10px; flex-shrink:0;
+}
+.disc-premium { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.prem-badge { 
+  width:32px; height:32px; border-radius:50%; background:#2A2A35; 
+  display:grid; place-items:center; font-size:16px; overflow:hidden;
+}
+.prem-badge img { width:100%; height:100%; object-fit:cover; }
+.prem-text .pt { font-size:12px; font-weight:700; color:#fff; line-height:1; }
+.prem-text .ps { font-size:11px; color:#00FFA3; font-weight:600; }
+.dtitle { font-size:20px; font-weight:800; flex:1; text-align:center; }
+
+.disc-search {
+  display:flex; align-items:center; gap:10px; margin:4px 16px 14px;
+  background:#1C1C1E; border-radius:12px; padding:12px 16px; cursor:pointer;
+}
+.disc-search span { font-size:14px; color:#636366; }
+
+/* Trust Premium Banner */
+.trust-premium-banner {
+  margin:0 16px 20px; background:#1A1A1A; border-radius:20px;
+  padding:20px; display:flex; align-items:center; overflow:hidden; position:relative;
+  min-height:120px;
+}
+.tpb-text { flex:1; z-index:1; }
+.tpb-title { font-size:22px; font-weight:900; color:#00FFA3; margin-bottom:6px; letter-spacing:-0.5px; }
+.tpb-sub { font-size:13px; color:#8E8E93; margin-bottom:14px; line-height:1.5; }
+.earn-now-btn {
+  background:#00FFA3; color:#000; border:none; border-radius:20px;
+  padding:8px 16px; font-size:12px; font-weight:800; cursor:pointer; letter-spacing:0.05em;
+}
+.tpb-illustration { 
+  position:absolute; right:16px; top:50%; transform:translateY(-50%); 
+  font-size:60px; opacity:0.9;
+}
+.banner-dots { display:flex; justify-content:center; gap:6px; margin-top:12px; }
+.banner-dot { width:6px; height:6px; border-radius:50%; background:#333; }
+.banner-dot.active { background:#fff; }
+
+/* Earn section */
+.earn-section { padding:0 16px 20px; }
+.earn-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor:pointer; }
+.earn-hdr .el { font-size:20px; font-weight:800; }
+.earn-hdr .ea { font-size:22px; color:#636366; }
+.earn-portfolio { background:#1C1C1E; border-radius:16px; padding:18px; }
+.ep-label { font-size:13px; color:#8E8E93; margin-bottom:8px; }
+.ep-val { font-size:28px; font-weight:800; }
+
+/* dApps */
+.dapps-section { padding:0 16px 0; }
+.ds-title { font-size:20px; font-weight:800; margin-bottom:14px; }
+.dapps-card { background:#1C1C1E; border-radius:20px; overflow:hidden; }
+.dapps-tabs { 
+  display:flex; gap:0; padding:0 16px; border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.dapps-tabs span { 
+  padding:14px 16px; font-size:14px; font-weight:700; color:#636366; cursor:pointer;
+  position:relative;
+}
+.dapps-tabs span.on { color:#fff; }
+.dapps-tabs span.on::after { 
+  content:''; position:absolute; bottom:0; left:16px; right:16px; height:2px; background:#00FFA3; border-radius:2px;
+}
+.dapp-row { 
+  display:flex; align-items:center; gap:14px; padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.04); cursor:pointer;
+}
+.dapp-row:last-of-type { border-bottom:none; }
+.dapp-num { font-size:14px; color:#636366; font-weight:600; width:18px; flex-shrink:0; }
+.dapp-icon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; font-size:20px; flex-shrink:0; overflow:hidden; }
+.dapp-name { font-size:16px; font-weight:700; margin-bottom:3px; }
+.dapp-desc { font-size:13px; color:#8E8E93; }
+.view-all { 
+  display:flex; align-items:center; justify-content:center; gap:4px;
+  padding:16px; font-size:15px; font-weight:700; cursor:pointer; color:#fff;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+
+/* Latest section */
+.latest-section { padding:20px 16px 20px; }
+.latest-title { font-size:20px; font-weight:800; margin-bottom:14px; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  flex-shrink:0; width:100%; height:86px;
+  background:#000; border-top:1px solid #1C1C1C;
+  display:flex; align-items:flex-start; justify-content:space-around; padding-top:10px;
+  z-index:50; position:relative;
+}
+.nav-item { 
+  display:flex; flex-direction:column; align-items:center; gap:4px; 
+  color:#636366; cursor:pointer; flex:1; font-size:11px; font-weight:600;
+}
+.nav-item .ni-icon { 
+  width:26px; height:26px; display:grid; place-items:center; 
+}
+.nav-item.active { color:#00FFA3; }
+.nav-item.active .ni-icon svg { color:#00FFA3; }
+.nav-item .ni-bg {
+  width:40px; height:32px; border-radius:12px; display:grid; place-items:center;
+}
+.nav-item.active .ni-bg { background:rgba(0,255,163,0.12); }
+
+.nav-trade-item { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; cursor:pointer; }
+.nav-trade-fab {
+  width:56px; height:56px; background:#00FFA3; border-radius:50%;
+  display:grid; place-items:center; margin-top:-22px;
+  box-shadow:0 8px 24px rgba(0,255,163,0.35); border:none; cursor:pointer;
+  transition:transform 0.15s;
+}
+.nav-trade-fab:active { transform:scale(0.93); }
+.nav-trade-fab svg { color:#000; width:28px; height:28px; }
+.nav-trade-label { font-size:11px; font-weight:600; color:#636366; margin-top:4px; }
+
+/* ── PUSH SCREENS ── */
+
+/* Settings */
+.sett-section-title { font-size:11px; font-weight:700; color:#636366; text-transform:uppercase; letter-spacing:.07em; padding:16px 16px 6px; }
+.sett-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; }
+.sett-icon { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; font-size:18px; }
+.sett-text { flex:1; }
+.sett-text .st { font-size:15px; font-weight:600; color:#fff; }
+.sett-text .ss { font-size:12px; color:#636366; margin-top:2px; }
+.sett-chev { color:#636366; font-size:18px; }
+.sett-toggle { width:44px; height:26px; border-radius:13px; background:#333; position:relative; cursor:pointer; flex-shrink:0; transition:background .2s; }
+.sett-toggle.on { background:#00FFA3; }
+.sett-toggle::after { content:''; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+.sett-toggle.on::after { transform:translateX(18px); }
+
+/* Swap */
+.swap-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; }
+.swap-box { margin:0 14px 8px; border:1px solid #1C1C1C; border-radius:16px; overflow:hidden; }
+.swap-token-row { display:flex; align-items:center; gap:10px; padding:16px; background:#0D0D0D; }
+.swap-label { font-size:12px; color:#636366; margin-bottom:4px; }
+.swap-sel { display:flex; align-items:center; gap:8px; background:#1C1C1E; border-radius:999px; padding:6px 12px; cursor:pointer; font-weight:700; font-size:14px; }
+.swap-amount { margin-left:auto; text-align:right; }
+.swap-amount input { background:none; border:none; font-size:26px; font-weight:800; width:130px; text-align:right; outline:none; color:#fff; font-family:Inter,sans-serif; }
+.max-btn { background:#1C1C2E; border:none; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:700; color:#00FFA3; cursor:pointer; margin-top:4px; display:block; }
+.flip-btn { width:44px; height:44px; border-radius:50%; background:#1C1C1E; margin:-14px auto; display:grid; place-items:center; z-index:2; position:relative; cursor:pointer; }
+.rate-row { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; font-size:13px; color:#636366; }
+.swap-btn { margin:10px 14px; width:calc(100% - 28px); padding:16px; border-radius:999px; background:#00FFA3; color:#000; font-size:16px; font-weight:800; border:none; cursor:pointer; }
+
+/* Token Detail */
+.detail-top { text-align:center; padding:20px 16px 10px; }
+.detail-logo { width:64px; height:64px; margin:0 auto 10px; border-radius:50%; overflow:hidden; display:grid; place-items:center; }
+.detail-sym { font-size:18px; font-weight:800; }
+.detail-price { font-size:34px; font-weight:800; margin:4px 0 2px; }
+.detail-chg { font-size:14px; font-weight:700; }
+.chart-container { padding:4px 8px; min-height:140px; }
+.chart-container svg { width:100%; height:140px; }
+.timeframes { display:flex; justify-content:space-evenly; padding:8px 12px 12px; }
+.tf { padding:6px 10px; border-radius:8px; font-size:13px; font-weight:600; color:#636366; cursor:pointer; border:none; background:none; }
+.tf.on { background:#1C1C1E; color:#fff; }
+.holdings-card { margin:0 14px 12px; background:#1C1C1E; border-radius:14px; padding:14px; display:flex; justify-content:space-between; }
+.hc-label { font-size:12px; color:#636366; margin-bottom:4px; }
+.hc-val { font-size:17px; font-weight:700; }
+.detail-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); padding:0 16px; }
+.detail-tabs span { padding:10px 14px; font-size:14px; font-weight:600; color:#636366; cursor:pointer; border-bottom:2.5px solid transparent; position:relative; bottom:-1px; }
+.detail-tabs span.on { color:#fff; border-bottom-color:#00FFA3; }
+.detail-tab-content { padding:12px 16px 100px; }
+.detail-bottom-bar { position:sticky; bottom:0; background:#000; border-top:1px solid rgba(255,255,255,0.08); display:flex; gap:8px; padding:12px 14px 24px; }
+.db-btn { flex:1; padding:13px 4px; border-radius:12px; font-size:13px; font-weight:700; border:none; cursor:pointer; }
+.db-btn.primary { background:#00FFA3; color:#000; }
+.db-btn.ghost { background:#1C1C1E; color:#fff; }
+
+/* Send */
+.send-field { margin:10px 14px; }
+.send-field label { font-size:12px; font-weight:700; color:#636366; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:.05em; }
+.send-field input { width:100%; padding:14px 16px; border:1.5px solid #1C1C1C; border-radius:12px; font-size:15px; font-family:Inter,sans-serif; outline:none; background:#0D0D0D; color:#fff; }
+.send-field input:focus { border-color:#00FFA3; }
+.addr-input-wrap { display:flex; align-items:center; border:1.5px solid #1C1C1C; border-radius:12px; padding:0 12px; gap:8px; background:#0D0D0D; }
+.addr-input-wrap input { flex:1; border:none; background:none; padding:14px 0; font-size:14px; font-family:Inter,sans-serif; outline:none; color:#fff; }
+.addr-input-wrap button { background:none; border:none; cursor:pointer; padding:8px; color:#636366; }
+.amount-with-max { display:flex; align-items:center; border:1.5px solid #1C1C1C; border-radius:12px; padding:8px 12px; background:#0D0D0D; }
+.amount-with-max input { flex:1; border:none; background:none; font-size:22px; font-weight:700; outline:none; font-family:Inter,sans-serif; color:#fff; }
+.amount-hint { color:#636366; font-size:12px; padding:4px 14px 0; text-align:right; }
+.send-review-btn { margin:16px 14px 0; width:calc(100% - 28px); padding:16px; border-radius:999px; background:#00FFA3; color:#000; font-size:16px; font-weight:800; border:none; cursor:pointer; }
+
+/* Receive */
+.search-row-dark { 
+  display:flex; align-items:center; gap:10px; margin:8px 16px 4px;
+  background:#1C1C1E; border-radius:12px; padding:12px 14px;
+}
+.search-row-dark input { background:none; border:none; outline:none; color:#fff; font-size:14px; font-family:Inter,sans-serif; flex:1; }
+.search-row-dark input::placeholder { color:#636366; }
+.search-row-dark svg { color:#636366; flex-shrink:0; }
+
+.network-scroll-row { display:flex; gap:10px; padding:12px 16px; overflow-x:auto; scrollbar-width:none; }
+.network-scroll-row::-webkit-scrollbar { display:none; }
+.net-list-section-title { padding:10px 16px 6px; font-size:13px; color:#636366; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
+
+.net-pill-box { 
+  width:42px; height:42px; border-radius:50%; background:#1C1C1E; 
+  display:grid; place-items:center; cursor:pointer; flex-shrink:0;
+}
+.net-pill-box.all { font-size:13px; font-weight:700; color:#fff; }
+.net-pill-box.all.on { border:2px solid #00FFA3; }
+.net-pill-box.more { width:auto; padding:0 12px; border-radius:21px; font-size:12px; font-weight:700; color:#fff; }
+
+.net-row-item { display:flex; align-items:center; gap:14px; padding:12px 16px; cursor:pointer; }
+.net-row-item:hover { background:rgba(255,255,255,0.03); }
+.net-row-item .icon { width:44px; height:44px; flex-shrink:0; }
+.net-row-item .name-wrap { flex:1; min-width:0; }
+.net-row-item .name-line { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+.net-row-item .asset-name { font-size:16px; font-weight:700; color:#fff; }
+.net-row-item .asset-net { font-size:13px; color:#8E8E93; }
+.net-row-item .asset-addr { font-size:12px; color:#636366; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+.net-row-item .actions { display:flex; gap:8px; margin-left:auto; }
+.net-row-item .action-btn-sm { width:38px; height:38px; border-radius:10px; background:#1C1C1E; display:grid; place-items:center; color:#636366; border:none; cursor:pointer; }
+.custom-radio { width:22px; height:22px; border-radius:50%; border:2px solid #333; position:relative; flex-shrink:0; }
+.custom-radio.on { border-color:#00FFA3; }
+.custom-radio.on::after { content:''; position:absolute; inset:4px; border-radius:50%; background:#00FFA3; }
+
+/* Buy Screen */
+.buy-display { padding:30px 16px 20px; text-align:center; }
+.buy-amount-wrap { font-size:52px; font-weight:800; color:#fff; display:flex; align-items:center; justify-content:center; gap:4px; }
+.buy-cursor { width:3px; height:46px; background:#00FFA3; border-radius:2px; animation:blink 1s infinite; display:inline-block; vertical-align:middle; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.buy-subtext { font-size:14px; color:#636366; margin-top:6px; }
+.buy-select-group { display:flex; gap:12px; padding:0 16px 20px; }
+.buy-sel-item { 
+  flex:1; display:flex; align-items:center; gap:8px; background:#1C1C1E; 
+  border-radius:12px; padding:12px; cursor:pointer; font-weight:700; font-size:14px;
+}
+.pay-with-card { 
+  display:flex; align-items:center; gap:12px; margin:0 16px 20px; 
+  background:#1C1C1E; border-radius:14px; padding:14px;
+}
+.numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 16px; }
+.num-key { 
+  height:56px; border-radius:14px; display:grid; place-items:center; 
+  font-size:24px; font-weight:600; cursor:pointer; background:#1C1C1E; color:#fff;
+  transition:background 0.12s;
+}
+.num-key:active { background:#2C2C2E; }
+.continue-btn { 
+  margin:16px; width:calc(100% - 32px); padding:16px; border-radius:999px; 
+  background:#00FFA3; color:#000; font-size:16px; font-weight:800; border:none; cursor:pointer;
+}
+
+/* Tx History */
+.tx-controls { display:flex; gap:10px; padding:14px 16px 8px; }
+.tx-chip { border:none; background:#1C1C1E; color:#636366; padding:10px 16px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; }
+.tx-chip.active { background:#2C2C3E; color:#fff; }
+.tx-list { padding:8px 14px 24px; display:flex; flex-direction:column; gap:10px; }
+.tx-row { background:#1A1A1A; border-radius:14px; padding:14px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+.tx-icon { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+.tx-meta { flex:1; }
+.tx-meta .title { font-size:14px; font-weight:700; }
+.tx-meta .sub { font-size:12px; color:#636366; margin-top:2px; }
+.tx-amt { text-align:right; }
+.tx-amt .val { font-size:14px; font-weight:700; }
+.tx-amt .time { font-size:11px; color:#636366; margin-top:2px; }
+
+/* Success */
+.success-wrap { text-align:center; padding:48px 24px 32px; }
+.success-emoji { font-size:80px; margin-bottom:16px; }
+.success-ttl { font-size:22px; font-weight:800; margin-bottom:8px; }
+.success-sub { font-size:14px; color:#636366; margin-bottom:32px; line-height:1.5; }
+.success-primary-btn { width:100%; padding:16px; border-radius:999px; background:#00FFA3; color:#000; font-size:16px; font-weight:800; border:none; cursor:pointer; margin-bottom:10px; }
+.success-sec-btn { width:100%; padding:15px; border-radius:999px; background:#1C1C1E; color:#fff; font-size:15px; font-weight:700; border:none; cursor:pointer; }
+
+/* Send Asset Select */
+.send-search-wrap { padding:10px 16px 8px; }
+.send-search-inner { 
+  display:flex; align-items:center; gap:10px; background:#1C1C1E; 
+  border-radius:12px; padding:12px 14px;
+}
+.send-search-inner input { background:none; border:none; outline:none; color:#fff; font-size:14px; font-family:Inter,sans-serif; flex:1; }
+.send-search-inner input::placeholder { color:#636366; }
+.send-search-inner svg { color:#636366; }
+
+/* Wallet Switcher */
+.ws-item { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; }
+.ws-circle { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:20px; flex-shrink:0; }
+.ws-name { font-size:15px; font-weight:700; }
+.ws-bal { font-size:12px; color:#636366; margin-top:2px; }
+.ws-check { margin-left:auto; color:#00FFA3; font-size:22px; }
+.ws-add-btn { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; color:#00FFA3; font-weight:600; }
+
+/* Trade Menu Overlay */
+.trade-menu-overlay { 
+  position:absolute; inset:0; background:rgba(0,0,0,0.7); z-index:300; 
+  display:flex; flex-direction:column; justify-content:flex-end;
+  opacity:0; pointer-events:none; transition:opacity 0.25s;
+}
+.trade-menu-overlay.open { opacity:1; pointer-events:all; }
+.trade-menu { 
+  background:#1A1A1A; border-radius:28px 28px 0 0; padding:24px 16px 40px;
+  transform:translateY(100%); transition:transform 0.28s cubic-bezier(.4,0,.2,1);
+}
+.trade-menu-overlay.open .trade-menu { transform:translateY(0); }
+.trade-option { 
+  display:flex; align-items:center; gap:16px; padding:16px; 
+  background:#222; border-radius:16px; margin-bottom:10px; cursor:pointer;
+}
+.trade-option .icon { font-size:28px; width:44px; height:44px; display:grid; place-items:center; }
+.trade-option .title { font-size:16px; font-weight:700; color:#fff; }
+.trade-option .sub { font-size:13px; color:#636366; margin-top:2px; }
+.trade-close { 
+  margin:16px auto 0; display:block; width:50px; height:50px; border-radius:50%; 
+  background:#252525; border:none; cursor:pointer; color:#fff; font-size:24px;
+}
+
+/* Bottom Sheets */
+#sheet-overlay { 
+  position:absolute; inset:0; background:rgba(0,0,0,0.6); z-index:400; 
+  display:none; 
+}
+.bottom-sheet { 
+  position:absolute; bottom:0; left:0; right:0; background:#1A1A1A; 
+  border-radius:28px 28px 0 0; padding:16px 0 40px; z-index:500;
+  transform:translateY(100%); transition:transform 0.28s cubic-bezier(.4,0,.2,1);
+  max-height:80%; overflow-y:auto;
+}
+.bottom-sheet.open { transform:translateY(0); }
+.sheet-handle { width:40px; height:4px; background:#333; border-radius:2px; margin:0 auto 16px; }
+.sheet-title { font-size:18px; font-weight:700; padding:0 16px 14px; }
+.more-btn { text-align:center; padding:16px; color:#00FFA3; font-weight:700; cursor:pointer; }
+
+/* Search Screen */
+.search-chip { border:1.5px solid #1C1C1C; background:#1C1C1E; color:#636366; padding:8px 16px; border-radius:999px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.search-chip.on { border-color:#00FFA3; color:#00FFA3; background:#001A0F; }
+.search-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; }
+.search-icon { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:18px; font-weight:700; flex-shrink:0; }
+.search-meta .sym { font-size:16px; font-weight:700; }
+.search-meta .name { font-size:13px; color:#636366; margin-top:2px; }
+
+/* Prem card settings */
+.prem-card-sett { margin:10px 14px; border-radius:14px; background:#1A1A2A; padding:14px 16px; display:flex; align-items:center; gap:10px; }
+.prem-card-sett .pct { font-size:17px; font-weight:800; color:#00FFA3; }
+.prem-card-sett .pcs { font-size:13px; color:#8E8E93; margin-top:2px; }
+
+/* net badge overlay */
+.net-badge-small { position:absolute; bottom:-2px; right:-2px; background:#000; border-radius:50%; padding:1px; line-height:0; display:flex; border:1px solid #1A1A1A; }
+
+/* Backup banner */
+.backup-banner { 
+  display:flex; align-items:center; gap:12px; margin:0 16px 12px;
+  background:#1A1520; border-radius:14px; padding:14px;
+}
+.backup-banner .close { background:none; border:none; color:#636366; font-size:20px; cursor:pointer; margin-left:auto; }
+.backup-banner-text .title { font-size:14px; font-weight:700; }
+.backup-banner-text .link { font-size:13px; color:#00FFA3; font-weight:700; margin-top:4px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <div class="screens-container">
+  <!-- ══════════ HOME ══════════ -->
+  <div class="screen active" id="home">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>1:29</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M1.5 8.5a13 13 0 0 1 21 0M5 12a10 10 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0M12 19h.01" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
+        <div style="width:22px;height:12px;border:1.5px solid #6E6E73;border-radius:3px;position:relative;display:flex;align-items:center;">
+          <div style="width:50%;height:70%;background:#6E6E73;border-radius:1px;margin-left:2px;"></div>
+          <div style="width:3px;height:6px;background:#6E6E73;border-radius:1px;position:absolute;right:-4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Row: Settings + Search + Scan -->
+    <div class="home-header">
+      <div class="icon-btn" onclick="pushScreen('settings-screen')" style="position:relative;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <div style="position:absolute;top:10px;right:10px;width:7px;height:7px;background:#EA3943;border-radius:50%;border:1.5px solid #000;"></div>
+      </div>
+      <div class="home-search-bar" onclick="pushScreen('search-screen')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </div>
+      <div class="icon-btn" onclick="haptic()">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="20" height="20" rx="4"/>
+          <path d="M7 7h2v2H7zM11 7h2v2h-2zM15 7h2v2h-2zM7 11h2v2H7zM11 11h2v2h-2zM15 11h2v2h-2zM7 15h2v2H7zM15 15h2v2h-2z"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Wallet Name Row -->
+    <div class="wallet-row">
+      <span class="wallet-label" onclick="openBottomSheet('wallet-sheet')">
+        <span id="wallet-name">Main Wallet 1</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle; margin-left:3px;"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+      <div class="wallet-copy-icon" onclick="haptic()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <!-- Balance (hidden when crypto tab shows $0.00) -->
+    <div class="home-bal-row" id="home-bal-row" style="display:none;">
+      <div class="home-balance" id="home-balance">$0.00</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-row">
+      <div class="action-btn" onclick="pushScreen('send-asset-select-screen')">
+        <div class="action-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        </div>
+        <span class="action-label">Send</span>
+      </div>
+      <div class="action-btn" onclick="pushScreen('receive-screen')">
+        <div class="action-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+        <span class="action-label">Receive</span>
+      </div>
+      <div class="action-btn" onclick="pushScreen('trade-screen')">
+        <div class="action-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        </div>
+        <span class="action-label">Swap</span>
+      </div>
+      <div class="action-btn" onclick="pushScreen('buy-screen')">
+        <div class="action-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <span class="action-label">Buy</span>
+      </div>
+    </div>
+
+    <!-- Tab Bar: Crypto / Watchlist / NFTs -->
+    <div class="tab-bar">
+      <span class="tab active" onclick="setHomeTab('crypto', this)">Crypto</span>
+      <span class="tab" onclick="setHomeTab('watchlist', this)">Watchlist</span>
+      <span class="tab" onclick="setHomeTab('nfts', this)">NFTs</span>
+      <div class="tab-icons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" onclick="pushScreen('tx-history-screen')" style="cursor:pointer;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" onclick="haptic()" style="cursor:pointer;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </div>
+    </div>
+
+    <!-- CRYPTO PANEL -->
+    <div class="home-tab-panel active" id="home-panel-crypto">
+      <!-- Fund Card -->
+      <div class="fund-section">
+        <div class="fund-illustration">💼</div>
+        <div class="fund-title">Fund your wallet to start trading and earning</div>
+        <button class="fund-btn" onclick="pushScreen('buy-screen')">Fund</button>
+        <button class="receive-btn" onclick="pushScreen('receive-screen')">Receive crypto</button>
+      </div>
+
+      <!-- Prediction Section -->
+      <div class="dash-section">
+        <div class="dash-section-hdr">
+          <span class="title">Prediction</span>
+          <span class="arr">›</span>
+        </div>
+        <div class="horizontal-scroll" id="prediction-list"></div>
+      </div>
+
+      <!-- Perps Section -->
+      <div class="dash-section">
+        <div class="dash-section-hdr">
+          <span class="title">Perps</span>
+          <span class="arr">›</span>
+        </div>
+        <div class="perps-scroll" id="perps-list"></div>
+      </div>
+
+      <!-- Earn Section -->
+      <div class="dash-section">
+        <div class="dash-section-hdr">
+          <span class="title">Earn</span>
+          <span class="arr">›</span>
+        </div>
+        <div class="horizontal-scroll" id="earn-list"></div>
+      </div>
+
+      <!-- History Section -->
+      <div class="dash-section" style="padding-bottom:24px;">
+        <div class="dash-section-hdr">
+          <span class="title">History</span>
+          <span class="arr">›</span>
+        </div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- WATCHLIST PANEL -->
+    <div class="home-tab-panel" id="home-panel-watchlist">
+      <div class="watchlist-panel">
+        <div class="watchlist-row" onclick="pulseTap(this)">
+          <div class="watchlist-icon" style="background:#1A1A2E;">
+            <svg viewBox="0 0 42 42" width="28" height="28"><circle cx="21" cy="21" r="21" fill="#1A1A2E"/><path d="M21 8l-9 13h18zM12 23l9 13 9-13z" fill="#fff" opacity=".85"/></svg>
+          </div>
+          <div class="watchlist-meta"><div class="sym">ETH</div><div class="cap">$26.2B MCap</div></div>
+          <div class="watchlist-price"><div class="val">$2,378</div><div class="chg up">+1.14%</div></div>
+        </div>
+        <div class="watchlist-row" onclick="pulseTap(this)">
+          <div class="watchlist-icon" style="background:#1A1A1A;">
+            <svg viewBox="0 0 42 42" width="28" height="28"><circle cx="21" cy="21" r="21" fill="#9945FF"/><rect x="12" y="15" width="18" height="3" rx="1.5" fill="#fff"/><rect x="12" y="19.5" width="18" height="3" rx="1.5" fill="#fff"/><rect x="12" y="24" width="18" height="3" rx="1.5" fill="#fff"/></svg>
+          </div>
+          <div class="watchlist-meta"><div class="sym">SOL</div><div class="cap">$6.16B MCap</div></div>
+          <div class="watchlist-price"><div class="val">$87.3</div><div class="chg down">-1.65%</div></div>
+        </div>
+        <div class="watchlist-row" onclick="pulseTap(this)">
+          <div class="watchlist-icon" style="background:#1A1A1A;">
+            <svg viewBox="0 0 42 42" width="28" height="28"><circle cx="21" cy="21" r="21" fill="#F3BA2F"/><path d="M21 14l3.5 3.5L21 21l-3.5-3.5zM14 21l3.5-3.5 3.5 3.5-3.5 3.5zM28 21l-3.5 3.5-3.5-3.5 3.5-3.5zM21 28l-3.5-3.5L21 21l3.5 3.5z" fill="#111"/></svg>
+          </div>
+          <div class="watchlist-meta"><div class="sym">BNB</div><div class="cap">$2.08B MCap</div></div>
+          <div class="watchlist-price"><div class="val">$636</div><div class="chg up">+0.98%</div></div>
+        </div>
+        <div class="watchlist-row" onclick="pulseTap(this)">
+          <div class="watchlist-icon" style="background:#1A1A1A;">
+            <svg viewBox="0 0 42 42" width="28" height="28"><circle cx="21" cy="21" r="21" fill="#F7931A"/><text x="21" y="27" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="Inter">₿</text></svg>
+          </div>
+          <div class="watchlist-meta"><div class="sym">BTC</div><div class="cap">$51.2B MCap</div></div>
+          <div class="watchlist-price"><div class="val">$76,724</div><div class="chg up">+1.26%</div></div>
+        </div>
+        <span class="add-token-link" onclick="pulseTap(this)">+ Add tokens</span>
+      </div>
+    </div>
+
+    <!-- NFTs PANEL -->
+    <div class="home-tab-panel" id="home-panel-nfts">
+      <div class="nft-panel">
+        <div class="nft-emoji">🃏</div>
+        <div class="nft-caption">Your NFTs will appear here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRENDING ══════════ -->
+  <div class="screen" id="trending">
+    <!-- Header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; background:#000; z-index:10; flex-shrink:0;">
+      <div style="width:44px;"></div>
+      <div style="font-size:24px; font-weight:800;">Trending</div>
+      <div class="icon-btn" onclick="haptic()">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+    </div>
+
+    <div style="font-size:14px; font-weight:700; color:#fff; padding:4px 16px 8px; flex-shrink:0;">Top traded (24h)</div>
+    <div class="top-traded-scroll" id="top-traded-scroll" style="flex-shrink:0; min-height:130px;"></div>
+
+    <!-- Filter Pills -->
+    <div class="filter-row" style="flex-shrink:0;">
+      <div class="star-pill">☆</div>
+      <button class="fpill sel" onclick="setTrendingFilter(this, 'hot')">Hot tokens</button>
+      <button class="fpill" onclick="setTrendingFilter(this, 'gainers')">Top Gainers</button>
+      <button class="fpill" onclick="setTrendingFilter(this, 'preipo')">Pre-IPO</button>
+      <button class="fpill" onclick="setTrendingFilter(this, 'rwa')">RWA</button>
+    </div>
+
+    <!-- Dropdown row -->
+    <div class="drop-row" style="flex-shrink:0;">
+      <div class="dpill">Network <span style="font-size:11px;">▼</span></div>
+      <div class="dpill">Market cap <span style="font-size:11px;">▼</span></div>
+      <div class="dpill">24h <span style="font-size:11px;">▼</span></div>
+    </div>
+
+    <!-- Token list -->
+    <div id="trending-list" style="padding-bottom:20px; flex-shrink:0;"></div>
+  </div>
+
+  <!-- ══════════ REWARDS ══════════ -->
+  <div class="screen rewards-page" id="rewards">
+    <div class="rewards-header-title">Rewards</div>
+    <div class="rewards-illustration">🎁</div>
+
+    <div class="xp-cards">
+      <div class="xp-card">
+        <div class="xc-label">Level</div>
+        <div class="xc-val">100 XP to<br>Bronze</div>
+      </div>
+      <div class="xp-card">
+        <div class="xc-label">XP Balance</div>
+        <div class="xc-val">0 XP</div>
+      </div>
+    </div>
+
+    <div class="section-hdr"><span class="lbl">Redeem XP</span></div>
+    <div class="toggle-pills">
+      <span class="tpill on">Active</span>
+      <span class="tpill">Past</span>
+    </div>
+
+    <div class="campaign-card">
+      <div class="camp-row">
+        <div class="camp-icon" style="background:#1E2240;">
+          <svg viewBox="0 0 48 48" width="36" height="36"><rect x="4" y="8" width="36" height="28" rx="4" fill="#2A3170"/><path d="M4 16h36" stroke="#fff" stroke-width="2"/><rect x="8" y="24" width="10" height="6" rx="2" fill="#00FFA3"/><rect x="22" y="24" width="18" height="3" rx="1.5" fill="#fff" opacity=".4"/><rect x="22" y="29" width="12" height="3" rx="1.5" fill="#fff" opacity=".3"/></svg>
+        </div>
+        <div class="camp-text">
+          <div class="ct">New campaigns coming soon</div>
+          <div class="cb">Follow us on socials and be the first to know!</div>
+        </div>
+      </div>
+      <div class="x-handle">
+        <div class="x-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.734-8.849L1.254 2.25h6.988l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </div>
+        <span class="x-handle-name">@TrustWallet</span>
+        <div class="x-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-hdr" style="margin-top:8px;"><span class="lbl">Trust Alpha</span><span class="arr" style="cursor:pointer;">›</span></div>
+    <div class="toggle-pills">
+      <span class="tpill on">Active</span>
+      <span class="tpill">Past</span>
+    </div>
+    <div class="campaign-card" style="margin-bottom:24px;">
+      <div class="camp-row">
+        <div class="camp-icon" style="background:#1A1040;">
+          <svg viewBox="0 0 48 48" width="36" height="36">
+            <ellipse cx="24" cy="34" rx="10" ry="4" fill="#FF6B9D" opacity=".5"/>
+            <path d="M24 6 L30 20 L44 22 L34 32 L36 46 L24 40 L12 46 L14 32 L4 22 L18 20 Z" fill="#FF6B9D"/>
+            <circle cx="24" cy="10" r="6" fill="#9B59FF"/>
+            <path d="M18 28 Q24 22 30 28" stroke="#fff" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="camp-text">
+          <div class="ct">You're all caught up</div>
+          <div class="cb">No campaigns running at the moment</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DISCOVER ══════════ -->
+  <div class="screen" id="discover">
+    <div class="disc-header">
+      <div class="disc-premium" onclick="haptic()">
+        <div class="prem-badge">🛡️</div>
+        <div class="prem-text">
+          <div class="pt">Premium</div>
+          <div class="ps">Level up</div>
+        </div>
+      </div>
+      <div class="dtitle">Discover</div>
+      <div class="icon-btn" onclick="haptic()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </div>
+    </div>
+
+    <div class="disc-search" onclick="pushScreen('search-screen')">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Search or enter dApp URL</span>
+    </div>
+
+    <!-- Trust Premium Banner -->
+    <div class="trust-premium-banner">
+      <div class="tpb-text">
+        <div class="tpb-title">Trust Premium</div>
+        <div class="tpb-sub">Earn XP and lock TWT for exclusive<br>rewards &amp; benefits</div>
+        <button class="earn-now-btn">EARN NOW</button>
+      </div>
+      <div class="tpb-illustration">🏆</div>
+    </div>
+    <div class="banner-dots" style="margin:-10px 0 16px;">
+      <div class="banner-dot active"></div>
+      <div class="banner-dot"></div>
+    </div>
+
+    <!-- Earn -->
+    <div class="earn-section">
+      <div class="earn-hdr">
+        <span class="el">Earn</span>
+        <span class="ea">›</span>
+      </div>
+      <div class="earn-portfolio">
+        <div class="ep-label">My earn portfolio</div>
+        <div class="ep-val">$0.00</div>
+      </div>
+    </div>
+
+    <!-- dApps -->
+    <div class="dapps-section" style="margin-top:20px;">
+      <div class="ds-title">Explore dApps</div>
+      <div class="dapps-card">
+        <div class="dapps-tabs">
+          <span class="on">Featured</span>
+          <span>DEX</span>
+          <span>Lending</span>
+          <span>Yield</span>
+        </div>
+        <div class="dapp-row" onclick="haptic()">
+          <div class="dapp-num">1</div>
+          <div class="dapp-icon" style="background:#1A1A1A; border:1px solid #333;">
+            <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="20" fill="#000"/><text x="20" y="26" text-anchor="middle" font-size="18" fill="#fff">🖐</text></svg>
+          </div>
+          <div>
+            <div class="dapp-name">Four</div>
+            <div class="dapp-desc">FOUR.meme is a go-to platform for eas...</div>
+          </div>
+        </div>
+        <div class="dapp-row" onclick="haptic()">
+          <div class="dapp-num">2</div>
+          <div class="dapp-icon" style="background:#FF6B35;">
+            <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="20" fill="#FF6B35"/><path d="M20 8 l4 10 h-8 L20 28 l8-8-8-4z" fill="#fff"/></svg>
+          </div>
+          <div>
+            <div class="dapp-name">Aster</div>
+            <div class="dapp-desc">Decentralized perpetual contracts. Mul...</div>
+          </div>
+        </div>
+        <div class="dapp-row" onclick="haptic()">
+          <div class="dapp-num">3</div>
+          <div class="dapp-icon" style="background:linear-gradient(135deg,#7B2FBE,#4A1585);">
+            <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="20" fill="url(#ab)"/><defs><linearGradient id="ab" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7B2FBE"/><stop offset="1" stop-color="#4A1585"/></linearGradient></defs><text x="20" y="26" text-anchor="middle" font-size="16" font-weight="800" fill="#fff" font-family="Inter">A</text></svg>
+          </div>
+          <div>
+            <div class="dapp-name">Aave</div>
+            <div class="dapp-desc">Aave is an Open Source and Non-Cust...</div>
+          </div>
+        </div>
+        <div class="view-all" onclick="haptic()">View all ›</div>
+      </div>
+    </div>
+
+    <!-- Latest -->
+    <div class="latest-section">
+      <div class="latest-title">Latest</div>
+      <div id="discover-latest-list"></div>
+    </div>
+  </div><!-- /discover -->
+  </div><!-- /screens-container -->
+
+  <!-- ══════════ BOTTOM NAV ══════════ -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="show('home', this, 'nav-home')">
+      <div class="ni-bg">
+        <div class="ni-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        </div>
+      </div>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" id="nav-trending" onclick="show('trending', this, 'nav-trending')">
+      <div class="ni-bg">
+        <div class="ni-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+      </div>
+      <span>Trending</span>
+    </div>
+
+    <div class="nav-trade-item">
+      <button class="nav-trade-fab" onclick="toggleTradeMenu(true)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      </button>
+      <span class="nav-trade-label">Trade</span>
+    </div>
+
+    <div class="nav-item" id="nav-rewards" onclick="show('rewards', this, 'nav-rewards')">
+      <div class="ni-bg">
+        <div class="ni-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="4" rx="2"/><path d="M12 8V4.5a2.5 2.5 0 0 0-5 0V8"/><path d="M12 8V4.5a2.5 2.5 0 0 1 5 0V8"/><path d="M7 12v9h10V12"/></svg>
+        </div>
+      </div>
+      <span>Rewards</span>
+    </div>
+    <div class="nav-item" id="nav-discover" onclick="show('discover', this, 'nav-discover')">
+      <div class="ni-bg">
+        <div class="ni-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+      </div>
+      <span>Discover</span>
+    </div>
+  </div>
+
+  <!-- ══════════ PUSH SCREENS ══════════ -->
+
+  <!-- WALLET SWITCHER -->
+  <div class="push-screen" id="wallet-switcher-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Select Wallet</span>
+      <span style="font-size:22px;color:#00FFA3;cursor:pointer;">+</span>
+    </div>
+    <div class="ws-item" onclick="selectWallet(0)"><div class="ws-circle" style="background:#1A1A2A;">👛</div><div><div class="ws-name">Main Wallet 1</div><div class="ws-bal">$0.00</div></div><div class="ws-check">✓</div></div>
+    <div class="ws-item" onclick="selectWallet(1)"><div class="ws-circle" style="background:#1A1A1A;">💎</div><div><div class="ws-name">DeFi Vault</div><div class="ws-bal">$0.00</div></div></div>
+    <div class="ws-add-btn"><div style="width:44px;height:44px;border-radius:50%;border:2px dashed #00FFA3;display:grid;place-items:center;font-size:22px;color:#00FFA3;flex-shrink:0;">+</div><span>Add new wallet</span></div>
+  </div>
+
+  <!-- TOKEN DETAIL -->
+  <div class="push-screen" id="detail-screen" style="background:#000;">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title detail-sym">XRP</span>
+      <span style="font-size:22px;cursor:pointer;color:#636366;">☆</span>
+    </div>
+    <div class="detail-top">
+      <div class="detail-logo"></div>
+      <div class="detail-price">$1.45</div>
+      <div class="detail-chg green">+0.67%</div>
+    </div>
+    <div class="chart-container" id="detail-chart"></div>
+    <div class="timeframes">
+      <button class="tf" onclick="setTf(this)">1H</button>
+      <button class="tf on" onclick="setTf(this)">24H</button>
+      <button class="tf" onclick="setTf(this)">7D</button>
+      <button class="tf" onclick="setTf(this)">30D</button>
+      <button class="tf" onclick="setTf(this)">1Y</button>
+      <button class="tf" onclick="setTf(this)">All</button>
+    </div>
+    <div class="holdings-card">
+      <div><div class="hc-label">Your balance</div><div class="hc-val">0 XRP</div></div>
+      <div style="text-align:right;"><div class="hc-label">Value</div><div class="hc-val">$0.00</div></div>
+    </div>
+    <div class="detail-tabs">
+      <span class="on" onclick="detailTab(this)">Overview</span>
+      <span onclick="detailTab(this)">Transactions</span>
+      <span onclick="detailTab(this)">About</span>
+    </div>
+    <div class="detail-tab-content">
+      <div style="display:flex;justify-content:space-between;padding:0 0 14px;"><div><div style="font-size:12px;color:#636366;">Market Cap</div><div style="font-weight:700;font-size:15px;">$89.47B</div></div><div style="text-align:right;"><div style="font-size:12px;color:#636366;">24h Volume</div><div style="font-weight:700;font-size:15px;">$4.02B</div></div></div>
+      <div style="display:flex;justify-content:space-between;"><div><div style="font-size:12px;color:#636366;">Rank</div><div style="font-weight:700;font-size:15px;">#7</div></div><div style="text-align:right;"><div style="font-size:12px;color:#636366;">7D Change</div><div style="font-weight:700;font-size:15px;color:#00FFA3;">+3.21%</div></div></div>
+    </div>
+    <div class="detail-bottom-bar">
+      <button class="db-btn ghost" onclick="pushScreen('send-screen')">Send</button>
+      <button class="db-btn ghost" onclick="pushScreen('receive-screen')">Receive</button>
+      <button class="db-btn primary" onclick="pushScreen('trade-screen')">Swap</button>
+      <button class="db-btn ghost" onclick="pushScreen('buy-screen')">Buy</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="push-screen" id="settings-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Settings</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="prem-card-sett"><div style="font-size:32px;">🛡️</div><div><div class="pct">Trust Premium</div><div class="pcs">Earn XP, lock TWT for exclusive rewards</div></div><button style="margin-left:auto;background:#00FFA3;color:#000;border:none;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:800;cursor:pointer;">BEGIN</button></div>
+    <div class="sett-section-title">Wallet</div>
+    <div class="sett-row" onclick="pushScreen('wallet-switcher-screen')"><div class="sett-icon" style="background:#1E1E2A;">👛</div><div class="sett-text"><div class="st">Manage Wallets</div><div class="ss">Create, import or switch</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A2A1A;">📒</div><div class="sett-text"><div class="st">Address Book</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A2A;">⌗</div><div class="sett-text"><div class="st">Sync to Extension</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A2020;">@</div><div class="sett-text"><div class="st">Trust Handles</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#2A1A1A;">🔗</div><div class="sett-text"><div class="st">WalletConnect</div><div class="ss">Manage active sessions</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-section-title">Preferences</div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A1A;">◐</div><div class="sett-text"><div class="st">Dark Mode</div></div><div class="sett-toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A1A;">⚙</div><div class="sett-text"><div class="st">Preferences</div><div class="ss">Currency, language, analytics</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A1A;">🔔</div><div class="sett-text"><div class="st">Notifications</div></div><div class="sett-toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="sett-section-title">Security</div>
+    <div class="sett-row"><div class="sett-icon" style="background:#2A1A1A;">🔒</div><div class="sett-text"><div class="st">Security <span style="color:#EA3943;">●</span></div><div class="ss">PIN, biometrics, cloud backup</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#2A2A1A;">🔍</div><div class="sett-text"><div class="st">Security Scanner</div><div class="ss">Scan for risky tokens</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-section-title">Advanced</div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A2A;">🌐</div><div class="sett-text"><div class="st">Networks</div><div class="ss">Enable/disable chains, add custom</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A2A1A;">🪙</div><div class="sett-text"><div class="st">Manage Crypto</div><div class="ss">Hide/show tokens globally</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-section-title">Support</div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A1A;">❓</div><div class="sett-text"><div class="st">Help Center</div></div><span class="sett-chev">›</span></div>
+    <div class="sett-row"><div class="sett-icon" style="background:#1A1A1A;">ℹ</div><div class="sett-text"><div class="st">About</div><div class="ss">Version 14.2.0 (2026)</div></div><span class="sett-chev">›</span></div>
+    <div style="padding:20px 14px 8px;"><button onclick="popScreen()" style="width:100%;padding:15px;border-radius:999px;background:#2A1010;color:#EA3943;font-size:15px;font-weight:700;border:1.5px solid #3A1515;cursor:pointer;">Delete Wallet</button></div>
+    <div style="padding:0 14px 40px;"><button style="width:100%;padding:15px;border-radius:999px;background:#1A1A1A;color:#636366;font-size:15px;font-weight:700;border:none;cursor:pointer;">Reset Demo Data</button></div>
+  </div>
+
+  <!-- SWAP / TRADE -->
+  <div class="push-screen" id="trade-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Swap</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;color:#636366;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33"/></svg>
+    </div>
+    <div class="swap-box">
+      <div class="swap-token-row">
+        <div><div class="swap-label">From</div><div class="swap-sel"><svg viewBox="0 0 42 42" width="22" height="22"><circle cx="21" cy="21" r="21" fill="#1A1A2E"/><path d="M21 8l-9 13h18zM12 23l9 13 9-13z" fill="#fff" opacity=".85"/></svg> ETH <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div style="font-size:12px;color:#636366;margin-top:4px;">Balance: 0 ETH</div></div>
+        <div class="swap-amount"><input type="number" value="0.0" id="from-amount" oninput="calcSwap()"/><button class="max-btn">MAX</button></div>
+      </div>
+    </div>
+    <div style="text-align:center;position:relative;z-index:5;margin:-4px 0;">
+      <div class="flip-btn" onclick="haptic()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px;height:20px;color:#00FFA3;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+    </div>
+    <div class="swap-box" style="margin-top:4px;">
+      <div class="swap-token-row">
+        <div><div class="swap-label">To</div><div class="swap-sel"><svg viewBox="0 0 42 42" width="22" height="22"><circle cx="21" cy="21" r="21" fill="#26A17B"/><text x="21" y="27" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="Inter">T</text></svg> USDT <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div style="font-size:12px;color:#636366;margin-top:4px;">Balance: 0 USDT</div></div>
+        <div class="swap-amount"><div id="to-amount" style="font-size:26px;font-weight:800;color:#fff;text-align:right;">0.00</div></div>
+      </div>
+    </div>
+    <div class="rate-row"><span>1 ETH = 2,349.84 USDT</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></div>
+    <button class="swap-btn" onclick="pushScreen('success-screen')">Preview Swap</button>
+  </div>
+
+  <!-- SEND -->
+  <div class="push-screen" id="send-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Send</span>
+      <div style="width:40px;"></div>
+    </div>
+
+    <!-- Token header -->
+    <div style="margin:10px 14px 0;background:#1A1A1A;border-radius:14px;overflow:hidden;">
+      <div style="font-size:11px;color:#636366;font-weight:700;padding:12px 14px 4px;text-transform:uppercase;letter-spacing:.05em;">Token</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px 14px;">
+        <div id="send-token-logo" style="width:40px;height:40px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:baseline;gap:6px;">
+            <span id="send-token-sym"  style="font-weight:800;font-size:16px;">—</span>
+            <span id="send-token-name" style="font-size:12px;color:#636366;"></span>
+          </div>
+          <div style="font-size:12px;color:#636366;margin-top:2px;">
+            Balance: <span id="send-token-bal">0</span>&nbsp;<span id="send-token-bal-sym">—</span>
+            &nbsp;·&nbsp;<span id="send-token-bal-usd" style="color:#8E8E93;"></span>
+          </div>
+        </div>
+        <div id="send-token-price-tag" style="text-align:right;font-size:12px;color:#636366;"></div>
+      </div>
+    </div>
+
+    <!-- Address -->
+    <div class="send-field">
+      <label>To address</label>
+      <div class="addr-input-wrap">
+        <input type="text" id="send-addr-input" placeholder="Enter address or ENS name" oninput="validateSendForm()"/>
+        <button onclick="haptic()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4V17m-4 0h4"/></svg></button>
+      </div>
+    </div>
+
+    <!-- Amount -->
+    <div class="send-field">
+      <label>Amount</label>
+      <div class="amount-with-max">
+        <input type="number" id="send-amount-input" placeholder="0.00" min="0" step="any" oninput="onSendAmountInput()"/>
+        <button class="max-btn" onclick="setSendMax()">MAX</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <div class="amount-hint" id="send-usd-hint">≈ $0.00</div>
+        <div class="amount-hint" id="send-fee-hint" style="color:#636366;">Fee: ~$2.14</div>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div id="send-err-msg" style="display:none;margin:0 14px 8px;padding:10px 14px;background:#EA394315;border-radius:10px;color:#EA3943;font-size:13px;font-weight:600;"></div>
+
+    <!-- Review summary panel -->
+    <div id="send-review-panel" style="display:none;margin:0 14px 12px;background:#1A1A1A;border-radius:14px;padding:14px;">
+      <div style="font-size:11px;font-weight:700;color:#636366;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Review</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:#636366;">Sending</span><span id="rev-amount" style="font-size:13px;font-weight:700;color:#EA3943;"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:#636366;">Value</span><span id="rev-usd" style="font-size:13px;font-weight:700;"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:#636366;">To</span><span id="rev-addr" style="font-size:13px;font-weight:700;font-family:monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis;"></span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;color:#636366;">Network</span><span id="rev-network" style="font-size:13px;font-weight:700;color:#00FFA3;"></span></div>
+    </div>
+
+    <button class="send-review-btn" id="send-submit-btn" onclick="validateAndSend()" disabled style="opacity:.4;cursor:not-allowed;">Review Send</button>
+  </div>
+
+  <!-- RECEIVE -->
+  <div class="push-screen" id="receive-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Receive</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="search-row-dark">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search"/>
+    </div>
+    <div class="network-scroll-row" id="receive-net-filters" style="height:56px;"></div>
+    <div class="net-list-section-title">Popular</div>
+    <div id="receive-asset-list"></div>
+    <div class="net-list-section-title">All crypto</div>
+    <div id="receive-all-list"></div>
+  </div>
+
+  <!-- BUY -->
+  <div class="push-screen" id="buy-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Buy</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="buy-display">
+      <div class="buy-amount-wrap"><span id="buy-amount-display">3705</span><span class="buy-cursor"></span></div>
+      <div class="buy-subtext"><span id="buy-crypto-val">36.97</span> USDT</div>
+    </div>
+    <div class="buy-select-group">
+      <div class="buy-sel-item" id="buy-cur-btn" onclick="openBottomSheet('currency-sheet')"><!-- JS --></div>
+      <div class="buy-sel-item" id="buy-crypto-btn" onclick="openBottomSheet('crypto-sheet')"><!-- JS --></div>
+    </div>
+    <div class="pay-with-card">
+      <div style="background:#fff;border-radius:6px;padding:4px;"><img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" width="28" alt="Visa"></div>
+      <div style="flex:1;"><div style="font-size:12px;color:#636366;">Pay with</div><div style="font-weight:700;">Card</div></div>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="color:#636366;"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="numpad">
+      <div class="num-key" onclick="keypadInput('1')">1</div>
+      <div class="num-key" onclick="keypadInput('2')">2</div>
+      <div class="num-key" onclick="keypadInput('3')">3</div>
+      <div class="num-key" onclick="keypadInput('4')">4</div>
+      <div class="num-key" onclick="keypadInput('5')">5</div>
+      <div class="num-key" onclick="keypadInput('6')">6</div>
+      <div class="num-key" onclick="keypadInput('7')">7</div>
+      <div class="num-key" onclick="keypadInput('8')">8</div>
+      <div class="num-key" onclick="keypadInput('9')">9</div>
+      <div class="num-key" onclick="keypadInput('.')">.</div>
+      <div class="num-key" onclick="keypadInput('0')">0</div>
+      <div class="num-key" onclick="keypadInput('del')"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></div>
+    </div>
+    <button class="continue-btn" onclick="haptic()">Continue</button>
+  </div>
+
+  <!-- TX HISTORY -->
+  <div class="push-screen" id="tx-history-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Transaction History</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="tx-controls">
+      <button class="tx-chip active" onclick="setTxChip(this)">Filters ▼</button>
+      <button class="tx-chip" onclick="setTxChip(this)">All Networks ▼</button>
+    </div>
+    <div class="tx-list" id="tx-list">
+      <!-- Populated dynamically from Supabase -->
+      <div style="padding:40px 16px;text-align:center;color:#636366;font-size:14px;">Loading transactions…</div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <!-- SUCCESS -->
+  <div class="push-screen" id="success-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Transaction</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="success-wrap">
+      <div class="success-emoji">🎉</div>
+      <div class="success-ttl">Transaction Sent!</div>
+      <div class="success-sub">Broadcast to the network. It will confirm shortly.</div>
+      <div style="background:#1A1A1A;border-radius:14px;padding:16px;margin-bottom:24px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="color:#636366;font-size:13px;">Status</span><span style="color:#F5A623;font-weight:700;font-size:13px;">⏳ Pending</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="color:#636366;font-size:13px;">Amount</span><span id="succ-amount" style="font-weight:700;font-size:13px;color:#EA3943;"></span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="color:#636366;font-size:13px;">To</span><span id="succ-addr" style="font-weight:700;font-size:13px;font-family:monospace;max-width:160px;overflow:hidden;text-overflow:ellipsis;"></span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#636366;font-size:13px;">Tx Hash</span><span id="succ-hash" style="font-weight:700;font-size:11px;color:#636366;font-family:monospace;"></span></div>
+      </div>
+      <button class="success-primary-btn" onclick="finishSend()">Done</button>
+      <button class="success-sec-btn" style="margin-top:10px;" onclick="haptic()">View in Explorer ↗</button>
+    </div>
+  </div>
+
+  <!-- SEARCH SCREEN -->
+  <div class="push-screen" id="search-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Search</span>
+      <button onclick="popScreen()" style="color:#00FFA3;font-weight:600;font-size:14px;background:none;border:none;cursor:pointer;">Cancel</button>
+    </div>
+    <div style="padding:8px 16px 12px;">
+      <div style="position:relative;">
+        <input type="text" id="search-input" placeholder="Search tokens" oninput="doSearch(this.value)"
+          style="width:100%;padding:12px 14px 12px 40px;border:none;border-radius:12px;background:#1C1C1E;font-size:15px;outline:none;color:#fff;font-family:Inter,sans-serif;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#636366;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+    </div>
+    <div style="padding:0 16px 12px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;">
+      <div style="display:flex;gap:8px;">
+        <button class="search-chip on" onclick="filterNetwork(this,'all')">All</button>
+        <button class="search-chip" onclick="filterNetwork(this,'eth')">ETH</button>
+        <button class="search-chip" onclick="filterNetwork(this,'sol')">SOL</button>
+        <button class="search-chip" onclick="filterNetwork(this,'bnb')">BNB</button>
+        <button class="search-chip" onclick="filterNetwork(this,'btc')">BTC</button>
+      </div>
+    </div>
+    <div class="search-results" id="search-results" style="padding:0 16px 100px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- SEND ASSET SELECT -->
+  <div class="push-screen" id="send-asset-select-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Send</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="send-search-wrap">
+      <div class="send-search-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="send-asset-search-input" placeholder="Search" oninput="filterSendAssets()"/>
+      </div>
+    </div>
+    <div class="network-scroll-row" id="send-network-filters"></div>
+    <div id="send-asset-results" style="padding-bottom:80px;"></div>
+    <div id="send-empty-state" style="display:none;padding:60px 20px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">🔍</div>
+      <div style="color:#636366;font-size:15px;">No results found</div>
+    </div>
+  </div>
+
+  <!-- SELECT NETWORK -->
+  <div class="push-screen" id="select-network-screen">
+    <div class="scr-header">
+      <button class="back-btn" onclick="popScreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="scr-title">Select network</span>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="send-search-wrap">
+      <div class="send-search-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="network-search-input" placeholder="Search for network" oninput="filterNetworksList()"/>
+      </div>
+    </div>
+    <div id="all-networks-container">
+      <div class="net-row-item" onclick="selectNetFilter('all')">
+        <div class="icon" style="background:#1C1C1E;border-radius:50%;display:grid;place-items:center;font-size:22px;">🌐</div>
+        <div class="name-wrap"><div class="asset-name">All networks</div></div>
+        <div class="custom-radio on" id="rad-all"></div>
+      </div>
+    </div>
+    <div class="net-list-section-title">Popular networks</div>
+    <div id="popular-networks-list"></div>
+    <div class="net-list-section-title">A-Z networks</div>
+    <div id="az-networks-list"></div>
+  </div>
+
+  <!-- ══════ TRADE MENU OVERLAY ══════ -->
+  <div class="trade-menu-overlay" id="trade-menu-overlay" onclick="closeTradeMenu()">
+    <div class="trade-menu" onclick="event.stopPropagation()">
+      <div style="font-size:13px;font-weight:700;color:#636366;text-align:center;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.06em;">Trade</div>
+      <div class="trade-option" onclick="closeTradeMenu();pushScreen('trade-screen')">
+        <div class="icon">🔁</div>
+        <div><div class="title">Swap</div><div class="sub">Exchange any crypto instantly</div></div>
+      </div>
+      <div class="trade-option" onclick="closeTradeMenu();pushScreen('buy-screen')">
+        <div class="icon">💳</div>
+        <div><div class="title">Buy</div><div class="sub">Buy crypto with fiat currency</div></div>
+      </div>
+      <div class="trade-option" onclick="closeTradeMenu();pushScreen('send-asset-select-screen')">
+        <div class="icon">↗️</div>
+        <div><div class="title">Send</div><div class="sub">Transfer to any wallet address</div></div>
+      </div>
+      <div class="trade-option" onclick="closeTradeMenu();pushScreen('receive-screen')">
+        <div class="icon">↙️</div>
+        <div><div class="title">Receive</div><div class="sub">Get your wallet address / QR code</div></div>
+      </div>
+    </div>
+    <button class="trade-close" onclick="closeTradeMenu()">✕</button>
+  </div>
+
+  <!-- Sheet Overlay -->
+  <div id="sheet-overlay" onclick="closeBottomSheets()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:400;display:none;"></div>
+
+  <!-- Currency Sheet -->
+  <div class="bottom-sheet" id="currency-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Select currency</div>
+    <div class="search-row-dark" style="margin:0 16px 10px;">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search"/>
+    </div>
+    <div id="cur-list"></div>
+    <div class="more-btn">More currencies ›</div>
+  </div>
+
+  <!-- Crypto Sheet -->
+  <div class="bottom-sheet" id="crypto-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Select crypto</div>
+    <div class="search-row-dark" style="margin:0 16px 10px;">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search"/>
+    </div>
+    <div id="buy-crypto-list"></div>
+    <div class="more-btn">More crypto ›</div>
+  </div>
+
+  <!-- Wallet Sheet -->
+  <div class="bottom-sheet" id="wallet-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Select Wallet</div>
+    <div id="wallet-list">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;" onclick="closeBottomSheets()">
+        <div style="width:44px;height:44px;border-radius:50%;background:#1A1A2A;display:grid;place-items:center;font-size:20px;">👛</div>
+        <div style="flex:1;"><div id="ws-sheet-name" style="font-weight:700;">Main Wallet 1</div><div id="ws-sheet-bal" style="font-size:12px;color:#636366;">$0.00</div></div>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00FFA3" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    </div>
+    <div style="padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;color:#00FFA3;font-weight:700;">
+      <div style="width:44px;height:44px;border-radius:50%;border:2px dashed #00FFA3;display:grid;place-items:center;font-size:22px;">+</div>
+      Add new wallet
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Wallet config (URL + anon key) -->
+<script src="supabase-config.js"></script>
+<!-- Backend integration (wallet balance, transactions, realtime) -->
+<script src="supabase-backend.js"></script>
+<!-- Blockchain sync (on-chain balance fetch + pending tx auto-confirm) -->
+<script src="blockchain-sync.js"></script>
+<!-- Main app logic -->
+<script src="app.js"></script>
+</body>
+</html>
