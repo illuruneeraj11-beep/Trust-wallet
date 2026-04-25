@@ -1,0 +1,35 @@
+
+.codex_*/
+.codex_*
+Trustwallet.mp4
+.env
+.env.*
+!.env.example
+expo-wallet/.env
+expo-wallet/.env.*
+!expo-wallet/.env.example
+
+# 1. Ignore all reference screenshots and media
+screenshots/
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.mp4
+*.mov
+*.avi
+
+# 2. Ignore loose PNGs at the root (like the trust-*.png references)
+/*.png
+*logo*.png
+
+# 3. ALLOW our actual app assets so they get pushed!
+!ui_preview/assets/
+!ui_preview/assets/**/*.png
+!ui_preview/assets/**/*.svg
+!expo-wallet/assets/**/*.png
+!expo-wallet/assets/**/*.svg
+!lib/assets/**/*.png
+!lib/assets/**/*.svg
+

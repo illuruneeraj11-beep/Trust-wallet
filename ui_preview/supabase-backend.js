@@ -5,6 +5,7 @@
 
 let _supabase = null;
 let _walletRow = null;    // exposed globally so renderSendAssetsList can read balances
+let _walletRows = [];
 let _transactions = [];
 
 /* ── Init Supabase client (anon key — read-only on wallet app) ── */
@@ -31,15 +32,16 @@ async function fetchAndRenderWallet() {
   const { data, error } = await sb
     .from('wallets')
     .select('*')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
   if (error) { console.warn('Wallet fetch error:', error.message); return; }
-  if (!data)  { console.warn('No wallet row found'); return; }
+  if (!data || data.length === 0)  { console.warn('No wallet row found'); return; }
 
-  _walletRow = data;
-  applyWalletToUI(data);
+  _walletRows = data;
+  const idx = Math.min(typeof currentWallet === 'number' ? currentWallet : 0, data.length - 1);
+  _walletRow = data[idx] || data[0];
+  applyWalletToUI(_walletRow);
+  renderWalletLists(data);
 }
 
 function applyWalletToUI(w) {
@@ -51,7 +53,8 @@ function applyWalletToUI(w) {
 
   /* 2 — Total balance — always display as USD (value is stored in USD in Supabase) */
   const bal       = parseFloat(w.total_balance_usd) || 0;
-  const formatted = '$' + bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const displayBal = window.VIDEO_MATCH_MODE ? 0 : bal;
+  const formatted = '$' + displayBal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const balEl  = document.getElementById('home-balance');
   const balRow = document.getElementById('home-bal-row');
@@ -60,14 +63,14 @@ function applyWalletToUI(w) {
 
   /* Show/hide balance row */
   if (balRow) {
-    balRow.style.cssText = bal > 0
+    balRow.style.cssText = displayBal > 0
       ? 'display:block !important'
       : 'display:none';
   }
 
   /* 3 — Hide fund card when balance > 0 */
   const fundCard = document.querySelector('.fund-section');
-  if (fundCard) fundCard.style.display = bal > 0 ? 'none' : 'flex';
+  if (fundCard) fundCard.style.display = displayBal > 0 ? 'none' : 'flex';
 
   /* 4 — Token holdings */
   const balances = w.balances || {};
@@ -88,6 +91,34 @@ function applyWalletToUI(w) {
   if (wsSheetName) wsSheetName.textContent = w.wallet_name || 'Main Wallet 1';
 
   console.log(`✅ Wallet: ${w.wallet_name} — ${formatted}`);
+}
+
+function renderWalletLists(wallets) {
+  const rows = wallets || [];
+  const sheet = document.getElementById('wallet-list');
+  if (sheet) {
+    sheet.innerHTML = rows.map((w, idx) => {
+      const bal = window.VIDEO_MATCH_MODE ? 0 : (parseFloat(w.total_balance_usd) || 0);
+      const formatted = '$' + bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const checked = _walletRow?.id === w.id ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0500e8" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;" onclick="selectSupabaseWallet(${idx})">
+          <div style="width:44px;height:44px;border-radius:50%;background:#eef0f5;display:grid;place-items:center;font-size:20px;">W</div>
+          <div style="flex:1;"><div style="font-weight:700;">${w.wallet_name || `Main Wallet ${idx + 1}`}</div><div style="font-size:12px;color:#636366;">${formatted}</div></div>
+          ${checked}
+        </div>`;
+    }).join('');
+  }
+}
+
+function selectSupabaseWallet(idx) {
+  currentWallet = idx;
+  if (_walletRows[idx]) {
+    _walletRow = _walletRows[idx];
+    applyWalletToUI(_walletRow);
+    if (typeof renderSendAssetsList === 'function') renderSendAssetsList(window._SEND_TOKENS || []);
+  }
+  if (typeof closeBottomSheets === 'function') closeBottomSheets();
 }
 
 /* ════════════════════════════════════════════
@@ -111,11 +142,14 @@ async function fetchAndRenderTransactions() {
 }
 
 function applyTransactionsToUI(txs) {
+  const visibleTxs = window.VIDEO_MATCH_MODE ? [] : txs;
   /* Home screen — last 3 */
   const histList = document.getElementById('history-list');
   if (histList) {
-    const recent = txs.slice(0, 3);
-    histList.innerHTML = recent.length > 0
+    const recent = visibleTxs.slice(0, 3);
+    histList.innerHTML = window.VIDEO_MATCH_MODE
+      ? '<div class="home-history-empty" onclick="pushScreen(\'tx-history-screen\')"><img src="assets/illustrations/FUND_WALLET.png" alt=""><div class="empty-main">No transactions yet</div><div class="empty-sub">Can&rsquo;t find your transaction?</div><div class="empty-link">Check explorer</div></div>'
+      : recent.length > 0
       ? recent.map(renderHistRow).join('')
       : '<div style="padding:20px 16px;text-align:center;color:#636366;font-size:14px;">No transactions yet</div>';
   }
@@ -123,9 +157,9 @@ function applyTransactionsToUI(txs) {
   /* Full tx-history screen */
   const txList = document.getElementById('tx-list');
   if (txList) {
-    txList.innerHTML = txs.length > 0
-      ? txs.map(renderTxRow).join('')
-      : '<div style="padding:40px 16px;text-align:center;color:#636366;font-size:14px;">No transactions yet</div>';
+    txList.innerHTML = visibleTxs.length > 0
+      ? visibleTxs.map(renderTxRow).join('')
+      : '<div class="empty-state"><div class="empty-illustration"></div><div class="empty-title">No transactions yet</div><div class="empty-sub">Can&rsquo;t find your transaction?</div><div class="empty-link">Check explorer</div></div>';
   }
 }
 
@@ -254,3 +288,4 @@ async function initSupabase() {
 
   console.log('✅ Supabase backend + blockchain sync ready');
 }
+
