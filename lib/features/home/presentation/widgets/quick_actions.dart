@@ -20,26 +20,23 @@ class QuickActions extends StatelessWidget {
         onTap: () => context.push('/home/receive'),
       ),
       _ActionItem(
-        icon: Icons.credit_card,
-        label: 'Buy',
-        onTap: () {},
-      ),
-      _ActionItem(
         icon: Icons.swap_horiz,
         label: 'Swap',
         onTap: () => context.go('/swap'),
       ),
       _ActionItem(
-        icon: Icons.star,
-        label: 'Earn',
-        onTap: () => context.go('/earn'),
+        icon: Icons.add,
+        label: 'Buy',
+        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Buy flow coming soon')),
+        ),
       ),
     ];
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: actions.asMap().entries.map((entry) {
           final index = entry.key;
           final action = entry.value;
@@ -56,16 +53,16 @@ class QuickActions extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: AppColors.accentGreen.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF1C2033),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
               action.icon,
-              color: AppColors.accentGreen,
-              size: 24,
+              color: AppColors.textPrimary,
+              size: 28,
             ),
           ),
           const SizedBox(height: 8),
@@ -73,7 +70,8 @@ class QuickActions extends StatelessWidget {
             action.label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
           ),
         ],

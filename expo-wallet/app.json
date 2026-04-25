@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Trust Wallet Mock",
+    "slug": "trust-wallet-mock",
+    "scheme": "trustwalletmock",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mock.trustwallet"
+    },
+    "android": {
+      "package": "com.mock.trustwallet",
+      "adaptiveIcon": {
+        "backgroundColor": "#0500e8"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

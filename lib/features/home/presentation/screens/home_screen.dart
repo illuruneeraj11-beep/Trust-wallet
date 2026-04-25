@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../widgets/quick_actions.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           children: [
             _buildTopBar(context),
+            _buildWalletRow(context),
+            const QuickActions(),
+            _buildBackupBanner(context),
             _buildTabBar(context),
             Expanded(
               child: TabBarView(
@@ -55,15 +59,14 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Top bar ──────────────────────────────────────────────────────────────
   Widget _buildTopBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
       child: Row(
         children: [
-          // Settings gear with red dot
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.settings_outlined,
-                    size: 26, color: AppColors.textSecondary),
+                    size: 24, color: AppColors.textSecondary),
                 onPressed: () => context.push('/discover/settings'),
               ),
               Positioned(
@@ -80,35 +83,154 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          // Centered balance
           Expanded(
-            child: Center(
-              child: Text(
-                '\$0.00',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+            child: GestureDetector(
+              onTap: () => _openSearch(context),
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C2033),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: const Row(
+                  children: [
+                    Icon(Icons.search, size: 20, color: AppColors.textSecondary),
+                    SizedBox(width: 10),
+                    Text(
+                      'Search',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
+                  ],
+                ),
               ),
             ),
           ),
-          // Search + QR
+          IconButton(
+            icon: const Icon(Icons.crop_free_rounded,
+                size: 24, color: AppColors.textSecondary),
+            onPressed: () => context.push('/home/receive'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWalletRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+      child: Column(
+        children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: const Icon(Icons.search,
-                    size: 26, color: AppColors.textSecondary),
-                onPressed: () => _openSearch(context),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C2033),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Main Wallet 1',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right_rounded,
+                        size: 18, color: AppColors.textPrimary),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.crop_free_rounded,
-                    size: 26, color: AppColors.textSecondary),
-                onPressed: () => context.push('/home/receive'),
+              const SizedBox(width: 10),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF2A3142), width: 1.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.copy_rounded,
+                    size: 18, color: AppColors.textSecondary),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(
+            '\$0.00',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackupBanner(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF171B28),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF5B4A78).withOpacity(0.45)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFF8BEA), Color(0xFFF9E27D), Color(0xFF76F6C7)],
+                ),
+              ),
+              child: const Icon(Icons.account_balance_wallet_rounded,
+                  color: Colors.black, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Back up to secure your\nassets',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Back up wallet →',
+                    style: TextStyle(
+                      color: Color(0xFF5F67FF),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.close_rounded,
+                color: AppColors.textSecondary, size: 22),
+          ],
+        ),
       ),
     );
   }

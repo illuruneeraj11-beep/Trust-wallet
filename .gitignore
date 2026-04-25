@@ -33,3 +33,14 @@ screenshots/
 !lib/assets/**/*.png
 !lib/assets/**/*.svg
 
+
+# Build and Dependencies
+node_modules/
+expo-wallet/node_modules/
+.dart_tool/
+build/
+.pub-cache/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+
