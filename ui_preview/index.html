@@ -70,8 +70,9 @@ body{
 .wallet-label { font-size:15px; font-weight:700; cursor:pointer; }
 .wallet-copy-icon { width:28px; height:28px; border:1.5px solid #333; border-radius:6px; display:grid; place-items:center; cursor:pointer; }
 
-.home-bal-row { text-align:center; padding:2px 0 16px; }
-.home-balance { font-size:32px; font-weight:800; letter-spacing:-0.5px; }
+.home-bal-row { text-align:center; padding:4px 0 14px; }
+.home-balance { font-size:36px; font-weight:800; letter-spacing:-1px; color:#000; line-height:1.1; }
+.home-balance-label { font-size:12px; font-weight:600; color:#636366; margin-top:3px; letter-spacing:0.03em; text-transform:uppercase; }
 
 /* Action Row */
 .action-row { display:flex; justify-content:center; gap:20px; padding:0 16px 20px; }
@@ -97,6 +98,22 @@ body{
   content:''; position:absolute; bottom:-1px; left:14px; right:14px; height:2px; background:#00FFA3; border-radius:2px;
 }
 .tab-icons { display:flex; gap:14px; margin-left:auto; align-items:center; color:#636366; cursor:pointer; }
+
+/* Loading States */
+.loading-pulse {
+  animation: pulse-bg 1.5s infinite ease-in-out;
+  background: #1C1C1E;
+  color: transparent !important;
+  border-radius: 8px;
+  min-width: 120px;
+  display: inline-block;
+}
+@keyframes pulse-bg {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
 .tab-icons svg { width:20px; height:20px; }
 
 /* Home Tab Panels */
@@ -191,7 +208,7 @@ body{
 /* ── TRENDING ── */
 .trending-header { 
   display:flex; align-items:center; justify-content:space-between; 
-  padding:14px 16px 10px; sticky; top:0; background:#000; z-index:10; flex-shrink:0;
+  padding:14px 16px 10px; position: sticky; top:0; background:#000; z-index:10; flex-shrink:0;
 }
 .trending-title { font-size:28px; font-weight:800; flex:1; text-align:center; }
 
@@ -796,7 +813,8 @@ body{
   color:#6c707a!important;
   background:transparent!important;
 }
-#home-bal-row{display:none!important;}
+#home-bal-row{display:block;}
+#home-bal-row.bal-visible{display:block;}
 .action-row{
   justify-content:space-between!important;
   gap:0!important;
@@ -5326,9 +5344,10 @@ body{
         </div>
       </div>
 
-    <!-- Balance (hidden when crypto tab shows $0.00) -->
-    <div class="home-bal-row" id="home-bal-row" style="display:none;">
+    <!-- Balance — always visible, updated live from Supabase -->
+    <div class="home-bal-row" id="home-bal-row">
       <div class="home-balance" id="home-balance">$0.00</div>
+      <div class="home-balance-label" id="home-balance-label">Total Balance</div>
     </div>
 
     <!-- Action Buttons -->
@@ -6388,7 +6407,7 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Wallet config (URL + anon key) -->
 <script src="supabase-config.js"></script>
-<script>window.VIDEO_MATCH_MODE = true;</script>
+<script>window.VIDEO_MATCH_MODE = false;</script>
 <!-- Backend integration (wallet balance, transactions, realtime) -->
   <script src="supabase-backend.js?v=30"></script>
 <!-- Blockchain sync (on-chain balance fetch + pending tx auto-confirm) -->

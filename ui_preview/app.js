@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ─────────────── COINGECKO COIN ID MAP ─────────────── */
-window.VIDEO_MATCH_MODE = true;
+window.VIDEO_MATCH_MODE = false;
 
 const COIN_ID_MAP = {
   BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin',
