@@ -1,251 +1,277 @@
+/* ============================================================
+   Trust Wallet v6 Admin Panel
+   Manages: networks, assets, user_wallets, wallet_transactions
+   ============================================================ */
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Trust Wallet — Admin Panel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<title>Trust Wallet — Admin v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:#0A0A0A;color:#fff;min-height:100vh;padding:28px 24px 60px;}
-
-/* ── Top bar ── */
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
-.topbar h1{font-size:22px;font-weight:800;}
-.conn-badge{display:flex;align-items:center;gap:7px;background:#00FFA310;border:1px solid #00FFA330;color:#00FFA3;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
-.conn-badge .dot{width:7px;height:7px;border-radius:50%;background:#00FFA3;animation:pulse 1.4s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-
-/* ── Grid ── */
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:1060px;}
-.span2{grid-column:1/-1;}
-@media(max-width:720px){.grid{grid-template-columns:1fr;}.span2{grid-column:1;}}
-
-/* ── Cards ── */
-.card{background:#111;border:1px solid #1E1E1E;border-radius:18px;padding:22px;}
-.card-hdr{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;margin-bottom:20px;}
-.card-hdr .ico{font-size:19px;}
-
-/* ── Balance display ── */
-.bal-big{font-size:40px;font-weight:800;color:#00FFA3;line-height:1;margin:4px 0;}
-.bal-label{font-size:13px;color:#636366;margin-bottom:16px;}
-.divider{border:none;border-top:1px solid #1E1E1E;margin:18px 0;}
-
-/* ── Form fields ── */
-label{display:block;font-size:11px;font-weight:700;color:#636366;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-input,select,textarea{
-  width:100%;padding:11px 13px;border:1.5px solid #222;border-radius:10px;
-  background:#0D0D0D;color:#fff;font-size:14px;font-family:inherit;outline:none;
-  transition:border-color .15s;
-}
+body{font-family:'Inter',sans-serif;background:#0A0A0A;color:#fff;min-height:100vh;padding:24px 20px 80px;}
+h1{font-size:22px;font-weight:800;margin-bottom:4px;}
+.sub{font-size:13px;color:#636366;margin-bottom:28px;}
+.section{background:#111;border:1px solid #1E1E1E;border-radius:18px;padding:22px;margin-bottom:18px;}
+.section h2{font-size:14px;font-weight:700;margin-bottom:16px;color:#fff;display:flex;align-items:center;gap:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid4{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;}
+label{display:block;font-size:10px;font-weight:700;color:#636366;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+input,select{width:100%;padding:10px 12px;border:1.5px solid #222;border-radius:10px;background:#0D0D0D;color:#fff;font-size:13px;font-family:inherit;outline:none;}
 input:focus,select:focus{border-color:#00FFA3;}
-select option{background:#111;}
-.field{margin-bottom:14px;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-
-/* ── Buttons ── */
-.btn{
-  width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
-  font-size:14px;font-weight:700;font-family:inherit;
-  transition:opacity .12s,transform .1s;display:flex;align-items:center;justify-content:center;gap:6px;
-}
-.btn:active{opacity:.75;transform:scale(.98);}
+.btn{width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;}
 .btn-green{background:#00FFA3;color:#000;}
 .btn-dark{background:#1C1C1E;color:#fff;}
-.btn-red{background:#EA394320;color:#EA3943;border:1.5px solid #EA394330;}
-.btn-sm{width:auto;padding:7px 14px;font-size:12px;}
-
-/* ── TX list ── */
-.tx-scroll{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;margin-top:4px;}
-.tx-item{background:#1A1A1A;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
-.tx-item .txico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:15px;flex-shrink:0;}
-.tx-item .meta{flex:1;min-width:0;}
-.tx-item .meta .name{font-size:14px;font-weight:700;}
-.tx-item .meta .sub{font-size:11px;color:#636366;margin-top:2px;}
-.tx-item .right{text-align:right;}
-.tx-item .right .val{font-size:14px;font-weight:700;}
-.tx-item .right .dt{font-size:11px;color:#636366;margin-top:2px;}
-.del-btn{width:28px;height:28px;border-radius:8px;background:#EA394320;border:none;cursor:pointer;color:#EA3943;font-size:13px;display:grid;place-items:center;}
-
-/* ── Status pill ── */
-.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
-.pill-green{background:#00FFA315;color:#00FFA3;}
-.pill-yellow{background:#F0A50020;color:#F0A500;}
-
-/* ── Toast ── */
-.toast{
-  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
-  padding:11px 22px;border-radius:20px;font-size:13px;font-weight:700;
-  z-index:9999;transition:opacity .3s;
-}
-.toast.ok{background:#001A10;color:#00FFA3;border:1px solid #00FFA320;}
-.toast.err{background:#1A0505;color:#EA3943;border:1px solid #EA394330;}
-.toast.hidden{opacity:0;}
+.btn-red{background:#EA394318;color:#EA3943;border:1px solid #EA394330;}
+.tag{display:inline-block;background:#1A1A1A;border-radius:8px;padding:4px 10px;font-size:11px;color:#636366;margin:3px 3px 0 0;}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #1a1a1a;}
+.row:last-child{border:none;}
+.row .info{flex:1;min-width:0;}
+.row .title{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row .meta{font-size:11px;color:#636366;margin-top:2px;}
+.row .val{font-weight:800;font-size:14px;color:#00FFA3;text-align:right;}
+.toast-msg{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;transition:opacity .3s;}
+.toast-msg.ok{background:#001A10;color:#00FFA3;border:1px solid #00FFA320;}
+.toast-msg.err{background:#1A0505;color:#EA3943;border:1px solid #EA394330;}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <h1>🛡️ Trust Wallet Admin</h1>
-  <div class="conn-badge"><span class="dot"></span> Supabase Connected</div>
+<h1>🛡️ Trust Wallet Admin v6</h1>
+<p class="sub">Manages live wallet balances and transaction history</p>
+
+<!-- SECTION 1: NETWORKS -->
+<div class="section">
+  <h2>🌐 Networks</h2>
+  <div class="grid3" style="margin-bottom:12px;">
+    <div><label>Network Name</label><input id="net-name" placeholder="BNB Smart Chain"/></div>
+    <div><label>Short Name</label><input id="net-short" placeholder="BEP20"/></div>
+    <div><label>&nbsp;</label><button class="btn btn-dark" onclick="addNetwork()">＋ Add Network</button></div>
+  </div>
+  <div id="net-list"></div>
 </div>
 
-<div class="grid">
-  <!-- ══════════ WALLET BALANCE ══════════ -->
-  <div class="card">
-    <div class="card-hdr"><span class="ico">💰</span> Wallet Balance</div>
-    <div class="bal-big" id="disp-bal">$0.00</div>
-    <div class="bal-label" id="disp-name">Main Wallet</div>
-
-    <div class="field">
-      <label>Wallet Balance (Numeric)</label>
-      <input type="number" id="inp-bal" placeholder="12450.00" step="0.01"/>
-    </div>
-    <div class="field">
-      <label>Wallet Name</label>
-      <input type="text" id="inp-name" placeholder="Main Wallet"/>
-    </div>
-    <button class="btn btn-green" onclick="updateBalance()">💾 Update Balance</button>
+<!-- SECTION 2: ASSETS -->
+<div class="section">
+  <h2>🪙 Assets / Tokens</h2>
+  <div class="grid4" style="margin-bottom:12px;">
+    <div><label>Network</label><select id="asset-net"></select></div>
+    <div><label>Symbol</label><input id="asset-sym" placeholder="USDT"/></div>
+    <div><label>Market Price (USD)</label><input id="asset-price" type="number" placeholder="1.00" step="any"/></div>
+    <div><button class="btn btn-dark" onclick="addAsset()">＋ Add</button></div>
   </div>
-
-  <!-- ══════════ ADD TRANSACTION ══════════ -->
-  <div class="card">
-    <div class="card-hdr"><span class="ico">➕</span> Add Transaction</div>
-    <div class="row2">
-      <div class="field">
-        <label>Type</label>
-        <select id="tx-type">
-          <option value="receive">↙ Receive</option>
-          <option value="send">↗ Send</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Status</label>
-        <select id="tx-status">
-          <option value="completed">✅ Completed</option>
-          <option value="pending">⏳ Pending</option>
-        </select>
-      </div>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Symbol</label>
-        <input type="text" id="tx-sym" placeholder="BNB" oninput="this.value=this.value.toUpperCase()"/>
-      </div>
-      <div class="field">
-        <label>Amount (Numeric)</label>
-        <input type="number" id="tx-amt" placeholder="1.25" step="any"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>To/From Address (optional)</label>
-      <input type="text" id="tx-addr" placeholder="0x..."/>
-    </div>
-    <button class="btn btn-green" onclick="addTransaction()">➕ Add Transaction</button>
-  </div>
-
-  <!-- ══════════ HISTORY ══════════ -->
-  <div class="card span2">
-    <div class="card-hdr">🕒 Recent Transactions</div>
-    <div class="tx-scroll" id="tx-list">
-      <div style="padding:20px;text-align:center;color:#636366;">Loading...</div>
-    </div>
-  </div>
+  <div id="asset-list"></div>
 </div>
 
-<div class="toast hidden" id="toast"></div>
+<!-- SECTION 3: USER WALLETS / BALANCES -->
+<div class="section">
+  <h2>💰 Portfolio Balances</h2>
+  <div class="grid4" style="margin-bottom:12px;">
+    <div><label>Wallet Address (for QR)</label><input id="bal-addr" placeholder="0x93d7E..."/></div>
+    <div><label>Asset</label><select id="bal-asset"></select></div>
+    <div><label>Amount</label><input id="bal-amt" type="number" placeholder="1.5" step="any"/></div>
+    <div><button class="btn btn-green" onclick="saveBalance()">Save</button></div>
+  </div>
+  <div id="bal-list"></div>
+</div>
+
+<!-- SECTION 4: TRANSACTIONS -->
+<div class="section">
+  <h2>📋 Add Transaction</h2>
+  <div class="grid3" style="margin-bottom:12px;">
+    <div><label>Asset</label><select id="tx-asset"></select></div>
+    <div><label>Type</label>
+      <select id="tx-type">
+        <option value="receive">↙ Receive</option>
+        <option value="send">↗ Send</option>
+      </select>
+    </div>
+    <div><label>Amount</label><input id="tx-amt" type="number" placeholder="0.5" step="any"/></div>
+  </div>
+  <div class="grid3" style="margin-bottom:12px;">
+    <div><label>Counterparty Address</label><input id="tx-addr" placeholder="0x..."/></div>
+    <div><label>Status</label>
+      <select id="tx-status">
+        <option value="completed">Completed</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+    <div><label>&nbsp;</label><button class="btn btn-green" onclick="addTransaction()">＋ Add TX</button></div>
+  </div>
+  <div id="tx-list"></div>
+</div>
+
+<div class="toast-msg" id="toast" style="opacity:0;pointer-events:none;"></div>
 
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
-let _walletId = null;
 
-async function init() {
-  const { data, error } = await sb.from('wallets').select('*').limit(1).maybeSingle();
-  if (data) {
-    _walletId = data.id;
-    const bal = parseFloat(data.balance || data.total_balance_usd || 0);
-    document.getElementById('disp-bal').textContent = '$' + bal.toLocaleString();
-    document.getElementById('disp-name').textContent = data.wallet_name || 'Main Wallet';
-    document.getElementById('inp-bal').value = bal;
-    document.getElementById('inp-name').value = data.wallet_name || 'Main Wallet';
-  }
-  loadHistory();
+/* ──────────────────────── NETWORKS ──────────────────────── */
+async function loadNetworks() {
+  const { data, error } = await sb.from('networks').select('*').order('name');
+  if (error) return toast('Networks: ' + error.message, 'err');
+  
+  document.getElementById('net-list').innerHTML = data.map(n =>
+    `<div class="row"><div class="info"><div class="title">${n.name}</div><div class="meta">${n.short_name || ''}</div></div></div>`
+  ).join('') || '<div style="color:#636366;font-size:13px;padding:8px 0;">No networks yet</div>';
+
+  const opts = data.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
+  document.getElementById('asset-net').innerHTML = opts;
 }
 
-async function updateBalance() {
-  const balance = parseFloat(document.getElementById('inp-bal').value);
-  const name = document.getElementById('inp-name').value;
-  if (!_walletId) return toast('Wallet not found','err');
+async function addNetwork() {
+  const name  = document.getElementById('net-name').value.trim();
+  const short = document.getElementById('net-short').value.trim();
+  if (!name) return toast('Name is required', 'err');
+  const { error } = await sb.from('networks').insert({ name, short_name: short });
+  if (error) return toast(error.message, 'err');
+  toast('Network added ✅', 'ok');
+  document.getElementById('net-name').value  = '';
+  document.getElementById('net-short').value = '';
+  await loadNetworks();
+  await loadAssets();
+}
 
-  const { error } = await sb.from('wallets').update({ 
-    balance, 
-    wallet_name: name,
-    updated_at: new Date().toISOString()
-  }).eq('id', _walletId);
+/* ──────────────────────── ASSETS ──────────────────────── */
+async function loadAssets() {
+  const { data, error } = await sb
+    .from('assets')
+    .select('*, networks(name)')
+    .order('symbol');
+  if (error) return toast('Assets: ' + error.message, 'err');
 
-  if (error) toast(error.message, 'err');
-  else { toast('Balance Updated!', 'ok'); init(); }
+  document.getElementById('asset-list').innerHTML = data.map(a =>
+    `<div class="row">
+       <div class="info"><div class="title">${a.symbol} — ${a.name || a.symbol}</div><div class="meta">${a.networks?.name || ''} · $${a.market_price}</div></div>
+     </div>`
+  ).join('') || '<div style="color:#636366;font-size:13px;padding:8px 0;">No assets yet</div>';
+
+  const opts = data.map(a => `<option value="${a.id}">${a.symbol} (${a.networks?.name || ''})</option>`).join('');
+  document.getElementById('bal-asset').innerHTML = opts;
+  document.getElementById('tx-asset').innerHTML  = opts;
+}
+
+async function addAsset() {
+  const nid   = document.getElementById('asset-net').value;
+  const sym   = document.getElementById('asset-sym').value.trim().toUpperCase();
+  const price = parseFloat(document.getElementById('asset-price').value) || 0;
+  if (!sym) return toast('Symbol is required', 'err');
+  const { error } = await sb.from('assets').insert({ network_id: nid, symbol: sym, name: sym, market_price: price });
+  if (error) return toast(error.message, 'err');
+  toast(`${sym} added ✅`, 'ok');
+  document.getElementById('asset-sym').value   = '';
+  document.getElementById('asset-price').value = '';
+  await loadAssets();
+}
+
+/* ──────────────────────── BALANCES ──────────────────────── */
+async function loadBalances() {
+  const { data, error } = await sb
+    .from('user_wallets')
+    .select('*, assets(symbol, market_price, networks(name))');
+  if (error) return toast('Balances: ' + error.message, 'err');
+
+  document.getElementById('bal-list').innerHTML = data.map(b => {
+    const usd = (parseFloat(b.balance_amount) * parseFloat(b.assets?.market_price || 0)).toFixed(2);
+    return `<div class="row">
+      <div class="info">
+        <div class="title">${b.assets?.symbol} · ${b.assets?.networks?.name || ''}</div>
+        <div class="meta" style="font-family:monospace;">${b.wallet_address}</div>
+      </div>
+      <div class="val">$${usd}</div>
+    </div>`;
+  }).join('') || '<div style="color:#636366;font-size:13px;padding:8px 0;">No balances yet</div>';
+}
+
+async function saveBalance() {
+  const asset_id      = document.getElementById('bal-asset').value;
+  const balance_amount = parseFloat(document.getElementById('bal-amt').value);
+  const wallet_address = document.getElementById('bal-addr').value.trim();
+
+  if (!asset_id)             return toast('Select an asset', 'err');
+  if (isNaN(balance_amount)) return toast('Enter a valid amount', 'err');
+  if (!wallet_address)       return toast('Enter a wallet address', 'err');
+
+  // Upsert using asset_id unique constraint
+  const { error } = await sb.from('user_wallets').upsert(
+    { asset_id, balance_amount, wallet_address },
+    { onConflict: 'asset_id' }
+  );
+
+  if (error) { toast(error.message, 'err'); console.error(error); return; }
+  toast('Balance saved ✅', 'ok');
+  document.getElementById('bal-amt').value  = '';
+  document.getElementById('bal-addr').value = '';
+  await loadBalances();
+}
+
+/* ──────────────────────── TRANSACTIONS ──────────────────────── */
+async function loadTransactions() {
+  const { data, error } = await sb
+    .from('wallet_transactions')
+    .select('*, assets(symbol)')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return toast('Transactions: ' + error.message, 'err');
+
+  document.getElementById('tx-list').innerHTML = data.map(tx => {
+    const isR   = tx.type === 'receive';
+    const color = isR ? '#00FFA3' : '#EA3943';
+    return `<div class="row">
+      <div style="width:36px;height:36px;border-radius:50%;background:${color}18;display:grid;place-items:center;font-size:16px;color:${color};flex-shrink:0;">${isR?'↙':'↗'}</div>
+      <div class="info">
+        <div class="title">${tx.type.toUpperCase()} ${tx.assets?.symbol || ''}</div>
+        <div class="meta">${tx.status} · ${new Date(tx.created_at).toLocaleDateString()}</div>
+      </div>
+      <div class="val" style="color:${color};">${isR?'+':'-'}${parseFloat(tx.amount).toFixed(4)}</div>
+    </div>`;
+  }).join('') || '<div style="color:#636366;font-size:13px;padding:8px 0;">No transactions yet</div>';
 }
 
 async function addTransaction() {
-  const type = document.getElementById('tx-type').value;
-  const status = document.getElementById('tx-status').value;
-  const sym = document.getElementById('tx-sym').value;
-  const amt = parseFloat(document.getElementById('tx-amt').value);
-  const addr = document.getElementById('tx-addr').value;
+  const asset_id            = document.getElementById('tx-asset').value;
+  const type                = document.getElementById('tx-type').value;
+  const amount              = parseFloat(document.getElementById('tx-amt').value);
+  const counterparty_address = document.getElementById('tx-addr').value.trim();
+  const status              = document.getElementById('tx-status').value;
+  const tx_hash             = '0x' + [...Array(64)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');
 
-  if (!sym || isNaN(amt)) return toast('Fill all fields', 'err');
+  if (!asset_id || isNaN(amount)) return toast('Fill asset and amount', 'err');
 
-  const { error } = await sb.from('transactions').insert({
-    wallet_id: _walletId,
-    type,
-    status,
-    asset_symbol: sym,
-    amount: amt,
-    to_address: type === 'send' ? addr : null,
-    from_address: type === 'receive' ? addr : null
+  const { error } = await sb.from('wallet_transactions').insert({
+    asset_id, type, amount, counterparty_address, status, tx_hash
   });
-
-  if (error) toast(error.message, 'err');
-  else { toast('TX Added!', 'ok'); loadHistory(); }
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Transaction added ✅', 'ok');
+  document.getElementById('tx-amt').value  = '';
+  document.getElementById('tx-addr').value = '';
+  await loadTransactions();
 }
 
-async function loadHistory() {
-  const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
-  const el = document.getElementById('tx-list');
-  if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#636366;">No TXs</div>'; return; }
-
-  el.innerHTML = data.map(tx => `
-    <div class="tx-item">
-      <div class="txico" style="background:${tx.type==='receive'?'#00FFA318':'#EA394318'};color:${tx.type==='receive'?'#00FFA3':'#EA3943'};">${tx.type==='receive'?'↙':'↗'}</div>
-      <div class="meta">
-        <div class="name">${tx.type.toUpperCase()} ${tx.asset_symbol}</div>
-        <div class="sub">${tx.status}</div>
-      </div>
-      <div class="right">
-        <div class="val">${tx.type==='receive'?'+':'-'}${tx.amount}</div>
-        <div class="dt">${new Date(tx.created_at).toLocaleDateString()}</div>
-      </div>
-      <button class="del-btn" onclick="deleteTx('${tx.id}')">✕</button>
-    </div>
-  `).join('');
+/* ──────────────────────── TOAST ──────────────────────── */
+let _tt;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent  = msg;
+  el.className    = `toast-msg ${type}`;
+  el.style.opacity = '1';
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.style.opacity = '0', 3000);
 }
 
-async function deleteTx(id) {
-  await sb.from('transactions').delete().eq('id', id);
-  loadHistory();
-}
-
-function toast(m, t) {
-  const e = document.getElementById('toast');
-  e.textContent = m; e.className = `toast ok ${t}`; e.classList.remove('hidden');
-  setTimeout(() => e.classList.add('hidden'), 2000);
-}
-
-init();
+/* ──────────────────────── INIT ──────────────────────── */
+(async () => {
+  await loadNetworks();
+  await loadAssets();
+  await loadBalances();
+  await loadTransactions();
+})();
 </script>
 </body>
 </html>

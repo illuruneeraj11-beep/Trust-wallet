@@ -1,297 +1,377 @@
 /* ============================================================
-   Trust Wallet Clone — Supabase Backend Integration v4
-   Dynamic Admin-Controlled Wallet System
+   Trust Wallet Clone — Supabase Backend v6
+   Aligned with Phase 1 Schema (gemini-code-1778916450935.md)
+   Supports: Phase 1 (DB) + Phase 2 (Auth Guard) + Phase 5 (Portfolio)
    ============================================================ */
 
 let _supabase = null;
-let _walletRow = null;
-let _walletRows = [];
-let _transactions = [];
+let _walletData = [];     // rows from user_wallets (joined with assets + networks)
+let _txData    = [];      // rows from wallet_transactions
 
-/**
- * Initialize Supabase client
- */
+/* ─────────────────────────────────────────
+   CLIENT
+───────────────────────────────────────── */
 function getSupabase() {
   if (_supabase) return _supabase;
-  if (typeof window.supabase === 'undefined') {
-    console.error('❌ Supabase SDK not loaded');
-    return null;
-  }
-  try {
-    _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      realtime: { params: { eventsPerSecond: 10 } }
-    });
-    return _supabase;
-  } catch (err) {
-    console.error('❌ Supabase Client Init Error:', err.message);
-    return null;
-  }
+  if (typeof window.supabase === 'undefined' || typeof SUPABASE_ANON === 'undefined') return null;
+  _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  return _supabase;
 }
 
-/* ════════════════════════════════════════════
-   WALLET — Live Data Fetching
-   ════════════════════════════════════════════ */
+/* ─────────────────────────────────────────
+   PHASE 2 — AUTH GUARD (PIN)
+───────────────────────────────────────── */
+function initAuthGuard() {
+  const overlay = document.createElement('div');
+  overlay.id    = 'auth-guard';
+  overlay.className = 'guard-overlay';
+  overlay.innerHTML = `
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="width:64px;height:64px;border-radius:20px;background:#0052FF;display:grid;place-items:center;margin:0 auto 16px;font-size:32px;">🛡️</div>
+      <div style="font-size:20px;font-weight:800;color:#fff;">Trust Wallet</div>
+      <div style="font-size:13px;color:#636366;margin-top:4px;">Enter your passcode</div>
+    </div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<div class="pin-btn" onclick="inputPin(${n})">${n}</div>`).join('')}
+      <div></div>
+      <div class="pin-btn" onclick="inputPin(0)">0</div>
+      <div class="pin-btn" onclick="clearLastPin()" style="font-size:18px;">⌫</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
 
-async function fetchAndRenderWallet() {
+let _pin = '';
+window.inputPin = (n) => {
+  if (_pin.length >= 6) return;
+  _pin += String(n);
+  _renderPinDots();
+  if (_pin.length === 6) setTimeout(_unlockAndFetch, 350);
+};
+window.clearLastPin = () => {
+  _pin = _pin.slice(0, -1);
+  _renderPinDots();
+};
+function _renderPinDots() {
+  document.querySelectorAll('#pin-dots .pin-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < _pin.length);
+  });
+}
+function _unlockAndFetch() {
+  const guard = document.getElementById('auth-guard');
+  if (!guard) return;
+  guard.style.transition = 'opacity .4s ease, transform .4s ease';
+  guard.style.opacity    = '0';
+  guard.style.transform  = 'scale(1.05)';
+  setTimeout(() => { guard.remove(); _startLifecycle(); }, 420);
+}
+
+/* ─────────────────────────────────────────
+   LIFECYCLE
+───────────────────────────────────────── */
+async function _startLifecycle() {
+  const sb = getSupabase();
+  if (!sb) { console.error('❌ Supabase not initialised'); return; }
+  console.log('🚀 Trust Wallet backend started');
+
+  // Initial load
+  await _fetchAll();
+
+  // Realtime subscriptions
+  sb.channel('tw-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_wallets' },      _fetchAll)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions'}, _fetchAll)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' },            _fetchAll)
+    .subscribe(status => console.log('📡 Realtime:', status));
+
+  // Polling fallback every 10 s
+  setInterval(_fetchAll, 10_000);
+}
+
+/* ─────────────────────────────────────────
+   PHASE 1 — DATA FETCHING
+   Exact join: user_wallets -> assets -> networks
+───────────────────────────────────────── */
+async function _fetchAll() {
   const sb = getSupabase();
   if (!sb) return;
 
   try {
-    const { data, error } = await sb
-      .from('wallets')
-      .select('*')
-      .order('updated_at', { ascending: false });
+    // 1. user_wallets joined to assets, assets joined to networks
+    const { data: wallets, error: wErr } = await sb
+      .from('user_wallets')
+      .select(`
+        id,
+        balance_amount,
+        wallet_address,
+        assets (
+          id, symbol, name, market_price, price_change_24h, coingecko_id,
+          networks ( id, name, short_name )
+        )
+      `);
 
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      console.warn('⚠️ No wallet found for this account');
-      return;
-    }
+    if (wErr) throw new Error('user_wallets query: ' + wErr.message);
+    _walletData = wallets || [];
+    console.log('📦 user_wallets rows:', _walletData.length);
 
-    _walletRows = data;
-    // For prototype, we select the first wallet or current selection
-    const idx = Math.min(typeof currentWallet === 'number' ? currentWallet : 0, data.length - 1);
-    _walletRow = data[idx] || data[0];
-    
-    applyWalletToUI(_walletRow);
-    renderWalletLists(data);
+    // 2. wallet_transactions joined to assets
+    const { data: txs, error: tErr } = await sb
+      .from('wallet_transactions')
+      .select(`
+        id, type, amount, counterparty_address, tx_hash, status, created_at,
+        assets ( symbol, name )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (tErr) throw new Error('wallet_transactions query: ' + tErr.message);
+    _txData = txs || [];
+    console.log('📋 wallet_transactions rows:', _txData.length);
+
+    // 3. Update UI
+    _rehydrateAll();
+
   } catch (err) {
-    console.error('❌ Wallet Fetch Error:', err.message);
-    if (typeof showToast === 'function') showToast('Network error: Unable to fetch balance');
+    console.error('❌ Fetch error:', err.message);
   }
 }
 
-/**
- * Inject live row data into UI
- */
-function applyWalletToUI(w) {
-  if (!w) return;
+/* ─────────────────────────────────────────
+   PHASE 5 — PORTFOLIO CALCULATION
+   Portfolio = Σ (balance_amount × market_price)
+───────────────────────────────────────── */
+function _rehydrateAll() {
+  _updateHomeBalance();
+  _renderTransactionHistory();
+  _renderReceiveList();
+}
 
-  // 1. Wallet Name
-  const nameEl = document.getElementById('wallet-name');
-  if (nameEl) nameEl.textContent = w.wallet_name || 'Main Wallet';
+function _updateHomeBalance() {
+  let total = 0;
 
-  // 2. Dynamic Balance (Numeric from Supabase)
-  const balanceValue = parseFloat(w.balance || w.total_balance_usd || 0);
-  const displayBal = window.VIDEO_MATCH_MODE ? 0 : balanceValue;
-  const formatted = '$' + displayBal.toLocaleString('en-US', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+  for (const row of _walletData) {
+    const asset  = row.assets;
+    const price  = parseFloat(asset?.market_price)  || 0;
+    const amount = parseFloat(row.balance_amount)   || 0;
+    const sub    = price * amount;
+
+    console.log(`  ${asset?.symbol || '?'}: ${amount} × $${price} = $${sub}`);
+    total += sub;
+  }
+
+  console.log('💰 Portfolio total:', total);
+
+  const formatted = '$' + total.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 
-  const balEl = document.getElementById('home-balance');
-  if (balEl) {
-    balEl.textContent = formatted;
-    balEl.classList.remove('loading-pulse'); // Remove skeleton state if any
+  // Write to #home-balance
+  const el = document.getElementById('home-balance');
+  if (el) {
+    el.textContent = formatted;
+    el.classList.remove('loading-pulse');
+    el.style.color = '#000';          // keep the black colour from before
   }
 
-  // 3. Conditional Fund Card Visibility
-  const fundCard = document.querySelector('.fund-section');
-  if (fundCard) fundCard.style.display = displayBal > 0 ? 'none' : 'flex';
-
-  // 4. Update Global Balances for Send/Receive screens
-  if (typeof window._SEND_TOKENS !== 'undefined') {
-    // If specific token balances are stored in a JSONB 'balances' field (optional extension)
-    const balances = w.balances || {};
-    window._SEND_TOKENS = window._SEND_TOKENS.map(t => ({
-      ...t,
-      bal: balances[t.sym] !== undefined ? balances[t.sym] : (t.sym === 'USD' ? displayBal : (t.bal || 0))
-    }));
-  }
-
-  // 5. Update Switcher/Sheets
-  document.querySelectorAll('.ws-bal').forEach(el => { el.textContent = formatted; });
-  const wsSheetBal = document.getElementById('ws-sheet-bal');
-  const wsSheetName = document.getElementById('ws-sheet-name');
-  if (wsSheetBal) wsSheetBal.textContent = formatted;
-  if (wsSheetName) wsSheetName.textContent = w.wallet_name || 'Main Wallet';
-
-  console.log(`✅ UI Updated: ${w.wallet_name} — ${formatted}`);
+  // Also update wallet-sheet balance labels
+  const sheetBal = document.getElementById('ws-sheet-bal');
+  if (sheetBal) sheetBal.textContent = formatted;
 }
 
-function renderWalletLists(wallets) {
-  const sheet = document.getElementById('wallet-list');
-  if (!sheet) return;
+/* ─────────────────────────────────────────
+   TRANSACTION HISTORY
+───────────────────────────────────────── */
+function _renderTransactionHistory() {
+  const histEl = document.getElementById('history-list');
+  const txEl   = document.getElementById('tx-list');
 
-  sheet.innerHTML = wallets.map((w, idx) => {
-    const bal = window.VIDEO_MATCH_MODE ? 0 : (parseFloat(w.balance) || 0);
-    const formatted = '$' + bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const checked = _walletRow?.id === w.id ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0500e8" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+  if (!_txData.length) {
+    const empty = '<div style="padding:24px;text-align:center;color:#636366;font-size:14px;">No transactions yet</div>';
+    if (histEl) histEl.innerHTML = empty;
+    if (txEl)   txEl.innerHTML   = empty;
+    return;
+  }
+
+  const html = _txData.map(tx => {
+    const isReceive = tx.type === 'receive';
+    const color     = isReceive ? '#00FFA3' : '#EA3943';
+    const prefix    = isReceive ? '+' : '-';
+    const label     = isReceive ? 'Received' : 'Sent';
+    const symbol    = tx.assets?.symbol || '?';
+    const status    = tx.status || 'completed';
+    const statusCol = status === 'completed' ? '#00FFA3' : (status === 'pending' ? '#F0A500' : '#EA3943');
+
     return `
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;" onclick="selectSupabaseWallet(${idx})">
-        <div style="width:44px;height:44px;border-radius:50%;background:#eef0f5;display:grid;place-items:center;font-size:20px;">🛡️</div>
-        <div style="flex:1;"><div style="font-weight:700;">${w.wallet_name}</div><div style="font-size:12px;color:#636366;">${formatted}</div></div>
-        ${checked}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #111;cursor:pointer;" onclick="if(typeof pushScreen==='function')pushScreen('tx-history-screen')">
+        <div style="width:40px;height:40px;border-radius:50%;background:${color}18;display:grid;place-items:center;font-size:18px;flex-shrink:0;color:${color};">
+          ${isReceive ? '↙' : '↗'}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${label} ${symbol}</div>
+          <div style="font-size:12px;color:#636366;margin-top:2px;">${_timeAgo(tx.created_at)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-weight:700;color:${color};font-size:14px;">${prefix}${parseFloat(tx.amount).toFixed(4)} ${symbol}</div>
+          <div style="font-size:11px;color:${statusCol};margin-top:2px;">${status}</div>
+        </div>
       </div>`;
   }).join('');
+
+  if (histEl) histEl.innerHTML = html;
+  if (txEl)   txEl.innerHTML   = html;
 }
 
-function selectSupabaseWallet(idx) {
-  currentWallet = idx;
-  if (_walletRows[idx]) {
-    _walletRow = _walletRows[idx];
-    applyWalletToUI(_walletRow);
-    if (typeof renderSendAssetsList === 'function') renderSendAssetsList(window._SEND_TOKENS || []);
-  }
-  if (typeof closeBottomSheets === 'function') closeBottomSheets();
-}
+/* ─────────────────────────────────────────
+   RECEIVE SCREEN — ASSET SELECTOR
+───────────────────────────────────────── */
+let _receiveFilter = 'All';
 
-/* ════════════════════════════════════════════
-   TRANSACTIONS — Dynamic Feed
-   ════════════════════════════════════════════ */
+function _renderReceiveList() {
+  const netRow  = document.getElementById('receive-net-filters');
+  const popList = document.getElementById('receive-asset-list');
+  const allList = document.getElementById('receive-all-list');
+  if (!netRow && !popList && !allList) return;
 
-async function fetchAndRenderTransactions() {
-  const sb = getSupabase();
-  if (!sb) return;
+  // Build unique network names from live data
+  const netNames = ['All', ...new Set(
+    _walletData.map(r => r.assets?.networks?.name).filter(Boolean)
+  )];
 
-  try {
-    const { data, error } = await sb
-      .from('transactions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) throw error;
-    _transactions = data || [];
-    applyTransactionsToUI(_transactions);
-  } catch (err) {
-    console.error('❌ Transactions Fetch Error:', err.message);
-  }
-}
-
-function applyTransactionsToUI(txs) {
-  const visibleTxs = window.VIDEO_MATCH_MODE ? [] : txs;
-  
-  // 1. Home Screen History (Last 3)
-  const histList = document.getElementById('history-list');
-  if (histList) {
-    const recent = visibleTxs.slice(0, 3);
-    histList.innerHTML = recent.length > 0
-      ? recent.map(renderHistRow).join('')
-      : '<div style="padding:20px 16px;text-align:center;color:#636366;font-size:14px;">No transactions yet</div>';
+  if (netRow) {
+    netRow.innerHTML = netNames.map(n => `
+      <div class="net-pill ${n === _receiveFilter ? 'active' : ''}"
+           onclick="setReceiveFilter('${n}')">${n}</div>
+    `).join('');
   }
 
-  // 2. Full History Screen
-  const txList = document.getElementById('tx-list');
-  if (txList) {
-    txList.innerHTML = visibleTxs.length > 0
-      ? visibleTxs.map(renderTxRow).join('')
-      : '<div class="empty-state"><div class="empty-illustration"></div><div class="empty-title">No transactions yet</div><div class="empty-sub">Your history will appear here.</div></div>';
+  const filtered = _receiveFilter === 'All'
+    ? _walletData
+    : _walletData.filter(r => r.assets?.networks?.name === _receiveFilter);
+
+  const rows = filtered.map(row => {
+    const asset   = row.assets;
+    const net     = asset?.networks;
+    const addr    = row.wallet_address || '';
+    const short   = addr.length > 14
+      ? addr.slice(0, 7) + '...' + addr.slice(-6)
+      : addr;
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #111;cursor:pointer;"
+           onclick="openQRDetails('${row.id}')">
+        <div class="coin-icon-wrap" style="position:relative;flex-shrink:0;">
+          <img src="assets/coins/${asset?.symbol}.png" style="width:36px;height:36px;border-radius:50%;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div style="display:none;width:36px;height:36px;border-radius:50%;background:#1C1C1E;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;">
+            ${(asset?.symbol || '?').slice(0,2)}
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:700;font-size:15px;">${asset?.symbol || '?'}</span>
+            <span style="background:#1C1C1E;color:#8E8E93;font-size:10px;padding:2px 7px;border-radius:6px;font-weight:700;">${net?.name || ''}</span>
+          </div>
+          <div style="font-size:12px;color:#636366;margin-top:3px;font-family:monospace;">${short}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:#1C1C1E;display:grid;place-items:center;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8E8E93" stroke-width="2.5">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+          </div>
+          <div style="width:32px;height:32px;border-radius:8px;background:#1C1C1E;display:grid;place-items:center;"
+               onclick="event.stopPropagation();navigator.clipboard.writeText('${addr}').then(()=>showToast('Address copied!'))">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8E8E93" stroke-width="2.5">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (popList) popList.innerHTML = rows || '<div style="padding:20px;text-align:center;color:#636366;font-size:13px;">No assets configured yet</div>';
+  if (allList) allList.innerHTML = '';   // flat list — everything already in popList
+}
+
+window.setReceiveFilter = (net) => { _receiveFilter = net; _renderReceiveList(); };
+
+/* ─────────────────────────────────────────
+   QR DETAILS SCREEN
+───────────────────────────────────────── */
+window.openQRDetails = (rowId) => {
+  const row = _walletData.find(r => r.id === rowId);
+  if (!row) return;
+  const asset = row.assets;
+
+  const addr = row.wallet_address || '';
+
+  const cautionEl = document.getElementById('qr-caution-text');
+  const nameEl    = document.getElementById('qr-asset-name');
+  const iconEl    = document.getElementById('qr-asset-icon');
+  const addrEl    = document.getElementById('qr-address-val');
+  const qrEl      = document.getElementById('qrcode');
+
+  if (cautionEl) cautionEl.textContent = `Only send ${asset?.name || asset?.symbol} (${asset?.symbol}) to this address. Other assets will be lost forever.`;
+  if (nameEl)    nameEl.textContent = asset?.name || asset?.symbol || '';
+  if (iconEl)    iconEl.src = `assets/coins/${asset?.symbol}.png`;
+  if (addrEl)    addrEl.textContent = addr;
+
+  // Generate QR
+  if (qrEl) {
+    qrEl.innerHTML = '';
+    if (typeof QRCode !== 'undefined' && addr) {
+      new QRCode(qrEl, {
+        text: addr, width: 180, height: 180,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
   }
-}
 
-/**
- * Renders a row for the home screen list
- */
-function renderHistRow(tx) {
-  const isReceive = tx.type === 'receive';
-  const icon = isReceive ? '↙' : '↗';
-  const color = isReceive ? '#00FFA3' : '#EA3943';
-  const timeStr = _timeAgo(tx.created_at);
-  const typeLabel = isReceive ? 'Received' : 'Sent';
+  if (typeof pushScreen === 'function') pushScreen('receive-details-screen');
+};
 
-  return `
-  <div class="hist-row" onclick="pushScreen('tx-history-screen')">
-    <div class="hist-icon" style="color:${color}; font-weight: 800;">${icon}</div>
-    <div class="hist-meta">
-      <div class="hist-title">${typeLabel} ${tx.asset_symbol}</div>
-      <div class="hist-time">${timeStr}</div>
-    </div>
-    <div class="hist-status" style="color:${tx.status === 'completed' ? '#00FFA3' : '#F0A500'};">
-      ${tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-    </div>
-  </div>`;
-}
+window.copyQRAddress = () => {
+  const addr = document.getElementById('qr-address-val')?.textContent;
+  if (addr) navigator.clipboard.writeText(addr).then(() => showToast('Address copied!'));
+};
 
-/**
- * Renders a row for the full history screen
- */
-function renderTxRow(tx) {
-  const isReceive = tx.type === 'receive';
-  const icon = isReceive ? '↙' : '↗';
-  const color = isReceive ? '#00FFA3' : '#EA3943';
-  const timeStr = _fmtDate(tx.created_at);
-  const typeLabel = isReceive ? 'Received' : 'Sent';
-  const amtPrefix = isReceive ? '+' : '-';
-  
-  return `
-  <div class="tx-row" onclick="haptic()">
-    <div class="tx-icon" style="background:${color}18; color:${color}; font-weight: 800;">${icon}</div>
-    <div class="tx-meta">
-      <div class="title">${typeLabel} ${tx.asset_symbol}</div>
-      <div class="sub">${tx.to_address || tx.from_address || 'Blockchain Network'}</div>
-    </div>
-    <div class="tx-amt">
-      <div class="val" style="color:${color};">${amtPrefix}${tx.amount} ${tx.asset_symbol}</div>
-      <div class="time">${timeStr}</div>
-    </div>
-  </div>`;
-}
+/* ─────────────────────────────────────────
+   TOAST (if not already defined in app.js)
+───────────────────────────────────────── */
+window.showToast = window.showToast || function(msg) {
+  let t = document.getElementById('tw-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'tw-toast';
+    t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#1C1C1E;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;z-index:10000;transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => t.style.opacity = '0', 2200);
+};
 
-/* ── Helpers ── */
+/* ─────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────── */
 function _timeAgo(iso) {
-  if (!iso) return '';
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(ms/60000), h = Math.floor(m/60), d = Math.floor(h/24);
-  if (d > 0) return `${d}d ago`;
-  if (h > 0) return `${h}h ago`;
-  if (m > 0) return `${m}m ago`;
-  return 'just now';
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (s < 60)   return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400)return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
 }
 
-function _fmtDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' · ' +
-         d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-}
-
-/* ════════════════════════════════════════════
-   REALTIME — Live Sync
-   ════════════════════════════════════════════ */
-
-function subscribeRealtime() {
-  const sb = getSupabase();
-  if (!sb) return;
-
-  sb.channel('tw-wallet-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets' }, payload => {
-      if (payload.new && payload.new.id === _walletRow?.id) {
-        _walletRow = payload.new;
-        applyWalletToUI(payload.new);
-      }
-    })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
-      if (payload.new && payload.new.wallet_id === _walletRow?.id) {
-        _transactions.unshift(payload.new);
-        applyTransactionsToUI(_transactions);
-        if (typeof showToast === 'function') {
-          showToast(`🔔 ${payload.new.type === 'receive' ? 'Received' : 'Sent'} ${payload.new.amount} ${payload.new.asset_symbol}`);
-        }
-      }
-    })
-    .subscribe();
-
-  // Fallback Polling (8s)
-  setInterval(() => {
-    fetchAndRenderWallet();
-    fetchAndRenderTransactions();
-  }, 8000);
-}
-
-/* ════════════════════════════════════════════
-   INIT
-   ════════════════════════════════════════════ */
-
+/* ─────────────────────────────────────────
+   ENTRY POINT — called from app.js
+───────────────────────────────────────── */
 async function initSupabase() {
-  const sb = getSupabase();
-  if (!sb) return;
-  
-  // Show skeleton/loading state
-  const balEl = document.getElementById('home-balance');
-  if (balEl) balEl.classList.add('loading-pulse');
-
-  await fetchAndRenderWallet();
-  await fetchAndRenderTransactions();
-  subscribeRealtime();
+  initAuthGuard();
 }
