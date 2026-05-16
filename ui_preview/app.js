@@ -1679,6 +1679,9 @@ function openSendScreen(sym, name, network) {
   if (usdHint) usdHint.textContent = '\u2248 $0.00';
 
   pushScreen('send-screen');
+
+  /* Phase 3: sync live balance from DB for the selected token */
+  if (typeof syncSendTokenFromDB === 'function') syncSendTokenFromDB(sym);
 }
 
 function onSendAmountInput() {
@@ -1813,83 +1816,18 @@ async function validateAndSend() {
   }
 
   /* Fake tx hash */
-  const txHash = '0x' + Array.from({ length: 64 }, () =>
+  let txHash = '0x' + Array.from({ length: 64 }, () =>
     Math.floor(Math.random() * 16).toString(16)).join('');
   const amtStr = `-${amt} ${_sendSym}`;
-  const usdStr = _sendPrice > 0 ? formatUSD(amt * _sendPrice) : '';
 
   try {
-    const sbAdmin = getSupabaseWriteClient();
-    if (sbAdmin && typeof _walletRow !== 'undefined' && _walletRow) {
-
-      /* 1 — Insert Sent transaction */
-      await sbAdmin.from('transactions').insert({
-        type: 'Sent',
-        symbol: _sendSym,
-        amount: amtStr,
-        status: 'Pending',
-        icon: '↗',
-        color: '#EA3943',
-        network: _sendNetwork || null,
-        to_address: addr,
-        tx_hash: txHash,
-        notes: usdStr ? `Value: ${usdStr}` : null,
-        created_at: new Date().toISOString()
-      });
-
-      /* 2 — Deduct token holding */
-      const balances = { ...(_walletRow.balances || {}) };
-      balances[_sendSym] = Math.max(0, (_sendBal || 0) - amt);
-
-      /* 3 — Deduct USD total */
-      const currentBal = parseFloat(_walletRow.total_balance_usd) || 0;
-      const deductUSD = _sendPrice > 0 ? amt * _sendPrice : 0;
-      const newBal = Math.max(0, currentBal - deductUSD);
-
-      const { error: wErr } = await sbAdmin.from('wallets').update({
-        balances,
-        total_balance_usd: newBal,
-        updated_at: new Date().toISOString()
-      }).eq('id', _walletRow.id);
-
-      if (wErr) console.warn('Wallet update error:', wErr.message);
-
-      /* 4 - If the recipient is another mock wallet, credit that wallet too. */
-      const { data: recipient, error: rFindErr } = await sbAdmin
-        .from('wallets')
-        .select('*')
-        .eq('address', addr)
-        .maybeSingle();
-
-      if (!rFindErr && recipient && recipient.id !== _walletRow.id) {
-        const recvBalances = { ...(recipient.balances || {}) };
-        recvBalances[_sendSym] = (parseFloat(recvBalances[_sendSym]) || 0) + amt;
-        const recvUsd = Math.max(0, (parseFloat(recipient.total_balance_usd) || 0) + deductUSD);
-
-        await sbAdmin.from('wallets').update({
-          balances: recvBalances,
-          total_balance_usd: recvUsd,
-          updated_at: new Date().toISOString()
-        }).eq('id', recipient.id);
-
-        await sbAdmin.from('transactions').insert({
-          type: 'Received',
-          symbol: _sendSym,
-          amount: `+${amt} ${_sendSym}`,
-          status: 'Confirmed',
-          icon: '↙',
-          color: '#16A46F',
-          network: _sendNetwork || null,
-          from_address: _walletRow.address || null,
-          to_address: addr,
-          tx_hash: txHash,
-          notes: `Transfer from ${_walletRow.wallet_name || 'wallet'}`,
-          created_at: new Date().toISOString()
-        });
-      }
+    /* Phase 5: write wallet_transaction + deduct user_wallets balance */
+    if (typeof executeSendOnDB === 'function') {
+      const result = await executeSendOnDB(addr, amt);
+      if (result?.hash) txHash = result.hash;
     }
   } catch (e) {
-    console.warn('Supabase send error:', e);
+    console.warn('DB send error:', e);
   }
 
   /* Populate success screen */
