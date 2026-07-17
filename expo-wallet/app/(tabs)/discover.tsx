@@ -1,148 +1,116 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
 import { useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { AppScreen, SearchInput, SheetModal } from "@/components/trust-ui";
 import { useAppContext } from "@/context/app-context";
-import { AppScreen, Card, SearchInput, SectionHeader } from "@/components/trust-ui";
+
+const categories = ["Featured", "DEX", "Lending", "Yield", "Staking", "Predictions", "NFTs", "Games", "AI and Bots", "Misc"];
+const dapps = [
+  { name: "B.AI", description: "B.AI is a financial infrastructure built for the AI Agent economy.", tone: ["#ffffff", "#eeeeef"] as const },
+  { name: "Lido", description: "Liquid staking for Ethereum and Polygon. Daily staking rewards.", tone: ["#9de9ff", "#ffc78f"] as const },
+  { name: "Aave", description: "Aave is an Open Source and Non-Custodial protocol for lending.", tone: ["#8f86ff", "#a6a0ff"] as const },
+  { name: "Uniswap", description: "Swap, earn, and build on the leading decentralized exchange.", tone: ["#ff0a8c", "#ff4aa8"] as const },
+  { name: "PancakeSwap", description: "Trade. Earn. Win. NFT.", tone: ["#40d9e5", "#8af2ff"] as const },
+  { name: "Pendle", description: "Trade future yield and discover fixed-rate opportunities.", tone: ["#1ee7b7", "#a7f3d0"] as const },
+];
 
 export default function DiscoverScreen() {
-  const { dappCategories, favoriteDapps, toggleFavoriteDapp, theme } = useAppContext();
-  const categories = Object.keys(dappCategories);
-  const [category, setCategory] = useState(categories[0] || "Featured");
+  const { theme } = useAppContext();
+  const [activeCategory, setActiveCategory] = useState("Featured");
   const [query, setQuery] = useState("");
-
+  const [sheet, setSheet] = useState<string | null>(null);
   const visibleDapps = useMemo(() => {
-    return (dappCategories[category] || []).filter((item) => {
-      const haystack = `${item.name} ${item.description}`.toLowerCase();
-      return query ? haystack.includes(query.toLowerCase()) : true;
-    });
-  }, [category, dappCategories, query]);
+    const source = activeCategory === "Featured" ? dapps : dapps.filter((item) => item.name.toLowerCase().includes(activeCategory.toLowerCase().slice(0, 3))).length
+      ? dapps.filter((item) => item.name.toLowerCase().includes(activeCategory.toLowerCase().slice(0, 3)))
+      : dapps.slice(0, 3);
+    const term = query.trim().toLowerCase();
+    return term ? source.filter((item) => item.name.toLowerCase().includes(term) || item.description.toLowerCase().includes(term)) : source;
+  }, [activeCategory, query]);
 
   return (
-    <AppScreen padded={false}>
-      <View style={{ paddingHorizontal: 18, gap: 16 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={{ width: 28, height: 34, borderRadius: 12, backgroundColor: "#e4dbcb", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: "#fff", fontSize: 16 }}>🛡</Text>
-            </View>
-            <View>
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>Premium</Text>
-              <Text style={{ color: theme.blue, fontSize: 14, fontWeight: "900" }}>Level up</Text>
-            </View>
+    <>
+      <AppScreen padded={false}>
+        <View style={{ paddingHorizontal: 16, gap: 14 }}>
+          <View style={{ height: 46, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: theme.text, fontSize: 23, fontWeight: "900" }}>Discover</Text>
           </View>
-          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "900" }}>Discover</Text>
-          <Pressable onPress={() => router.push("/dapp-browser")}>
-            <Text style={{ color: theme.secondary, fontSize: 26 }}>⋮</Text>
-          </Pressable>
-        </View>
+          <SearchInput value={query} onChangeText={setQuery} placeholder="Search or enter dApp URL" />
 
-        <SearchInput value={query} onChangeText={setQuery} placeholder="Search or enter dApp URL" />
-
-        <LinearGradient colors={["#dfe7ff", "#f8fbff", "#f7f0ff"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 16, flexDirection: "row", gap: 12, alignItems: "center" }}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: theme.blue, fontSize: 22, fontWeight: "900" }}>Trust Premium</Text>
-            <Text style={{ color: theme.text, fontSize: 15, lineHeight: 20, fontWeight: "700" }}>Earn XP and lock TWT for exclusive rewards & benefits</Text>
-            <Pressable onPress={() => router.push("/rewards")} style={{ marginTop: 6, alignSelf: "flex-start", minHeight: 30, paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#7fd3ff", borderWidth: 1, borderColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: theme.blue, fontSize: 12, fontWeight: "900" }}>EARN NOW</Text>
+          <View style={{ gap: 10 }}>
+            <Pressable onPress={() => setSheet("Explore dApps")} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ color: theme.text, fontSize: 22, fontWeight: "900" }}>Explore dApps</Text>
+              <Text style={{ color: theme.secondary, fontSize: 32 }}>›</Text>
+            </Pressable>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {categories.map((category) => {
+                const active = category === activeCategory;
+                return (
+                  <Pressable key={category} onPress={() => setActiveCategory(category)} style={{ minHeight: 40, borderRadius: 20, backgroundColor: active ? "#ffffff" : theme.surface, borderWidth: active ? 3 : 0, borderColor: theme.blue, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: active ? theme.blue : theme.secondary, fontSize: 17, fontWeight: "900" }}>{category}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={{ gap: 8 }}>
+              {visibleDapps.map((item) => (
+                <DappRow key={item.name} {...item} onPress={() => setSheet(item.name)} />
+              ))}
+            </View>
+            <Pressable onPress={() => setSheet("All dApps")} style={{ alignSelf: "center", minHeight: 44, borderRadius: 22, backgroundColor: theme.surface, paddingHorizontal: 22, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>View all</Text>
+              <Text style={{ color: theme.text, fontSize: 26 }}>›</Text>
             </Pressable>
           </View>
-          <PremiumCrystalArt />
-        </LinearGradient>
 
-        <View style={{ alignItems: "center" }}>
-          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-            <View style={{ width: 22, height: 4, borderRadius: 999, backgroundColor: "#17191f" }} />
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#d3d5da" }} />
+          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "900", marginTop: 8 }}>Quick links</Text>
+          <View style={{ flexDirection: "row", gap: 14 }}>
+            <QuickCard eyebrow="Earn" title="Staking" action="Deposit now" icon="♧" onPress={() => router.push("/perps")} />
+            <QuickCard eyebrow="Rewards" title="Level up" action="Begin" icon="◒" onPress={() => router.push("/settings")} />
           </View>
-        </View>
-
-        <SectionHeader title="Earn" actionLabel="›" onPress={() => router.push("/rewards")} />
-        <Card muted>
-          <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>My earn portfolio</Text>
-          <Text style={{ color: theme.text, fontSize: 34, fontWeight: "900" }}>$0.00</Text>
-        </Card>
-
-        <SectionHeader title="Explore dApps" />
-        <Card muted>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 24, paddingBottom: 8 }}>
-            {categories.slice(0, 6).map((item) => (
-              <DiscoverCategoryTab key={item} label={item} active={item === category} onPress={() => setCategory(item)} />
-            ))}
-          </ScrollView>
-
-          <View style={{ gap: 2 }}>
-            {visibleDapps.slice(0, 3).map((item, index) => (
-              <Pressable key={item.name} onPress={() => toggleFavoriteDapp(item.name)} style={{ minHeight: 78, flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 10, borderBottomWidth: index === 2 ? 0 : 1, borderBottomColor: theme.border }}>
-                <Text style={{ width: 16, color: theme.text, fontSize: 16 }}>{index + 1}</Text>
-                <DappLogo name={item.name} />
-                <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>{item.name}</Text>
-                  <Text numberOfLines={1} style={{ color: theme.secondary, fontSize: 14 }}>{item.description}</Text>
-                </View>
-                <Text style={{ color: favoriteDapps.includes(item.name) ? theme.blue : theme.secondary, fontSize: 18 }}>{favoriteDapps.includes(item.name) ? "♥" : "♡"}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable onPress={() => router.push("/dapp-browser")} style={{ minHeight: 44, alignItems: "center", justifyContent: "center", borderTopWidth: 1, borderTopColor: theme.border, marginTop: 8 }}>
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>View all ›</Text>
-          </Pressable>
-        </Card>
-
-        <SectionHeader title="Latest" />
-        <View style={{ gap: 12 }}>
-          {visibleDapps.slice(0, 2).map((item) => (
-            <Card key={`${item.category}-${item.name}`}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <DappLogo name={item.name} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>{item.name}</Text>
-                  <Text style={{ color: theme.secondary, fontSize: 14 }}>{item.network} · {item.category}</Text>
-                </View>
-              </View>
-            </Card>
+          {["Trust Wallet website", "Help Center", "Use dApp securely for your apps", "What is DeFi?", "What is Token Approval?"].map((item, index) => (
+            <Pressable key={item} onPress={() => setSheet(item)} style={{ minHeight: 56, flexDirection: "row", alignItems: "center", gap: 18 }}>
+              <Text style={{ width: 30, color: theme.secondary, fontSize: 24 }}>{index < 2 ? (index === 0 ? "◎" : "☊") : "?"}</Text>
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: "800" }}>{item}</Text>
+            </Pressable>
           ))}
         </View>
-      </View>
-    </AppScreen>
+      </AppScreen>
+
+      <SheetModal visible={!!sheet} title={sheet ?? ""} subtitle="This option is connected in the demo flow." onClose={() => setSheet(null)}>
+        <Pressable onPress={() => setSheet(null)} style={{ height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Done</Text>
+        </Pressable>
+      </SheetModal>
+    </>
   );
 }
 
-function DiscoverCategoryTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function DappRow({ name, description, tone, onPress }: { name: string; description: string; tone: readonly [string, string]; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={{ paddingBottom: 8, borderBottomWidth: 4, borderBottomColor: active ? "#0500e8" : "transparent" }}>
-      <Text style={{ color: active ? "#16181f" : "#70757f", fontSize: 17, fontWeight: "900" }}>{label}</Text>
+    <Pressable onPress={onPress} style={{ minHeight: 64, flexDirection: "row", alignItems: "center", gap: 14 }}>
+      <LinearGradient colors={tone} style={{ width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 8, borderColor: "#eeeeef" }}>
+        <Text style={{ color: "#202124", fontSize: 24, fontWeight: "900" }}>{name.slice(0, 1)}</Text>
+      </LinearGradient>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: "#202124", fontSize: 18, fontWeight: "900" }}>{name}</Text>
+        <Text numberOfLines={1} style={{ color: "#6d6d72", fontSize: 16 }}>{description}</Text>
+      </View>
     </Pressable>
   );
 }
 
-function PremiumCrystalArt() {
+function QuickCard({ eyebrow, title, action, icon, onPress }: { eyebrow: string; title: string; action: string; icon: string; onPress: () => void }) {
   return (
-    <View style={{ width: 102, height: 86, alignItems: "center", justifyContent: "center" }}>
-      <LinearGradient colors={["#1a1a1f", "#f2ca55", "#fff4a8"]} style={{ width: 22, height: 52, borderRadius: 6, transform: [{ rotate: "14deg" }], position: "absolute", right: 30, bottom: 12 }} />
-      <LinearGradient colors={["#0d0e14", "#f5d65a", "#fff1ad"]} style={{ width: 34, height: 62, borderRadius: 8, transform: [{ rotate: "-18deg" }], position: "absolute", right: 6, bottom: 8 }} />
-      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#111", position: "absolute", left: 10, top: 22 }} />
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#5741ff", position: "absolute", left: 30, top: 12 }} />
-      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#111", position: "absolute", left: 44, top: 28 }} />
-    </View>
-  );
-}
-
-function DappLogo({ name }: { name: string }) {
-  const palettes: Record<string, [string, string]> = {
-    Aave: ["#a95fff", "#5fd5dd"],
-    Aster: ["#111", "#f0cd8b"],
-    Four: ["#0a0d12", "#63ffb8"],
-    Raydium: ["#4736ff", "#5be3d4"],
-    Jito: ["#111", "#8df0ff"],
-    "Pump.Fun": ["#0a0d12", "#8fff66"],
-  };
-  const [start, end] = palettes[name] || ["#d9dcff", "#8ec9ff"];
-
-  return (
-    <LinearGradient colors={[start, end]} style={{ width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>{name.slice(0, 1)}</Text>
-    </LinearGradient>
+    <Pressable onPress={onPress} style={{ flex: 1, minHeight: 132, borderRadius: 16, backgroundColor: "#f4f4f7", padding: 18, gap: 8 }}>
+      <Text style={{ color: "#6d6d72", fontSize: 15, fontWeight: "800" }}>{eyebrow}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ color: "#202124", fontSize: 22, fontWeight: "900" }}>{title}</Text>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#d9f5e2", alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#0aa84f", fontSize: 28 }}>{icon}</Text>
+        </View>
+      </View>
+      <Text style={{ color: "#0500ff", fontSize: 16, fontWeight: "900" }}>{action}</Text>
+    </Pressable>
   );
 }

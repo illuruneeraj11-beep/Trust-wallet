@@ -100,24 +100,24 @@ export const currencyOptions: CurrencyOption[] = [
 
 export const languageOptions = ["English", "Español", "Français", "Deutsch", "日本語", "हिन्दी"];
 
-export const marketFilters = ["hot", "gainers", "rwa", "meme", "defi", "ai"];
+export const marketFilters = ["hot", "ondo", "preipo", "gainers", "meme", "defi", "ai", "rwa"];
 
 export const topTradedTokens: TrendingToken[] = [
-  { symbol: "ETH", name: "Ethereum", price: 2312.56, change: -1, marketCap: "$282B", volume: "$14.2B", categories: ["hot", "defi"], network: "ETH", holdings: 0.25 },
-  { symbol: "BNB", name: "BNB Smart Chain", price: 636.28, change: -0.48, marketCap: "$91.5B", volume: "$1.8B", categories: ["hot", "defi"], network: "BNB", holdings: 0.61 },
-  { symbol: "BTC", name: "Bitcoin", price: 63842.1, change: 1.42, marketCap: "$1.26T", volume: "$33.4B", categories: ["hot", "rwa"], network: "BTC", holdings: 0.03 },
-  { symbol: "SOL", name: "Solana", price: 146.38, change: 3.12, marketCap: "$68.2B", volume: "$4.3B", categories: ["gainers", "ai"], network: "SOL", holdings: 1.8 },
+  { symbol: "ETH", name: "Ethereum", price: 1625.97, change: 4.06, marketCap: "$197.14B", volume: "$14.73B", categories: ["hot", "defi"], network: "ETH", holdings: 0.25 },
+  { symbol: "BNB", name: "BNB Smart Chain", price: 590.71, change: 2.48, marketCap: "$79.89B", volume: "$889.18M", categories: ["hot", "defi"], network: "BNB", holdings: 0.61 },
+  { symbol: "BTC", name: "Bitcoin", price: 61945, change: 1.67, marketCap: "$1.25T", volume: "$31.43B", categories: ["hot", "rwa"], network: "BTC", holdings: 0.03 },
+  { symbol: "SOL", name: "Solana", price: 64.86, change: 3.3, marketCap: "$37.77B", volume: "$3.24B", categories: ["gainers", "ai"], network: "SOL", holdings: 1.8 },
 ];
 
 export const trendingTokens: TrendingToken[] = [
-  { symbol: "WSTETH", name: "Wrapped Staked Ether", price: 2846.35, change: -0.73, marketCap: "$9.98B", volume: "$27.10M", categories: ["hot", "defi"], network: "ETH" },
-  { symbol: "AETHWETH", name: "Aethir Wrapped ETH", price: 2315.6, change: -0.67, marketCap: "$5.18B", volume: "$21.90M", categories: ["hot", "ai"], network: "ETH" },
-  { symbol: "XAUT", name: "Tether Gold", price: 4692.15, change: 0.13, marketCap: "$2.63B", volume: "$181.69M", categories: ["rwa"], network: "ETH" },
-  { symbol: "PAXG", name: "PAX Gold", price: 4699.22, change: 0.27, marketCap: "$2.26B", volume: "$158.29M", categories: ["rwa"], network: "ETH" },
-  { symbol: "DEXE", name: "DeXe", price: 12.92, change: 1.52, marketCap: "$1.08B", volume: "$36.02M", categories: ["defi", "hot"], network: "BNB" },
-  { symbol: "TRUMP", name: "Trump", price: 2.86, change: -0.49, marketCap: "$664.59M", volume: "$273.0M", categories: ["meme"], network: "SOL" },
-  { symbol: "PUMP", name: "Pump", price: 0.001778, change: -1.3, marketCap: "$590.31M", volume: "$43.07M", categories: ["meme"], network: "SOL" },
-  { symbol: "AERO", name: "Aerodrome", price: 0.4226, change: -2.78, marketCap: "$391.40M", volume: "$15.70M", categories: ["defi"], network: "BASE" },
+  { symbol: "WSTETH", name: "Wrapped Staked Ether", price: 2012.61, change: 4.12, marketCap: "$7.18B", volume: "$9.53M", categories: ["hot", "defi"], network: "ETH" },
+  { symbol: "AETHWETH", name: "Aethir Wrapped ETH", price: 1625.97, change: 4.06, marketCap: "$5.18B", volume: "$21.90M", categories: ["hot", "ai"], network: "ETH" },
+  { symbol: "XAUT", name: "Tether Gold", price: 4299.08, change: 0.3, marketCap: "$2.64B", volume: "$95.57M", categories: ["rwa"], network: "ETH" },
+  { symbol: "PAXG", name: "PAX Gold", price: 4301.89, change: 0.14, marketCap: "$1.98B", volume: "$110.86M", categories: ["rwa"], network: "ETH" },
+  { symbol: "DEXE", name: "DeXe", price: 19.85, change: -0.33, marketCap: "$928.63M", volume: "$15.59M", categories: ["defi", "hot"], network: "BNB" },
+  { symbol: "TRUMP", name: "Trump", price: 1.63, change: 2.56, marketCap: "$388.27M", volume: "$70.30M", categories: ["meme"], network: "SOL" },
+  { symbol: "PUMP", name: "Pump", price: 0.001512, change: 6.16, marketCap: "$529.54M", volume: "$44.90M", categories: ["meme"], network: "SOL" },
+  { symbol: "AERO", name: "Aerodrome", price: 0.3319, change: 3.55, marketCap: "$314.56M", volume: "$9.53M", categories: ["defi"], network: "BASE" },
   { symbol: "RIVER", name: "River", price: 6.6, change: 11.32, marketCap: "$129.26M", volume: "$54.52M", categories: ["gainers", "ai"], network: "ETH" },
   { symbol: "SKR", name: "SKR", price: 0.0198, change: 29.95, marketCap: "$104.70M", volume: "$150.4M", categories: ["gainers", "meme"], network: "ETH" },
   { symbol: "OPENAI", name: "OpenAI", price: 1431.1, change: -0.09, marketCap: "$2.24M", volume: "$3.89M", categories: ["ai"], network: "BASE" },
@@ -201,10 +201,10 @@ export const rewardRedeemItems: RewardRedeemItem[] = [
 
 export const perpsMarkets: PerpsMarket[] = [
   { symbol: "ASTER", pair: "ASTERUSDT", leverage: "x200", volume: "$28.7M", price: "$0.6694", change: "-0.14%" },
-  { symbol: "BTC", pair: "BTCUSDT", leverage: "x200", volume: "$938.2M", price: "$78,232.5", change: "+0.64%" },
-  { symbol: "ETH", pair: "ETHUSDT", leverage: "x200", volume: "$374.9M", price: "$2,329.22", change: "-0.04%" },
-  { symbol: "SOL", pair: "SOLUSDT", leverage: "x100", volume: "$52.9M", price: "$86.53", change: "+0.67%" },
-  { symbol: "XRP", pair: "XRPUSDT", leverage: "x100", volume: "$15.2M", price: "$1.4399", change: "+1.65%" },
+  { symbol: "BTC", pair: "BTCUSDT", leverage: "x200", volume: "$31.43B", price: "$61,945", change: "+1.67%" },
+  { symbol: "ETH", pair: "ETHUSDT", leverage: "x200", volume: "$14.73B", price: "$1,625.97", change: "+4.06%" },
+  { symbol: "SOL", pair: "SOLUSDT", leverage: "x100", volume: "$3.24B", price: "$64.86", change: "+3.30%" },
+  { symbol: "XRP", pair: "XRPUSDT", leverage: "x100", volume: "$15.2M", price: "$1.44", change: "+1.65%" },
 ];
 
 export const predictionMarkets: PredictionMarket[] = [
@@ -245,6 +245,15 @@ export const networkOptions: NetworkItem[] = [
   { id: "sui", name: "Sui", symbol: "SUI" },
   { id: "apt", name: "Aptos", symbol: "APT" },
   { id: "tron", name: "Tron", symbol: "TRX" },
+  { id: "terra", name: "Terra Classic", symbol: "LUNC" },
+  { id: "tez", name: "Tezos", symbol: "XTZ" },
+  { id: "theta", name: "Theta", symbol: "THETA" },
+  { id: "tt", name: "ThunderCore", symbol: "TT" },
+  { id: "vet", name: "VeChain", symbol: "VET" },
+  { id: "via", name: "Viacoin", symbol: "VIA" },
+  { id: "vic", name: "Viction", symbol: "VIC" },
+  { id: "wan", name: "Wanchain", symbol: "WAN" },
+  { id: "waves", name: "Waves", symbol: "WAVES" },
 ];
 
 export const socialLinks: SocialLink[] = [

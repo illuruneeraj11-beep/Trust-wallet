@@ -1213,6 +1213,42 @@ function renderTopTraded(tokens) {
     </div>`).join('');
 }
 
+/* Brand background colors for each network's icon chip */
+const NETWORK_BRAND_COLORS = {
+  BTC:  { bg: '#F7931A', fg: '#fff' },
+  ETH:  { bg: '#627EEA', fg: '#fff' },
+  SOL:  { bg: '#000000', fg: '#fff' },
+  BNB:  { bg: '#1E2026', fg: '#F3BA2F' },
+  TRX:  { bg: '#E50915', fg: '#fff' },
+  ARB:  { bg: '#2D374B', fg: '#fff' },
+  BASE: { bg: '#0052FF', fg: '#fff' },
+  OP:   { bg: '#FF0420', fg: '#fff' },
+  MATIC:{ bg: '#8247E5', fg: '#fff' },
+  ATOM: { bg: '#2E3148', fg: '#fff' },
+  AVAX: { bg: '#E84142', fg: '#fff' },
+  LTC:  { bg: '#B0B0B0', fg: '#fff' },
+  XRP:  { bg: '#00AAE4', fg: '#fff' },
+  ADA:  { bg: '#0033AD', fg: '#fff' },
+  DOT:  { bg: '#E6007A', fg: '#fff' },
+  DOGE: { bg: '#C2A633', fg: '#fff' },
+  NEAR: { bg: '#000000', fg: '#fff' },
+  SUI:  { bg: '#4CA3FF', fg: '#fff' },
+};
+
+function _netIconPill(sym, isSelected, onclick) {
+  const brand = NETWORK_BRAND_COLORS[sym] || { bg: '#1C1C1E', fg: '#fff' };
+  const logoUrl = (typeof TRUST_LOGO_URLS !== 'undefined' && TRUST_LOGO_URLS[sym]) || '';
+  const border = isSelected ? '2px solid #0052FF' : '2px solid transparent';
+  return `
+    <div class="net-icon-chip ${isSelected ? 'selected' : ''}" onclick="${onclick}"
+         style="background:${brand.bg}; border:${border};">
+      ${logoUrl
+        ? `<img src="${logoUrl}" width="28" height="28" style="object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none;font-weight:800;font-size:13px;color:${brand.fg};">${sym.slice(0,2)}</span>`
+        : `<span style="font-weight:800;font-size:13px;color:${brand.fg};">${sym.slice(0,2)}</span>`
+      }
+    </div>`;
+}
+
 function renderReceiveFilters() {
   const containers = [
     document.getElementById('receive-net-filters'),
@@ -1222,23 +1258,83 @@ function renderReceiveFilters() {
   containers.forEach(container => {
     if (!container) return;
     container.innerHTML =
-      `<div class="net-pill-box all on" onclick="haptic()">All</div>` +
-      nets.map(n => `<div class="net-pill-box" onclick="haptic()">${logoAsset(n, 28)}</div>`).join('') +
-      `<div class="net-pill-box more" onclick="pushScreen('select-network-screen')">112 ▾</div>`;
+      `<div class="net-icon-chip all-chip selected" onclick="haptic()" style="background:#fff;border:2px solid #0052FF;"><span style="font-weight:800;font-size:14px;color:#000;">All</span></div>` +
+      nets.map(n => _netIconPill(n, false, 'haptic()')).join('') +
+      `<div class="net-icon-chip more-chip" onclick="pushScreen('select-network-screen')" style="background:#F2F2F7;"><span style="font-size:11px;font-weight:700;color:#636366;">112+</span></div>`;
   });
+}
+
+function getNetworkForSym(sym) {
+  const netMap = {
+    BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana', BNB: 'BNB Smart Chain',
+    TRX: 'Tron', ARB: 'Arbitrum', BASE: 'Base', OP: 'Optimism',
+    MATIC: 'Polygon', ZKSYNC: 'zkSync Era', LTC: 'Litecoin',
+    DOGE: 'Dogecoin', XRP: 'XRP Ledger', ADA: 'Cardano', DOT: 'Polkadot',
+    AVAX: 'Avalanche', LINK: 'Chainlink', ATOM: 'Cosmos',
+    ALGO: 'Algorand', XLM: 'Stellar', BCH: 'Bitcoin Cash',
+    FIL: 'Filecoin', HBAR: 'Hedera', ICP: 'Internet Computer',
+    VET: 'VeChain', NEAR: 'NEAR Protocol', FTM: 'Fantom',
+    THETA: 'Theta Network', XTZ: 'Tezos', EOS: 'EOS',
+    AAVE: 'Ethereum', MKR: 'Ethereum', KAVA: 'Kava', CELO: 'Celo',
+    ONE: 'Harmony', ZEC: 'Zcash', ETC: 'Ethereum Classic',
+    RON: 'Ronin', SEI: 'Sei', SUI: 'Sui', APT: 'Aptos',
+    INJ: 'Injective', OSMO: 'Osmosis', TIA: 'Celestia',
+    DASH: 'Dash', CRO: 'Cronos', BERA: 'Berachain',
+    USDT: 'Ethereum', USDC: 'Ethereum', TWT: 'BNB Smart Chain',
+    MANTA: 'Manta Pacific', MANTLE: 'Mantle Network', SCROLL: 'Scroll',
+    LINEA: 'Linea', BLAST: 'Blast', KSM: 'Kusama',
+    JUNO: 'Juno', STARS: 'Stargaze',
+  };
+  return netMap[sym] || 'Ethereum';
+}
+
+function generateWalletAddress(sym) {
+  if (WALLET_ADDRESSES[sym]) return WALLET_ADDRESSES[sym];
+  const btcLike = ['BTC', 'LTC', 'BCH', 'DASH', 'ZEC', 'DOGE'];
+  const solLike = ['SOL'];
+  const cosmosLike = ['ATOM', 'OSMO', 'JUNO', 'STARS', 'TIA', 'KAVA', 'SEI'];
+  const hash = sym.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const hex = (n) => n.toString(16).padStart(4, '0');
+  if (btcLike.includes(sym)) return `bc1q${hex(hash)}...${hex(hash*7).slice(0,5)}`;
+  if (solLike.includes(sym)) return `${hex(hash*3).toUpperCase()}...${hex(hash*11).toUpperCase()}`;
+  if (cosmosLike.includes(sym)) {
+    const prefix = sym === 'ATOM' ? 'cosmos' : sym.toLowerCase();
+    return `${prefix}1${hex(hash*2)}...${hex(hash*5)}`;
+  }
+  if (['XRP'].includes(sym)) return `r${hex(hash*13).toUpperCase()}...${hex(hash*17).toUpperCase()}`;
+  if (['XLM'].includes(sym)) return `G${hex(hash*19).toUpperCase()}...${hex(hash*23).toUpperCase()}`;
+  if (['ADA'].includes(sym)) return `addr1${hex(hash*4)}...${hex(hash*9)}`;
+  if (['DOT', 'KSM'].includes(sym)) return `1${hex(hash*6).toUpperCase()}...${hex(hash*8).toUpperCase()}`;
+  if (['ALGO'].includes(sym)) return `${hex(hash*21).toUpperCase()}...${hex(hash*31).toUpperCase()}`;
+  if (['NEAR'].includes(sym)) return `${sym.toLowerCase()}.near`;
+  if (['APT', 'SUI'].includes(sym)) return `0x${hex(hash*14)}...${hex(hash*18)}`;
+  if (['HBAR'].includes(sym)) return `0.0.${hash * 1234}`;
+  if (['ICP'].includes(sym)) return `${hex(hash*33)}...${hex(hash*37)}`;
+  if (['FIL'].includes(sym)) return `f1${hex(hash*12)}...${hex(hash*16)}`;
+  if (['THETA'].includes(sym)) return `0x${hex(hash*22)}...${hex(hash*26)}`;
+  if (['EOS'].includes(sym)) return `${sym.toLowerCase()}wallet`;
+  if (['XTZ'].includes(sym)) return `tz1${hex(hash*15)}...${hex(hash*20)}`;
+  return `0x${hex(hash*2)}${hex(hash*3).slice(0,2)}...${hex(hash*7).slice(0,6)}`;
+}
+
+function getParentNetworkSym(sym) {
+  const map = {
+    TWT: 'BNB', USDT: 'ETH', USDC: 'ETH', LINK: 'ETH', AAVE: 'ETH',
+    MKR: 'ETH', DEXE: 'BNB',
+  };
+  return map[sym] || null;
 }
 
 function renderReceiveAssets() {
   const container = document.getElementById('receive-asset-list');
   if (!container) return;
-  const list = ['BTC', 'ETH', 'SOL', 'BNB', 'TWT', 'USDT', 'USDC'];
+  const list = ['BTC', 'ETH', 'SOL', 'BNB', 'TRX', 'ARB', 'BASE', 'TWT', 'USDT', 'USDC'];
   container.innerHTML = list.map(sym => {
-    const addr = WALLET_ADDRESSES[sym] || WALLET_ADDRESSES['default'];
-    const netMap = { BTC: 'Bitcoin', SOL: 'Solana', BNB: 'BNB Smart Chain', TWT: 'BNB Smart Chain', default: 'Ethereum' };
-    const net = netMap[sym] || netMap.default;
-    const parent = ['TWT'].includes(sym) ? 'BNB' : (['USDT', 'USDC'].includes(sym) ? 'ETH' : null);
+    const addr = generateWalletAddress(sym);
+    const net = getNetworkForSym(sym);
+    const parent = getParentNetworkSym(sym);
     return `
-      <div class="net-row-item">
+      <div class="net-row-item" onclick="showReceiveDetails('${sym}', '${net}')">
         <div class="icon" style="position:relative;">
           ${logoAsset(sym, 44)}
           ${parent && !assetHasVideoBadge(sym) ? netBadgeSmall(parent, 14) : ''}
@@ -1251,11 +1347,221 @@ function renderReceiveAssets() {
           <div class="asset-addr">${addr}</div>
         </div>
         <div class="actions">
-          <button class="action-btn-sm" onclick="haptic()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3m0 4h4V17m-4 0h4"/></svg></button>
-          <button class="action-btn-sm" onclick="copyAddress('${addr}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></button>
+          <button class="action-btn-sm" onclick="event.stopPropagation(); showReceiveDetails('${sym}', '${net}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3m0 4h4V17m-4 0h4"/></svg></button>
+          <button class="action-btn-sm" onclick="event.stopPropagation(); copyAddress('${addr}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></button>
         </div>
       </div>`;
   }).join('');
+}
+
+/* Render all cryptos in the "All crypto" section of Receive */
+function renderReceiveAllCryptos(filter) {
+  const container = document.getElementById('receive-all-list');
+  if (!container) return;
+  /* Build unique list from ALL_NETWORKS_DATA + extra well-known tokens */
+  const extraTokens = [
+    { sym: 'USDT', name: 'Tether USD' }, { sym: 'USDC', name: 'USD Coin' },
+    { sym: 'LINK', name: 'Chainlink' }, { sym: 'AAVE', name: 'Aave' },
+    { sym: 'MKR', name: 'Maker' }, { sym: 'TWT', name: 'Trust Wallet Token' },
+    { sym: 'DEXE', name: 'DeXe' }, { sym: 'UNI', name: 'Uniswap' },
+    { sym: 'SHIB', name: 'Shiba Inu' }, { sym: 'PEPE', name: 'Pepe' },
+    { sym: 'TON', name: 'Toncoin' }, { sym: 'XMR', name: 'Monero' },
+    { sym: 'TAO', name: 'Bittensor' }, { sym: 'ONDO', name: 'Ondo' },
+    { sym: 'RNDR', name: 'Render' }, { sym: 'KAS', name: 'Kaspa' },
+    { sym: 'PAXG', name: 'PAX Gold' },
+  ];
+  const seen = new Set();
+  const allCrypto = [];
+  /* Popular list syms to exclude from A-Z */
+  const popularSyms = new Set(['BTC', 'ETH', 'SOL', 'BNB', 'TRX', 'ARB', 'BASE', 'TWT', 'USDT', 'USDC']);
+
+  ALL_NETWORKS_DATA.forEach(n => {
+    if (!seen.has(n.sym) && !popularSyms.has(n.sym)) {
+      seen.add(n.sym);
+      allCrypto.push({ sym: n.sym, name: n.name });
+    }
+  });
+  extraTokens.forEach(t => {
+    if (!seen.has(t.sym) && !popularSyms.has(t.sym)) {
+      seen.add(t.sym);
+      allCrypto.push(t);
+    }
+  });
+
+  /* Sort A-Z */
+  allCrypto.sort((a, b) => a.name.localeCompare(b.name));
+
+  /* Apply filter */
+  let filtered = allCrypto;
+  if (filter && filter.trim()) {
+    const q = filter.toLowerCase();
+    filtered = allCrypto.filter(c => c.sym.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+  }
+
+  container.innerHTML = filtered.map(c => {
+    const net = getNetworkForSym(c.sym);
+    const addr = generateWalletAddress(c.sym);
+    const parent = getParentNetworkSym(c.sym);
+    return `
+      <div class="net-row-item" onclick="showReceiveDetails('${c.sym}', '${net}')">
+        <div class="icon" style="position:relative;">
+          ${logoAsset(c.sym, 44)}
+          ${parent ? netBadgeSmall(parent, 14) : ''}
+        </div>
+        <div class="name-wrap">
+          <div class="name-line">
+            <span class="asset-name">${c.sym}</span>
+            <span class="asset-net">${net}</span>
+          </div>
+          <div class="asset-addr">${addr}</div>
+        </div>
+        <div class="actions">
+          <button class="action-btn-sm" onclick="event.stopPropagation(); showReceiveDetails('${c.sym}', '${net}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3m0 4h4V17m-4 0h4"/></svg></button>
+          <button class="action-btn-sm" onclick="event.stopPropagation(); copyAddress('${addr}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* Show QR code receive details for a specific crypto */
+let currentReceiveSym = '';
+let currentReceiveAddr = '';
+
+function showReceiveDetails(sym, network) {
+  haptic();
+  currentReceiveSym = sym;
+  const addr = generateWalletAddress(sym);
+  currentReceiveAddr = addr;
+  const net = network || getNetworkForSym(sym);
+
+  /* Update caution text */
+  const cautionEl = document.getElementById('qr-caution-text');
+  if (cautionEl) {
+    cautionEl.textContent = `Only send ${sym} (${net}) assets to this address. Other assets will be lost forever.`;
+  }
+
+  /* Update asset badge */
+  const iconEl = document.getElementById('qr-asset-icon');
+  const nameEl = document.getElementById('qr-asset-name');
+  const symbolTag = document.querySelector('.asset-symbol-tag');
+
+  if (iconEl) {
+    /* Replace the img with the logoAsset HTML */
+    const wrapper = iconEl.parentElement;
+    if (wrapper) {
+      const existingLogo = wrapper.querySelector('.qr-logo-replace');
+      if (existingLogo) existingLogo.remove();
+      iconEl.style.display = 'none';
+      const logoDiv = document.createElement('span');
+      logoDiv.className = 'qr-logo-replace';
+      logoDiv.innerHTML = logoAsset(sym, 32);
+      wrapper.insertBefore(logoDiv, iconEl);
+    }
+  }
+  if (nameEl) nameEl.textContent = net;
+  if (symbolTag) symbolTag.textContent = sym;
+
+  /* Update address */
+  const addrEl = document.getElementById('qr-address-val');
+  if (addrEl) addrEl.textContent = addr;
+
+  /* Generate QR code */
+  const qrContainer = document.getElementById('qrcode');
+  if (qrContainer) {
+    qrContainer.innerHTML = '';
+    try {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+          text: addr,
+          width: 180,
+          height: 180,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        /* Fallback: render a visual QR placeholder */
+        qrContainer.innerHTML = renderFallbackQR(sym);
+      }
+    } catch (e) {
+      console.warn('QR generation failed:', e);
+      qrContainer.innerHTML = renderFallbackQR(sym);
+    }
+  }
+
+  pushScreen('receive-details-screen');
+}
+
+function renderFallbackQR(sym) {
+  /* Generate a deterministic visual grid pattern as QR fallback */
+  const hash = sym.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  let svg = '<svg viewBox="0 0 180 180" width="180" height="180">';
+  svg += '<rect width="180" height="180" fill="#fff"/>';
+  /* Corner markers */
+  const drawMarker = (x, y) => {
+    svg += `<rect x="${x}" y="${y}" width="42" height="42" fill="#000"/>`;
+    svg += `<rect x="${x+6}" y="${y+6}" width="30" height="30" fill="#fff"/>`;
+    svg += `<rect x="${x+12}" y="${y+12}" width="18" height="18" fill="#000"/>`;
+  };
+  drawMarker(6, 6);
+  drawMarker(132, 6);
+  drawMarker(6, 132);
+  /* Data modules */
+  for (let r = 0; r < 25; r++) {
+    for (let c = 0; c < 25; c++) {
+      if ((r < 8 && c < 8) || (r < 8 && c > 16) || (r > 16 && c < 8)) continue;
+      const val = ((hash * (r + 1) * (c + 1) + r * 7 + c * 13) % 100);
+      if (val < 40) {
+        svg += `<rect x="${c * 6.8 + 6}" y="${r * 6.8 + 6}" width="5.8" height="5.8" fill="#000"/>`;
+      }
+    }
+  }
+  svg += '</svg>';
+  return svg;
+}
+
+function copyQRAddress() {
+  haptic();
+  const addr = currentReceiveAddr || document.getElementById('qr-address-val')?.textContent || '';
+  if (navigator.clipboard && addr) {
+    navigator.clipboard.writeText(addr)
+      .then(() => showToast('✅ Address copied!'))
+      .catch(() => showToast('Address: ' + addr));
+  } else {
+    showToast('Address: ' + addr);
+  }
+}
+
+/* Receive screen search filter */
+function filterReceiveAssets() {
+  const input = document.querySelector('#receive-screen input[type="text"]');
+  const query = input ? input.value.trim() : '';
+
+  /* Filter popular section */
+  const popularContainer = document.getElementById('receive-asset-list');
+  if (popularContainer) {
+    const rows = popularContainer.querySelectorAll('.net-row-item');
+    rows.forEach(row => {
+      const name = row.querySelector('.asset-name')?.textContent || '';
+      const net = row.querySelector('.asset-net')?.textContent || '';
+      const match = !query || name.toLowerCase().includes(query.toLowerCase()) || net.toLowerCase().includes(query.toLowerCase());
+      row.style.display = match ? '' : 'none';
+    });
+  }
+
+  /* Re-render all crypto with filter */
+  renderReceiveAllCryptos(query);
+
+  /* Toggle section titles visibility */
+  const popularTitle = document.querySelector('#receive-screen .net-list-section-title:first-of-type');
+  const allTitle = document.querySelectorAll('#receive-screen .net-list-section-title')[1];
+  if (query) {
+    if (popularTitle) popularTitle.style.display = 'none';
+    if (allTitle) allTitle.textContent = 'Search results';
+  } else {
+    if (popularTitle) popularTitle.style.display = '';
+    if (allTitle) allTitle.textContent = 'All crypto';
+  }
 }
 
 function renderPopularNetworks() {
@@ -1515,6 +1821,21 @@ function createMockWallet() {
 function openRewardsFromSettings() {
   closeAllPushScreens();
   show('rewards', null, 'nav-rewards');
+}
+
+/* Rewards screen Active/Past tab switcher */
+function rwTab(section, tab) {
+  haptic();
+  const activeEl = document.getElementById(`rw-${section}-active`);
+  const pastEl   = document.getElementById(`rw-${section}-past`);
+  if (!activeEl || !pastEl) return;
+  if (tab === 'active') {
+    activeEl.style.background = '#000'; activeEl.style.color = '#fff'; activeEl.style.fontWeight = '700';
+    pastEl.style.background = 'transparent'; pastEl.style.color = '#8E8E93'; pastEl.style.fontWeight = '600';
+  } else {
+    pastEl.style.background = '#000'; pastEl.style.color = '#fff'; pastEl.style.fontWeight = '700';
+    activeEl.style.background = 'transparent'; activeEl.style.color = '#8E8E93'; activeEl.style.fontWeight = '600';
+  }
 }
 
 function toggleTradeMenu(forceOpen) {
@@ -2354,6 +2675,7 @@ window.addEventListener('DOMContentLoaded', () => {
     renderDashModules();
     renderReceiveFilters();
     renderReceiveAssets();
+    renderReceiveAllCryptos();
     renderPopularNetworks();
     renderCurrencies();
     renderBuyCryptos();

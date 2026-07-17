@@ -1,321 +1,217 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { earnOpportunities, formatCurrencyValue, topTradedTokens } from "@/data/trust-wallet";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { earnOpportunities, perpsMarkets, predictionMarkets } from "@/data/trust-wallet";
+import { formatCurrencyValue } from "@/data/trust-wallet";
 import { useAppContext } from "@/context/app-context";
-import { formatMoney, primaryBalance } from "@/services/wallet-ledger";
-import { AppScreen, Card, EmptyStateCard, HeaderIcon, SectionHeader, SheetModal, TokenRow, WalletPill } from "@/components/trust-ui";
+import { AppScreen, SheetModal, TokenAvatar } from "@/components/trust-ui";
+import { applyLivePerps } from "@/services/market-prices";
 
 export default function HomeScreen() {
-  const [layoutVisible, setLayoutVisible] = useState(false);
-  const [walletVisible, setWalletVisible] = useState(false);
-  const {
-    activeHomeTab,
-    backupBannerDismissed,
-    currency,
-    dismissBackupBanner,
-    hideBalance,
-    hideNfts,
-    hidePredictions,
-    hideSmallBalances,
-    layoutMode,
-    loadingTransfers,
-    loadingWallets,
-    refreshTransfers,
-    refreshWallets,
-    selectedWallet,
-    setActiveHomeTab,
-    setLayoutMode,
-    setSelectedWalletId,
-    theme,
-    toggleHideBalance,
-    toggleHideNfts,
-    toggleHidePredictions,
-    toggleHideSmallBalances,
-    totalBalance,
-    transfers,
-    trendingTokens,
-    visibleBalance,
-    wallets,
-    watchlist,
-  } = useAppContext();
-
-  const cryptoBalances = useMemo(() => {
-    if (!selectedWallet) {
-      return [];
-    }
-
-    return selectedWallet.balances.filter((balance) => {
-      const amount = Number(balance.amount || 0);
-      return hideSmallBalances ? amount >= 0.01 : true;
-    });
-  }, [hideSmallBalances, selectedWallet]);
-
-  const watchlistTokens = useMemo(() => {
-    const merged = [...topTradedTokens, ...trendingTokens];
-    return merged.filter((token, index) => watchlist.includes(token.symbol) && merged.findIndex((row) => row.symbol === token.symbol) === index);
-  }, [trendingTokens, watchlist]);
-
-  const historyRows = useMemo(() => {
-    return transfers.slice(0, 6).map((transfer) => ({
-      id: transfer.id,
-      label: transfer.note || "Wallet transfer",
-      amount: Number(transfer.amount || 0),
-      createdAt: new Date(transfer.created_at).toLocaleString(),
-      status: transfer.status,
-    }));
-  }, [transfers]);
+  const { activeHomeTab, currency, setActiveHomeTab, theme, topTradedTokens, trendingTokens, watchlist } = useAppContext();
+  const [sheet, setSheet] = useState<string | null>(null);
+  const livePerps = useMemo(() => applyLivePerps(perpsMarkets, topTradedTokens), [topTradedTokens]);
+  const tokens = useMemo(() => [...topTradedTokens, ...trendingTokens].slice(0, 8), [topTradedTokens, trendingTokens]);
 
   return (
     <>
       <AppScreen padded={false}>
-        <View style={{ paddingHorizontal: 18, gap: 20 }}>
+        <View style={{ paddingHorizontal: 16, gap: 18 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <HeaderIcon icon="⚙" onPress={() => router.push("/settings")} />
-            <Pressable style={{ flex: 1, minHeight: 54, borderRadius: 28, backgroundColor: theme.input, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Text style={{ color: theme.secondary, fontSize: 20 }}>⌕</Text>
-              <Text style={{ color: theme.secondary, fontSize: 18, fontWeight: "700" }}>Search</Text>
-            </Pressable>
-            <HeaderIcon icon="⌲" onPress={() => router.push("/receive")} />
+            <HeaderButton label="Main Wallet 1" onPress={() => router.push("/wallets")} />
+            <View style={{ flex: 1 }} />
+            <IconButton label="🔔" onPress={() => setSheet("Notifications")} />
+            <IconButton label="⌕" onPress={() => setSheet("Search tokens and dApps")} />
+            <IconButton label="⌗" onPress={() => router.push("/qr-scanner")} />
           </View>
 
-          <View style={{ alignItems: "center", gap: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Pressable onPress={() => setWalletVisible(true)} style={{ minHeight: 42, paddingHorizontal: 18, borderRadius: 999, backgroundColor: theme.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, shadowColor: theme.shadow, shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
-                <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>{selectedWallet?.name || "Main Wallet 1"}</Text>
-                <Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>›</Text>
-                <View style={{ position: "absolute", right: 8, top: 6, width: 10, height: 10, borderRadius: 5, backgroundColor: "#d91524" }} />
-              </Pressable>
-              <Pressable onPress={toggleHideBalance} style={{ padding: 6 }}>
-                <Text style={{ color: theme.text, fontSize: 22 }}>⧉</Text>
-              </Pressable>
+          <Pressable onPress={() => setSheet("What’s New")} style={{ minHeight: 72, borderRadius: 18, borderWidth: 1, borderColor: "#eeeeef", padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <LinearGradient colors={["#fff4c2", "#ff7a59"]} style={{ width: 42, height: 42, borderRadius: 21 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>bStocks are officially launched</Text>
+              <Text numberOfLines={1} style={{ color: theme.secondary, fontSize: 13 }}>Buy tokenized stock market assets directly in wallet</Text>
             </View>
-            <Pressable onPress={toggleHideBalance}>
-              <Text style={{ color: theme.secondary, fontSize: 14, fontWeight: "700" }}>{hideBalance ? "Balance hidden" : visibleBalance}</Text>
-            </Pressable>
+            <Text style={{ color: theme.secondary, fontSize: 28 }}>›</Text>
+          </Pressable>
+
+          <View style={{ alignItems: "center", gap: 18, paddingTop: 4 }}>
+            <Text style={{ color: theme.text, fontSize: 22, fontWeight: "900" }}>Get started by adding some crypto</Text>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <ActionTile label="Receive" icon="⌘" onPress={() => router.push("/receive")} />
+              <ActionTile label="From Binance" icon="₿" onPress={() => router.push("/deposit-binance")} />
+            </View>
           </View>
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-            <QuickAction label="Send" icon="↗" onPress={() => router.push("/send")} />
-            <QuickAction label="Receive" icon="↓" onPress={() => router.push("/receive")} />
-            <QuickAction label="Swap" icon="⟳" onPress={() => router.push("/swap")} />
-            <QuickAction label="Buy" icon="＋" onPress={() => router.push("/fund")} />
-          </View>
-
-          {!backupBannerDismissed ? (
-            <Pressable onPress={() => router.push("/wallet-backup")} style={{ borderRadius: 22, borderWidth: 1.5, borderColor: "#efc4f6", backgroundColor: theme.surface, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <MiniWalletArt />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>Back up to secure your assets</Text>
-                <Text style={{ color: theme.blue, fontSize: 15, fontWeight: "900" }}>Back up wallet →</Text>
-              </View>
-              <Pressable onPress={dismissBackupBanner} hitSlop={10}>
-                <Text style={{ color: theme.secondary, fontSize: 22 }}>×</Text>
-              </Pressable>
-            </Pressable>
-          ) : null}
-
-          <View style={{ borderBottomWidth: 1, borderBottomColor: theme.border, paddingBottom: 10, flexDirection: "row", alignItems: "center", gap: 18 }}>
-            <TopTab label="Crypto" active={activeHomeTab === "crypto"} onPress={() => setActiveHomeTab("crypto")} />
+          <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            <TopTab label="Tokens" active={activeHomeTab === "crypto"} onPress={() => setActiveHomeTab("crypto")} />
             <TopTab label="Watchlist" active={activeHomeTab === "watchlist"} onPress={() => setActiveHomeTab("watchlist")} />
-            <TopTab label="NFT" active={activeHomeTab === "nfts"} onPress={() => setActiveHomeTab("nfts")} />
-            <Pressable onPress={() => setActiveHomeTab("history")} style={{ marginLeft: "auto" }}>
-              <Text style={{ color: activeHomeTab === "history" ? theme.text : theme.secondary, fontSize: 22 }}>◔</Text>
-            </Pressable>
-            <Pressable onPress={() => setLayoutVisible(true)}>
-              <Text style={{ color: theme.secondary, fontSize: 22 }}>⚙</Text>
-            </Pressable>
+            <TopTab label="NFTs" active={activeHomeTab === "nfts"} onPress={() => setActiveHomeTab("nfts")} />
+            <Pressable onPress={() => setSheet("Portfolio filters")} style={{ marginLeft: "auto" }}><Text style={{ color: theme.secondary, fontSize: 26 }}>☷</Text></Pressable>
           </View>
-
-          {loadingWallets ? <ActivityIndicator color={theme.blue} /> : null}
 
           {activeHomeTab === "crypto" ? (
-            <View style={{ gap: 12 }}>
-              {!selectedWallet || primaryBalance(selectedWallet) <= 0 ? (
-                <Card muted>
-                  <View style={{ alignItems: "center", gap: 18, paddingVertical: 6 }}>
-                    <OpenWalletArt />
-                    <Text style={{ color: theme.text, fontSize: 24, fontWeight: "900", textAlign: "center", lineHeight: 30 }}>Fund your wallet to start trading and earning</Text>
-                    <Pressable onPress={() => router.push("/fund")} style={{ minHeight: 58, borderRadius: 999, backgroundColor: theme.blue, alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Fund</Text>
-                    </Pressable>
-                    <Pressable onPress={() => router.push("/receive")} style={{ minHeight: 58, borderRadius: 999, backgroundColor: "#d8d4ff", alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: theme.blue, fontSize: 18, fontWeight: "900" }}>Receive crypto</Text>
-                    </Pressable>
-                  </View>
-                </Card>
-              ) : (
-                cryptoBalances.map((balance, index) => {
-                  const symbol = balance.mock_wallet_assets?.symbol || `A${index + 1}`;
-                  const amount = Number(balance.amount || 0);
-                  return (
-                    <TokenRow
-                      key={`${selectedWallet.id}-${symbol}`}
-                      symbol={symbol}
-                      name={balance.mock_wallet_assets?.name || symbol}
-                      price={formatCurrencyValue(amount, currency)}
-                      change={index % 2 === 0 ? "+2.40%" : "-0.81%"}
-                      meta={`${selectedWallet.name} · ${amount.toFixed(2)} ${symbol}`}
-                      onPress={() => router.push({ pathname: "/token-detail", params: { symbol, name: balance.mock_wallet_assets?.name || symbol, price: formatCurrencyValue(amount, currency), change: index % 2 === 0 ? "+2.40%" : "-0.81%" } })}
-                    />
-                  );
-                })
-              )}
+            <View style={{ gap: 8 }}>
+              {tokens.slice(0, 4).map((token) => (
+                <AssetRow
+                  key={token.symbol}
+                  symbol={token.symbol}
+                  name={token.name}
+                  price={formatCurrencyValue(token.price, currency)}
+                  change={`${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%`}
+                  onPress={() => router.push({ pathname: "/token-detail", params: { symbol: token.symbol, name: token.name, price: formatCurrencyValue(token.price, currency), change: `${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%` } })}
+                />
+              ))}
+              <Pressable onPress={() => router.push("/trending")} style={{ alignSelf: "center", minHeight: 38, borderRadius: 19, backgroundColor: theme.surface, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>View all ›</Text>
+              </Pressable>
             </View>
-          ) : null}
-
-          {activeHomeTab === "nfts" ? (
-            hideNfts ? (
-              <EmptyStateCard icon="🙈" title="NFTs are hidden" subtitle="Turn off Hide NFTs in layout settings to see your collectibles." />
-            ) : (
-              <EmptyStateCard icon="🖼" title="No NFTs yet" subtitle="Collectibles from Ethereum, Solana, and more will show up here." />
-            )
-          ) : null}
-
-          {activeHomeTab === "watchlist" ? (
-            <View style={{ gap: 12 }}>
-              {watchlistTokens.length ? (
-                watchlistTokens.map((token) => (
-                  <TokenRow
-                    key={token.symbol}
-                    symbol={token.symbol}
-                    name={token.name}
-                    price={formatCurrencyValue(token.price, currency)}
-                    change={`${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%`}
-                    meta={`${token.marketCap} MCap · ${token.volume} Vol`}
-                    network={token.network}
-                    onPress={() => router.push({ pathname: "/token-detail", params: { symbol: token.symbol, name: token.name, price: formatCurrencyValue(token.price, currency), change: `${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%` } })}
-                  />
-                ))
-              ) : (
-                <EmptyStateCard icon="📦" title="No results found" subtitle="Add tokens to your watchlist from Trending or Discover." />
-              )}
+          ) : activeHomeTab === "watchlist" ? (
+            <View style={{ gap: 8 }}>
+              {tokens.filter((token) => watchlist.includes(token.symbol)).concat(tokens.filter((token) => !watchlist.includes(token.symbol))).slice(0, 4).map((token) => (
+                <AssetRow
+                  key={token.symbol}
+                  symbol={token.symbol}
+                  name={token.name}
+                  price={formatCurrencyValue(token.price, currency)}
+                  change={`${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%`}
+                  onPress={() => router.push({ pathname: "/token-detail", params: { symbol: token.symbol, name: token.name, price: formatCurrencyValue(token.price, currency), change: `${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%` } })}
+                />
+              ))}
+              <Pressable onPress={() => setSheet("Customize watchlist")} style={{ alignSelf: "center", minHeight: 38, borderRadius: 19, backgroundColor: theme.blueSoft, paddingHorizontal: 20, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: theme.blue, fontSize: 14, fontWeight: "900" }}>Customize</Text>
+              </Pressable>
             </View>
-          ) : null}
-
-          {activeHomeTab === "history" ? (
-            <View style={{ gap: 12 }}>
-              {loadingTransfers ? <ActivityIndicator color={theme.blue} /> : null}
-              {historyRows.length ? (
-                historyRows.map((row) => (
-                  <TokenRow
-                    key={row.id}
-                    symbol={row.status === "completed" ? "TX" : "PND"}
-                    name={row.label}
-                    price={formatMoney(row.amount, currency.code)}
-                    change={row.status === "completed" ? "+Confirmed" : "-Pending"}
-                    meta={row.createdAt}
-                    onPress={() => router.push("/tx-history")}
-                  />
-                ))
-              ) : (
-                <EmptyStateCard icon="🎮" title="No transactions yet" subtitle="Can't find your transaction? Open the explorer from your history screen." linkLabel="Check explorer" onPress={() => router.push("/tx-history")} />
-              )}
+          ) : (
+            <View style={{ alignItems: "center", gap: 14, paddingVertical: 44 }}>
+              <Text style={{ fontSize: 64 }}>🖼</Text>
+              <Text style={{ color: theme.secondary, fontSize: 17 }}>No NFTs yet</Text>
             </View>
-          ) : null}
+          )}
 
-          <SectionHeader title="Earn" actionLabel="View all" onPress={() => router.push("/rewards")} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-            {earnOpportunities.map((item, index) => (
-              <LinearGradient key={item.symbol} colors={index % 2 === 0 ? ["#ffffff", "#eef0ff"] : ["#f7fbff", "#fff6fb"]} style={{ width: 180, borderRadius: 28, padding: 18, gap: 24, borderWidth: 1, borderColor: theme.border }}>
-                <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>{item.symbol.slice(0, 3)}</Text>
-                </View>
-                <View style={{ gap: 4 }}>
-                  <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>Earn up to {item.apy}</Text>
-                  <Text style={{ color: theme.secondary, fontSize: 14 }}>on {item.name}</Text>
-                </View>
-              </LinearGradient>
+          <SectionRail title="Predictions" onPress={() => router.push("/predictions")}>
+            {predictionMarkets.map((item, index) => (
+              <PredictionCard key={item.id} title={index === 0 ? "France vs. Morocco" : index === 1 ? "Norway vs. England" : item.title} meta={`${item.volume} · ${item.endsIn}`} />
             ))}
-          </ScrollView>
+          </SectionRail>
+
+          <SectionRail title="Perps" onPress={() => router.push("/perps")}>
+            {livePerps.slice(1, 4).map((item) => (
+              <MarketMiniCard key={item.pair} symbol={item.symbol} title={`Trade ${item.symbol} with up to ${item.leverage.replace("x", "")}x leverage`} subtitle={`${item.volume} Vol`} />
+            ))}
+          </SectionRail>
+
+          <SectionRail title="Earn" onPress={() => setSheet("Earn")}>
+            {earnOpportunities.map((item) => (
+              <MarketMiniCard key={item.symbol} symbol={item.symbol} title={`Earn up to ${item.apy} APY`} subtitle={`on ${item.name}`} />
+            ))}
+          </SectionRail>
+
+          <SectionRail title="Stocks" onPress={() => router.push("/perps")}>
+            {["NVIDIA", "MRVL", "MU"].map((symbol, index) => (
+              <MarketMiniCard key={symbol} symbol={symbol} title={symbol} subtitle={["$206.38  +1.55%", "$287.69  +7.58%", "$876.71  +1.62%"][index]} />
+            ))}
+          </SectionRail>
         </View>
       </AppScreen>
 
-      <SheetModal visible={layoutVisible} title="Asset Layout" subtitle="Customize your dashboard locally" onClose={() => setLayoutVisible(false)}>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {[1, 2, 3].map((mode) => (
-            <Pressable key={mode} onPress={() => setLayoutMode(mode as 1 | 2 | 3)} style={{ minHeight: 42, minWidth: 42, paddingHorizontal: 16, borderRadius: 999, backgroundColor: layoutMode === mode ? theme.blueSoft : theme.surface, alignItems: "center", justifyContent: "center", borderWidth: layoutMode === mode ? 0 : 1, borderColor: theme.border }}>
-              <Text style={{ color: layoutMode === mode ? theme.blue : theme.secondary, fontSize: 14, fontWeight: "900" }}>{mode}</Text>
+      <SheetModal visible={!!sheet} title={sheet ?? ""} subtitle={sheet === "What’s New" ? "bStocks has officially launched. Tokenized equities, ETFs, and market assets are now available in this demo flow." : "This action is connected."} onClose={() => setSheet(null)}>
+        {sheet === "What’s New" ? (
+          <View style={{ alignItems: "center", gap: 18 }}>
+            <LinearGradient colors={["#6fffe6", "#fff05a", "#ff47a3"]} style={{ width: 150, height: 150, borderRadius: 32, transform: [{ rotate: "-8deg" }] }} />
+            <Pressable onPress={() => { setSheet(null); router.push("/perps"); }} style={{ alignSelf: "stretch", height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Buy now</Text>
             </Pressable>
-          ))}
-        </View>
-        <Pressable onPress={() => { toggleHideSmallBalances(); setLayoutVisible(false); }} style={{ minHeight: 54, borderRadius: 999, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "900" }}>Dust cleaner</Text>
-        </Pressable>
-        <WalletPill title="Hide assets < $0.01" subtitle={hideSmallBalances ? "Enabled" : "Disabled"} selected={hideSmallBalances} onPress={toggleHideSmallBalances} />
-        <WalletPill title="Hide NFTs" subtitle={hideNfts ? "Enabled" : "Disabled"} selected={hideNfts} onPress={toggleHideNfts} />
-        <WalletPill title="Hide Predictions" subtitle={hidePredictions ? "Enabled" : "Disabled"} selected={hidePredictions} onPress={toggleHidePredictions} />
-      </SheetModal>
-
-      <SheetModal visible={walletVisible} title="Wallet Selector" subtitle="Switch, manage, or back up your wallet" onClose={() => setWalletVisible(false)}>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }} contentContainerStyle={{ gap: 10 }}>
-          {wallets.map((wallet) => (
-            <WalletPill
-              key={wallet.id}
-              title={wallet.name}
-              subtitle={formatMoney(primaryBalance(wallet), currency.code)}
-              selected={wallet.id === selectedWallet?.id}
-              onPress={() => {
-                setSelectedWalletId(wallet.id);
-                setWalletVisible(false);
-              }}
-            />
-          ))}
-        </ScrollView>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <Pressable onPress={() => { setWalletVisible(false); router.push("/wallet-backup"); }} style={{ flex: 1, minHeight: 52, borderRadius: 999, backgroundColor: theme.blueSoft, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: theme.blue, fontSize: 15, fontWeight: "900" }}>Back up</Text>
+          </View>
+        ) : (
+          <Pressable onPress={() => setSheet(null)} style={{ height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Done</Text>
           </Pressable>
-          <Pressable onPress={() => { setWalletVisible(false); router.push("/wallets"); }} style={{ flex: 1, minHeight: 52, borderRadius: 999, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "900" }}>Manage wallets</Text>
-          </Pressable>
-        </View>
-        <Pressable onPress={() => { void refreshWallets(); void refreshTransfers(); }} style={{ alignSelf: "center" }}>
-          <Text style={{ color: theme.secondary, fontSize: 14, fontWeight: "800" }}>Refresh balances · {formatMoney(totalBalance, currency.code)}</Text>
-        </Pressable>
+        )}
       </SheetModal>
     </>
   );
 }
 
-function QuickAction({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function HeaderButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", gap: 10 }}>
-      <View style={{ width: 58, height: 58, borderRadius: 18, backgroundColor: "#f0f1f5", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: "#0f1115", fontSize: 26, fontWeight: "900" }}>{icon}</Text>
-      </View>
-      <Text style={{ color: "#17191f", fontSize: 13, fontWeight: "900" }}>{label}</Text>
+    <Pressable onPress={onPress} style={{ minHeight: 38, borderRadius: 19, backgroundColor: "#f3f3f6", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Text style={{ color: "#f59e0b", fontSize: 16 }}>●</Text>
+      <Text style={{ color: "#202124", fontSize: 15, fontWeight: "900" }}>{label}</Text>
+      <Text style={{ color: "#202124", fontSize: 20 }}>›</Text>
+    </Pressable>
+  );
+}
+
+function IconButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return <Pressable onPress={onPress} style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#6d6d72", fontSize: 24 }}>{label}</Text></Pressable>;
+}
+
+function ActionTile({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={{ width: 128, minHeight: 80, borderRadius: 18, backgroundColor: "#f4f4f7", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <Text style={{ color: "#202124", fontSize: 26, fontWeight: "900" }}>{icon}</Text>
+      <Text style={{ color: "#202124", fontSize: 15, fontWeight: "900" }}>{label}</Text>
     </Pressable>
   );
 }
 
 function TopTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={{ paddingBottom: 8, borderBottomWidth: 4, borderBottomColor: active ? "#0500e8" : "transparent" }}>
-      <Text style={{ color: active ? "#111318" : "#7b8089", fontSize: 18, fontWeight: "900" }}>{label}</Text>
+    <Pressable onPress={onPress} style={{ paddingBottom: 10, marginRight: 26, borderBottomWidth: 4, borderBottomColor: active ? "#0500ff" : "transparent" }}>
+      <Text style={{ color: active ? "#202124" : "#6d6d72", fontSize: 20, fontWeight: "900" }}>{label}</Text>
     </Pressable>
   );
 }
 
-function MiniWalletArt() {
+function AssetRow({ symbol, name, price, change, onPress }: { symbol: string; name: string; price: string; change: string; onPress: () => void }) {
+  const positive = change.startsWith("+");
   return (
-    <View style={{ width: 84, height: 64, alignItems: "center", justifyContent: "center" }}>
-      <LinearGradient colors={["#f8a6ff", "#fdf0a6", "#8affcf"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 46, height: 32, borderRadius: 10, transform: [{ rotate: "-16deg" }] }} />
-      <View style={{ position: "absolute", width: 28, height: 40, borderRadius: 14, borderWidth: 4, borderColor: "#181b21", borderTopColor: "transparent", top: 8, left: 16, transform: [{ rotate: "-18deg" }] }} />
-      <View style={{ position: "absolute", width: 14, height: 10, borderRadius: 5, backgroundColor: "#111", top: 26, right: 16 }} />
+    <Pressable onPress={onPress} style={{ minHeight: 70, flexDirection: "row", alignItems: "center", gap: 14 }}>
+      <TokenAvatar symbol={symbol} size={50} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: "#202124", fontSize: 19, fontWeight: "900" }}>{name}</Text>
+        <Text style={{ color: "#6d6d72", fontSize: 15 }}>0 {symbol}</Text>
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <Text style={{ color: "#202124", fontSize: 18, fontWeight: "900" }}>{price}</Text>
+        <Text style={{ color: positive ? "#0aa84f" : "#cf3030", fontSize: 14, fontWeight: "800" }}>{change}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function SectionRail({ title, onPress, children }: { title: string; onPress: () => void; children: ReactNode }) {
+  return (
+    <View style={{ gap: 10 }}>
+      <Pressable onPress={onPress} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text style={{ color: "#202124", fontSize: 22, fontWeight: "900" }}>{title}</Text>
+        <Text style={{ color: "#6d6d72", fontSize: 32 }}>›</Text>
+      </Pressable>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>{children}</ScrollView>
     </View>
   );
 }
 
-function OpenWalletArt() {
+function MarketMiniCard({ symbol, title, subtitle }: { symbol: string; title: string; subtitle: string }) {
   return (
-    <View style={{ width: 120, height: 110, alignItems: "center", justifyContent: "center" }}>
-      <LinearGradient colors={["#79ffb7", "#c5ff64", "#6ae3ff"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 74, height: 54, borderRadius: 14, transform: [{ rotate: "-18deg" }], borderWidth: 2, borderColor: "#0f1115" }} />
-      <View style={{ position: "absolute", width: 48, height: 36, backgroundColor: "#101217", borderRadius: 10, top: 14, left: 44, transform: [{ rotate: "18deg" }] }} />
-      <View style={{ position: "absolute", width: 10, height: 10, borderRadius: 5, backgroundColor: "#0af", top: 26, right: 18 }} />
-      <View style={{ position: "absolute", width: 8, height: 8, borderRadius: 4, backgroundColor: "#63f", bottom: 24, right: 30 }} />
-      <View style={{ position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#57ff8b", top: 46, right: 12 }} />
-    </View>
+    <Pressable onPress={() => router.push("/perps")} style={{ width: 170, borderRadius: 18, backgroundColor: "#f4f4f7", padding: 16, gap: 12 }}>
+      <TokenAvatar symbol={symbol} size={44} />
+      <Text style={{ color: "#202124", fontSize: 16, fontWeight: "900", lineHeight: 22 }}>{title}</Text>
+      <Text style={{ color: "#6d6d72", fontSize: 14 }}>{subtitle}</Text>
+    </Pressable>
+  );
+}
+
+function PredictionCard({ title, meta }: { title: string; meta: string }) {
+  return (
+    <Pressable onPress={() => router.push("/predictions")} style={{ width: 210, minHeight: 136, borderRadius: 18, backgroundColor: "#f4f4f7", padding: 14, justifyContent: "space-between" }}>
+      <View style={{ width: 44, height: 34, borderRadius: 8, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ fontSize: 20 }}>▣</Text>
+      </View>
+      <Text numberOfLines={2} style={{ color: "#202124", fontSize: 17, fontWeight: "900", lineHeight: 23 }}>{title}</Text>
+      <Text style={{ color: "#6d6d72", fontSize: 13, fontWeight: "800" }}>{meta}</Text>
+    </Pressable>
   );
 }

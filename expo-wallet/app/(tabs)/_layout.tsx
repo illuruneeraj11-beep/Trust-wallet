@@ -12,53 +12,49 @@ export default function TabsLayout() {
         tabBarActiveTintColor: theme.blue,
         tabBarInactiveTintColor: theme.tabIcon,
         tabBarStyle: {
-          height: 86,
+          height: 88,
           paddingTop: 8,
-          paddingBottom: 12,
+          paddingBottom: 10,
           borderTopWidth: 0,
-          backgroundColor: theme.surface,
+          backgroundColor: "#ffffff",
           position: "absolute",
-          left: 16,
-          right: 16,
-          bottom: 18,
-          borderRadius: 32,
-          shadowColor: theme.shadow,
-          shadowOpacity: 1,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 10,
+          left: 14,
+          right: 14,
+          bottom: 22,
+          borderRadius: 34,
+          boxShadow: "0 8px 22px rgba(0, 0, 0, 0.18)",
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: "800",
+          fontWeight: "900",
         },
         tabBarItemStyle: {
-          borderRadius: 24,
+          borderRadius: 30,
           marginHorizontal: 2,
         },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="⌂" /> }} />
-      <Tabs.Screen name="trending" options={{ title: "Trending", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="◔" /> }} />
-      <Tabs.Screen name="trade" options={{ title: "Trade", tabBarIcon: () => <TradeTabIcon /> }} />
-      <Tabs.Screen name="rewards" options={{ title: "Rewards", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="◎" /> }} />
-      <Tabs.Screen name="discover" options={{ title: "Discover", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="◇" /> }} />
+      <Tabs.Screen name="trending" options={{ title: "Markets", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="↗" /> }} />
+      <Tabs.Screen name="trade" options={{ title: "Swap", tabBarIcon: () => <TradeTabIcon /> }} />
+      <Tabs.Screen name="rewards" options={{ title: "Perps", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="∞" /> }} />
+      <Tabs.Screen name="discover" options={{ title: "Discover", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="◉" /> }} />
     </Tabs>
   );
 }
 
 function TabIcon({ color, focused, label }: { color: string; focused: boolean; label: string }) {
   return (
-    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: focused ? "#ded9ff" : "transparent", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color, fontSize: 19 }}>{label}</Text>
+    <View style={{ width: 66, height: 56, borderRadius: 28, backgroundColor: focused ? "#ddd8ff" : "transparent", alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ color, fontSize: 27, fontWeight: "900" }}>{label}</Text>
     </View>
   );
 }
 
 function TradeTabIcon() {
   return (
-    <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: "#0500e8", alignItems: "center", justifyContent: "center", marginTop: -18, shadowColor: "rgba(17, 23, 36, 0.22)", shadowOpacity: 1, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 12 }}>
-      <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>⇄</Text>
+    <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: "#0500ff", alignItems: "center", justifyContent: "center", marginTop: -26, boxShadow: "0 8px 18px rgba(0, 0, 0, 0.28)" }}>
+      <Text style={{ color: "#ffffff", fontSize: 30, fontWeight: "900" }}>⇄</Text>
     </View>
   );
 }

@@ -1,56 +1,107 @@
 import { router } from "expo-router";
+import { useState } from "react";
+import { Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { useAppContext } from "@/context/app-context";
-import { AppScreen, Card, SettingRow, ToggleRow } from "@/components/trust-ui";
+import { AppScreen, SheetModal } from "@/components/trust-ui";
+
+const primaryRows = [
+  { icon: "▤", title: "Address Book", route: "/address-book" },
+  { icon: "⌘", title: "Sync to Extension", route: "/dapp-browser" },
+  { icon: "@", title: "Trust handles", route: "/preferences" },
+  { icon: "⌗", title: "Scan QR code", route: "/receive" },
+  { icon: "⌁", title: "WalletConnect", route: "/dapp-browser" },
+];
+
+const securityRows = [
+  { icon: "⚙", title: "Preferences", route: "/preferences" },
+  { icon: "▣", title: "Security", route: "/security" },
+  { icon: "♧", title: "Notifications" },
+];
+
+const socialRows = [
+  { icon: "𝕏", title: "X" },
+  { icon: "✈", title: "Telegram" },
+  { icon: "f", title: "Facebook" },
+  { icon: "☻", title: "Reddit" },
+  { icon: "▶", title: "Youtube" },
+  { icon: "◎", title: "Instagram" },
+  { icon: "♪", title: "TikTok" },
+];
 
 export default function SettingsScreen() {
-  const {
-    appLockEnabled,
-    biometricsEnabled,
-    dappBrowserEnabled,
-    pushIncoming,
-    pushOutgoing,
-    pushPromotions,
-    scannerAlerts,
-    themeMode,
-    toggleThemeMode,
-    setAppLockEnabled,
-    setBiometricsEnabled,
-    setDappBrowserEnabled,
-    setPushIncoming,
-    setPushOutgoing,
-    setPushPromotions,
-    setScannerAlerts,
-  } = useAppContext();
+  const { theme, themeMode, toggleThemeMode } = useAppContext();
+  const [sheet, setSheet] = useState<string | null>(null);
 
   return (
-    <AppScreen title="Settings" subtitle="Security, preferences, notifications, and support">
-      <Card muted>
-        <ToggleRow icon="☼" title="Dark Mode" subtitle={`Currently ${themeMode}`} valueEnabled={themeMode === "dark"} onValueChange={toggleThemeMode} />
-        <SettingRow icon="📒" title="Address Book" subtitle="Saved recipients and exchange wallets" onPress={() => router.push("/address-book")} />
-        <SettingRow icon="🧩" title="WalletConnect" subtitle="Connect to desktop dApps and browser sessions" value="Open" onPress={() => router.push("/dapp-browser")} />
-        <SettingRow icon="🔐" title="Security" subtitle="PIN, biometrics, signing, and scanner alerts" onPress={() => router.push("/security")} />
-        <SettingRow icon="⚙" title="Preferences" subtitle="Fiat, language, dApp browser, and RPCs" onPress={() => router.push("/preferences")} />
-      </Card>
+    <>
+      <AppScreen scrollable={false} padded={false}>
+        <View style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16 }}>
+          <View style={{ height: 74, alignItems: "center", justifyContent: "center" }}>
+            <Pressable onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 48, height: 48, justifyContent: "center" }}>
+              <Text style={{ color: theme.secondary, fontSize: 38 }}>‹</Text>
+            </Pressable>
+            <Text style={{ color: theme.text, fontSize: 23, fontWeight: "900" }}>Settings</Text>
+          </View>
+        </View>
 
-      <Card>
-        <SettingRow icon="🔄" title="Sync to Extension" subtitle="Pair with desktop extension using QR sync" value="QR" onPress={() => router.push("/dapp-browser")} />
-        <SettingRow icon="@" title="Trust Handles" subtitle="Claim and manage your web3 identity" value="Manage" onPress={() => router.push("/preferences")} />
-        <SettingRow icon="⌁" title="Scan QR code" subtitle="Quickly send, receive, or connect to a dApp" value="Scan" onPress={() => router.push("/receive")} />
-        <SettingRow icon="☏" title="Support & Feedback" subtitle="Help center, FAQ, and AI support hub" value="Open" onPress={() => router.push("/dapp-browser")} />
-      </Card>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 42 }}>
+          <View style={{ paddingHorizontal: 16, gap: 20 }}>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>Trust Premium</Text>
+            <View style={{ minHeight: 118, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <Text style={{ fontSize: 58 }}>◻</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>Bronze</Text>
+                <Text style={{ color: theme.secondary, fontSize: 16 }}>Unlock exclusive rewards</Text>
+              </View>
+              <View style={{ height: 56, borderRadius: 28, backgroundColor: theme.blue, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "#fff", fontSize: 17, fontWeight: "900" }}>Begin</Text>
+              </View>
+            </View>
 
-      <Card muted>
-        <ToggleRow icon="⍰" title="App Lock" subtitle="Require a passcode after inactivity" valueEnabled={appLockEnabled} onValueChange={setAppLockEnabled} />
-        <ToggleRow icon="◎" title="Biometrics" subtitle="Use Face ID or fingerprint when available" valueEnabled={biometricsEnabled} onValueChange={setBiometricsEnabled} />
-        <ToggleRow icon="🌐" title="DApp Browser" subtitle="Show or hide the Discover browser tab locally" valueEnabled={dappBrowserEnabled} onValueChange={setDappBrowserEnabled} />
-        <ToggleRow icon="🛡" title="Security Scanner Alerts" subtitle="Show proactive risk signals while transacting" valueEnabled={scannerAlerts} onValueChange={setScannerAlerts} />
-      </Card>
+            <View style={{ minHeight: 76, flexDirection: "row", alignItems: "center", gap: 18 }}>
+              <Text style={{ width: 44, color: theme.secondary, fontSize: 34 }}>☾</Text>
+              <Text style={{ flex: 1, color: theme.text, fontSize: 21, fontWeight: "900" }}>Dark Mode</Text>
+              <Switch value={themeMode === "dark"} onValueChange={toggleThemeMode} thumbColor="#fff" trackColor={{ false: "#b9b9ba", true: theme.blue }} />
+            </View>
+          </View>
 
-      <Card>
-        <ToggleRow icon="↓" title="Incoming notifications" subtitle="Incoming transfer push notifications" valueEnabled={pushIncoming} onValueChange={setPushIncoming} />
-        <ToggleRow icon="↑" title="Outgoing notifications" subtitle="Outgoing transfer push notifications" valueEnabled={pushOutgoing} onValueChange={setPushOutgoing} />
-        <ToggleRow icon="★" title="Promotional campaigns" subtitle="New quests, campaigns, and partner drops" valueEnabled={pushPromotions} onValueChange={setPushPromotions} />
-      </Card>
-    </AppScreen>
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+          <View style={{ paddingHorizontal: 16 }}>
+            {primaryRows.map((row) => <SettingLine key={row.title} {...row} onFallback={setSheet} />)}
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+          <View style={{ paddingHorizontal: 16 }}>
+            {securityRows.map((row) => <SettingLine key={row.title} {...row} onFallback={setSheet} />)}
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+          <View style={{ paddingHorizontal: 16 }}>
+            <SettingLine icon="☏" title="Support" route="/dapp-browser" onFallback={setSheet} />
+            <SettingLine icon="⬟" title="About" onFallback={setSheet} />
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+          <View style={{ paddingHorizontal: 16 }}>
+            {socialRows.map((row) => <SettingLine key={row.title} {...row} onFallback={setSheet} />)}
+          </View>
+        </ScrollView>
+        </View>
+      </AppScreen>
+      <SheetModal visible={!!sheet} title={sheet ?? ""} subtitle="This settings option is connected." onClose={() => setSheet(null)}>
+        <Pressable onPress={() => setSheet(null)} style={{ height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Done</Text>
+        </Pressable>
+      </SheetModal>
+    </>
+  );
+}
+
+function SettingLine({ icon, title, route, onFallback }: { icon: string; title: string; route?: string; onFallback: (title: string) => void }) {
+  const { theme } = useAppContext();
+
+  return (
+    <Pressable onPress={() => route ? router.push(route as never) : onFallback(title)} style={{ minHeight: 74, flexDirection: "row", alignItems: "center", gap: 18 }}>
+      <Text style={{ width: 44, color: theme.secondary, fontSize: 30, textAlign: "center" }}>{icon}</Text>
+      <Text style={{ flex: 1, color: theme.text, fontSize: 21, fontWeight: "900" }}>{title}</Text>
+    </Pressable>
   );
 }

@@ -3,23 +3,32 @@
     "name": "Trust Wallet Mock",
     "slug": "trust-wallet-mock",
     "scheme": "trustwalletmock",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.mock.trustwallet"
     },
     "android": {
       "package": "com.mock.trustwallet",
+      "versionCode": 11,
       "adaptiveIcon": {
         "backgroundColor": "#0500e8"
       }
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "463c7e8a-2dbd-4ba2-9203-46d4e297bc10"
+      }
     }
   }
 }

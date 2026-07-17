@@ -12,11 +12,13 @@ import {
   rewardRedeemItems,
   rewardsCampaigns,
   socialLinks,
-  topTradedTokens,
+  topTradedTokens as fallbackTopTradedTokens,
   trustAlphaCampaigns,
   type AddressBookEntry,
   type CurrencyOption,
+  type TrendingToken,
 } from "@/data/trust-wallet";
+import { fetchLiveMarkets } from "@/services/market-prices";
 import { ensureStarterWallets, listTransfers, primaryBalance } from "@/services/wallet-ledger";
 import { colors, darkColors, type ThemeColors } from "@/theme/colors";
 import type { MockTransfer, WalletWithBalances } from "@/types/wallet";
@@ -94,7 +96,7 @@ type AppContextValue = {
   marketFilters: string[];
   marketFilter: string;
   trendingTokens: ReturnType<typeof getFilteredTrendingTokens>;
-  topTradedTokens: typeof topTradedTokens;
+  topTradedTokens: typeof fallbackTopTradedTokens;
   rewardsCampaigns: typeof rewardsCampaigns;
   trustAlphaCampaigns: typeof trustAlphaCampaigns;
   rewardRedeemItems: typeof rewardRedeemItems;
@@ -137,7 +139,7 @@ type AppContextValue = {
   setMarketFilter: (filter: string) => void;
 };
 
-const STORAGE_KEY = "trust-wallet-app-context-v1";
+const STORAGE_KEY = "trust-wallet-app-context-v3";
 
 const defaultState: PersistedState = {
   themeMode: "light",
@@ -178,6 +180,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loadingTransfers, setLoadingTransfers] = useState(true);
   const [ready, setReady] = useState(false);
   const [marketFilter, setMarketFilter] = useState<string>("hot");
+  const [liveTopTradedTokens, setLiveTopTradedTokens] = useState<TrendingToken[] | null>(null);
+  const [liveTrendingTokens, setLiveTrendingTokens] = useState<TrendingToken[] | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -224,6 +228,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refreshWallets();
     void refreshTransfers();
   }, [refreshTransfers, refreshWallets]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function refreshMarkets() {
+      try {
+        const next = await fetchLiveMarkets();
+        if (!cancelled) {
+          setLiveTopTradedTokens(next.top);
+          setLiveTrendingTokens(next.trending);
+        }
+      } catch {
+        // Static market data remains the offline fallback.
+      }
+    }
+    void refreshMarkets();
+    const id = setInterval(refreshMarkets, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   const currency = useMemo(
     () => currencyOptions.find((item) => item.code === persisted.currencyCode) ?? currencyOptions[0],
@@ -361,8 +386,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     activeRewardsTab: persisted.activeRewardsTab,
     marketFilters,
     marketFilter,
-    trendingTokens: getFilteredTrendingTokens(marketFilter),
-    topTradedTokens,
+    trendingTokens: liveTrendingTokens
+      ? (marketFilter === "gainers"
+        ? [...liveTrendingTokens].sort((left, right) => right.change - left.change)
+        : liveTrendingTokens.filter((token) => token.categories.includes(marketFilter) || marketFilter === "hot"))
+      : getFilteredTrendingTokens(marketFilter),
+    topTradedTokens: liveTopTradedTokens ?? fallbackTopTradedTokens,
     rewardsCampaigns,
     trustAlphaCampaigns,
     rewardRedeemItems,
@@ -410,6 +439,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dismissBackupBanner,
     loadingTransfers,
     loadingWallets,
+    liveTopTradedTokens,
+    liveTrendingTokens,
     marketFilter,
     persisted,
     refreshTransfers,

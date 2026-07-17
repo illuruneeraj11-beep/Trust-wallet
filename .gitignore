@@ -8,6 +8,12 @@ Trustwallet.mp4
 expo-wallet/.env
 expo-wallet/.env.*
 !expo-wallet/.env.example
+expo-wallet/.expo/
+expo-wallet/dist/
+expo-wallet/dist-check*/
+apk_outputs/
+.local-tools/
+supabase/.temp/
 
 # 1. Ignore all reference screenshots and media
 screenshots/
@@ -43,4 +49,3 @@ build/
 .packages
 .flutter-plugins
 .flutter-plugins-dependencies
-

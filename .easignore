@@ -1,0 +1,10 @@
+.local-tools/
+apk_outputs/
+expo-wallet/node_modules/
+expo-wallet/dist/
+expo-wallet/.expo/
+expo-wallet/*.apk
+expo-wallet/*.aab
+node_modules/
+*.apk
+*.aab
