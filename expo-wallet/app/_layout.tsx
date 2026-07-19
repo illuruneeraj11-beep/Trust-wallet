@@ -15,17 +15,18 @@ if (Platform.OS !== "web") {
 
 export default function RootLayout() {
   const { width } = useWindowDimensions();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...MaterialCommunityIcons.font,
     ...MaterialIcons.font,
     ...FontAwesome6.font,
   });
+  const fontsSettled = fontsLoaded || Boolean(fontError);
 
   useEffect(() => {
-    if (fontsLoaded && Platform.OS !== "web") void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsSettled && Platform.OS !== "web") void SplashScreen.hideAsync();
+  }, [fontsSettled]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsSettled) return null;
 
   return (
     <SafeAreaProvider>
