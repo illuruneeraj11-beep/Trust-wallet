@@ -12,26 +12,35 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
 const secureChunkSize = 1800;
 
+// SecureStore keys only allow [A-Za-z0-9._-]; Supabase keys like
+// "sb-<ref>-auth-token" are safe, but our chunk suffixes must use "." not ":".
+function safeKey(key: string) {
+  return key.replace(/[^A-Za-z0-9._-]/g, ".");
+}
+
 const secureSessionStorage = {
   async getItem(key: string) {
-    const countValue = await SecureStore.getItemAsync(`${key}:chunks`);
+    const base = safeKey(key);
+    const countValue = await SecureStore.getItemAsync(`${base}.chunks`);
     const count = Number(countValue);
-    if (!Number.isInteger(count) || count < 1) return SecureStore.getItemAsync(key);
-    const chunks = await Promise.all(Array.from({ length: count }, (_, index) => SecureStore.getItemAsync(`${key}:chunk:${index}`)));
+    if (!Number.isInteger(count) || count < 1) return SecureStore.getItemAsync(base);
+    const chunks = await Promise.all(Array.from({ length: count }, (_, index) => SecureStore.getItemAsync(`${base}.chunk.${index}`)));
     return chunks.every((chunk): chunk is string => typeof chunk === "string") ? chunks.join("") : null;
   },
   async setItem(key: string, value: string) {
-    const oldCount = Number(await SecureStore.getItemAsync(`${key}:chunks`)) || 0;
+    const base = safeKey(key);
+    const oldCount = Number(await SecureStore.getItemAsync(`${base}.chunks`)) || 0;
     const chunks = Array.from({ length: Math.max(1, Math.ceil(value.length / secureChunkSize)) }, (_, index) => value.slice(index * secureChunkSize, (index + 1) * secureChunkSize));
-    await Promise.all(chunks.map((chunk, index) => SecureStore.setItemAsync(`${key}:chunk:${index}`, chunk)));
-    await SecureStore.setItemAsync(`${key}:chunks`, String(chunks.length));
-    await SecureStore.deleteItemAsync(key);
-    await Promise.all(Array.from({ length: Math.max(0, oldCount - chunks.length) }, (_, index) => SecureStore.deleteItemAsync(`${key}:chunk:${chunks.length + index}`)));
+    await Promise.all(chunks.map((chunk, index) => SecureStore.setItemAsync(`${base}.chunk.${index}`, chunk)));
+    await SecureStore.setItemAsync(`${base}.chunks`, String(chunks.length));
+    await SecureStore.deleteItemAsync(base);
+    await Promise.all(Array.from({ length: Math.max(0, oldCount - chunks.length) }, (_, index) => SecureStore.deleteItemAsync(`${base}.chunk.${chunks.length + index}`)));
   },
   async removeItem(key: string) {
-    const count = Number(await SecureStore.getItemAsync(`${key}:chunks`)) || 0;
-    await Promise.all(Array.from({ length: count }, (_, index) => SecureStore.deleteItemAsync(`${key}:chunk:${index}`)));
-    await Promise.all([SecureStore.deleteItemAsync(`${key}:chunks`), SecureStore.deleteItemAsync(key)]);
+    const base = safeKey(key);
+    const count = Number(await SecureStore.getItemAsync(`${base}.chunks`)) || 0;
+    await Promise.all(Array.from({ length: count }, (_, index) => SecureStore.deleteItemAsync(`${base}.chunk.${index}`)));
+    await Promise.all([SecureStore.deleteItemAsync(`${base}.chunks`), SecureStore.deleteItemAsync(base)]);
   },
 };
 

@@ -44,12 +44,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let active = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      if (error) setAuthError(error.message);
-      setSession(data.session);
-      setInitializing(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) setAuthError(error.message);
+        setSession(data.session);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setAuthError(messageFrom(error, "Unable to restore the previous session."));
+        setSession(null);
+      })
+      .finally(() => {
+        if (active) setInitializing(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
