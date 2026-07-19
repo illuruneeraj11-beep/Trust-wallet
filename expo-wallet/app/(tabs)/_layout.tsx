@@ -1,60 +1,158 @@
+import type { ComponentProps } from "react";
+import { router } from "expo-router";
 import { Tabs } from "expo-router";
-import { Text, View } from "react-native";
-import { useAppContext } from "@/context/app-context";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TrustIcon, type SemanticTrustIconName } from "@/components/trust-icon";
+
+type RouterTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
+
+const visibleTabs: {
+  routeName: "index" | "trending" | "rewards" | "discover";
+  label: string;
+  icon: SemanticTrustIconName;
+}[] = [
+  { routeName: "index", label: "Home", icon: "nav-home" },
+  { routeName: "trending", label: "Markets", icon: "nav-markets" },
+  { routeName: "rewards", label: "Perps", icon: "nav-perps" },
+  { routeName: "discover", label: "Discover", icon: "nav-discover" },
+];
 
 export default function TabsLayout() {
-  const { theme } = useAppContext();
-
   return (
     <Tabs
+      tabBar={(props) => <WalletTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.blue,
-        tabBarInactiveTintColor: theme.tabIcon,
-        tabBarStyle: {
-          height: 88,
-          paddingTop: 8,
-          paddingBottom: 10,
-          borderTopWidth: 0,
-          backgroundColor: "#ffffff",
-          position: "absolute",
-          left: 14,
-          right: 14,
-          bottom: 22,
-          borderRadius: 34,
-          boxShadow: "0 8px 22px rgba(0, 0, 0, 0.18)",
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "900",
-        },
-        tabBarItemStyle: {
-          borderRadius: 30,
-          marginHorizontal: 2,
-        },
+        tabBarHideOnKeyboard: true,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="⌂" /> }} />
-      <Tabs.Screen name="trending" options={{ title: "Markets", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="↗" /> }} />
-      <Tabs.Screen name="trade" options={{ title: "Swap", tabBarIcon: () => <TradeTabIcon /> }} />
-      <Tabs.Screen name="rewards" options={{ title: "Perps", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="∞" /> }} />
-      <Tabs.Screen name="discover" options={{ title: "Discover", tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => <TabIcon color={color} focused={focused} label="◉" /> }} />
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="trending" options={{ title: "Markets" }} />
+      <Tabs.Screen name="trade" options={{ href: null, title: "Swap" }} />
+      <Tabs.Screen name="rewards" options={{ title: "Perps" }} />
+      <Tabs.Screen name="discover" options={{ title: "Discover" }} />
     </Tabs>
   );
 }
 
-function TabIcon({ color, focused, label }: { color: string; focused: boolean; label: string }) {
+function WalletTabBar({ state, navigation }: RouterTabBarProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={{ width: 66, height: 56, borderRadius: 28, backgroundColor: focused ? "#ddd8ff" : "transparent", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color, fontSize: 27, fontWeight: "900" }}>{label}</Text>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.tabBarRow,
+        { bottom: Math.max(insets.bottom, 10) },
+      ]}
+    >
+      <View style={styles.primaryPill}>
+        {visibleTabs.map((item) => {
+          const route = state.routes.find((candidate) => candidate.name === item.routeName);
+          if (!route) return null;
+
+          const focused = state.routes[state.index]?.key === route.key;
+
+          return (
+            <Pressable
+              accessibilityLabel={item.label}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              key={item.routeName}
+              onPress={() => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!focused && !event.defaultPrevented) {
+                  navigation.navigate(route.name, route.params);
+                }
+              }}
+              onLongPress={() => navigation.emit({ type: "tabLongPress", target: route.key })}
+              style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}
+            >
+              <View style={[styles.selectedCircle, focused && styles.selectedCircleActive]}>
+                <TrustIcon color={focused ? "#252529" : "#5f6065"} name={item.icon} size={item.icon === "nav-perps" ? 28 : 27} />
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        accessibilityLabel="Search"
+        accessibilityRole="button"
+        onPress={() => router.push("/global-search")}
+        style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}
+      >
+        <TrustIcon color="#5f6065" name="nav-search" size={30} />
+      </Pressable>
     </View>
   );
 }
 
-function TradeTabIcon() {
-  return (
-    <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: "#0500ff", alignItems: "center", justifyContent: "center", marginTop: -26, boxShadow: "0 8px 18px rgba(0, 0, 0, 0.28)" }}>
-      <Text style={{ color: "#ffffff", fontSize: 30, fontWeight: "900" }}>⇄</Text>
-    </View>
-  );
-}
+const elevatedSurface = {
+  shadowColor: "#000000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 12,
+  elevation: 8,
+  boxShadow: "0 5px 16px rgba(0, 0, 0, 0.10)",
+} as const;
+
+const styles = StyleSheet.create({
+  tabBarRow: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    height: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  primaryPill: {
+    ...elevatedSurface,
+    flex: 1,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 1,
+    borderColor: "#e5e5e7",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tabButton: {
+    flex: 1,
+    height: 62,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedCircleActive: {
+    backgroundColor: "#f1f1f3",
+  },
+  searchButton: {
+    ...elevatedSurface,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 1,
+    borderColor: "#e5e5e7",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});

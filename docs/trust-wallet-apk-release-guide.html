@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Wallet Testnet - APK Release Readiness</title>
+  <style>
+    :root{--ink:#15171b;--muted:#626976;--line:#dde2ea;--panel:#fff;--wash:#f5f7fa;--blue:#3375e8;--green:#117a45;--green-bg:#e8f7ef;--amber:#8b5a00;--amber-bg:#fff4d6;--red:#a22b34;--red-bg:#ffebed;--radius:18px;--shadow:0 18px 48px rgba(24,37,55,.08)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--blue)}button,code{font:inherit}code{overflow-wrap:anywhere}
+    .shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}aside{position:sticky;top:0;height:100vh;padding:30px 22px;background:#11151b;color:#fff;overflow:auto}.brand{margin-bottom:28px}.brand strong{display:block;font-size:19px}.brand span{display:block;margin-top:5px;color:#aeb7c5;font-size:13px}
+    nav a{display:block;margin:4px 0;padding:9px 10px;border-radius:9px;color:#d8dee8;text-decoration:none;font-size:14px}nav a:hover{background:#232a35;color:#fff}.side-note{margin-top:26px;padding:14px;border:1px solid #343d4b;border-radius:12px;color:#c2cad6;font-size:12px}
+    main{width:min(1080px,100%);padding:42px clamp(20px,5vw,68px) 84px}.eyebrow{margin:0 0 8px;color:var(--blue);font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}h1,h2,h3{line-height:1.14;letter-spacing:-.035em}h1{margin:0;font-size:clamp(38px,7vw,72px)}h2{margin:0 0 18px;font-size:clamp(28px,4vw,40px)}h3{margin:0 0 9px;font-size:20px}p{margin:0 0 14px}.lede{max-width:790px;margin:18px 0 26px;color:var(--muted);font-size:clamp(18px,2.5vw,23px)}
+    .banner{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;max-width:860px;padding:18px;border:1px solid #f0cc73;border-radius:var(--radius);background:var(--amber-bg)}.label{padding:5px 9px;border-radius:999px;background:#11151b;color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}section{padding-top:70px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{min-width:0;padding:21px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow)}.metric{display:block;margin-top:8px;font-size:30px;font-weight:850;letter-spacing:-.04em}.muted{color:var(--muted)}
+    .pill{display:inline-block;margin-bottom:12px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:800}.pass{background:var(--green-bg);color:var(--green)}.warn{background:var(--amber-bg);color:var(--amber)}.block{background:var(--red-bg);color:var(--red)}
+    .flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;counter-reset:flow}.flow article{position:relative;min-height:170px;padding:50px 17px 17px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}.flow article:before{counter-increment:flow;content:counter(flow,decimal-leading-zero);position:absolute;top:15px;left:17px;color:var(--blue);font-size:13px;font-weight:900;letter-spacing:.08em}.flow h3{font-size:17px}.flow p{color:var(--muted);font-size:14px}
+    .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}table{width:100%;border-collapse:collapse;min-width:720px}th,td{padding:14px 16px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f0f3f7;color:#4d5663;font-size:12px;letter-spacing:.06em;text-transform:uppercase}tr:last-child td{border-bottom:0}
+    .steps{display:grid;gap:14px;counter-reset:step}.step{position:relative;padding:22px 22px 22px 76px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow)}.step:before{counter-increment:step;content:counter(step);position:absolute;top:21px;left:22px;display:grid;width:36px;height:36px;place-items:center;border-radius:50%;background:var(--blue);color:#fff;font-weight:900}
+    pre{position:relative;margin:14px 0 0;padding:16px 52px 16px 16px;border-radius:12px;background:#11151b;color:#e9edf3;overflow-x:auto;white-space:pre-wrap;word-break:break-word;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}.copy{position:absolute;top:8px;right:8px;padding:6px 8px;border:1px solid #465162;border-radius:7px;background:#232a35;color:#fff;cursor:pointer;font-size:11px}
+    .checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0;padding:0;list-style:none}.checklist li{position:relative;padding:12px 14px 12px 38px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.checklist li:before{content:"";position:absolute;top:15px;left:14px;width:14px;height:14px;border:2px solid #8992a0;border-radius:3px}.callout{margin-top:18px;padding:18px;border-left:4px solid var(--blue);border-radius:0 12px 12px 0;background:#eaf2ff}.footer{margin-top:72px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+    @media(max-width:900px){.shell{display:block}aside{position:static;width:100%;height:auto}nav{display:flex;gap:5px;overflow-x:auto}nav a{white-space:nowrap}.side-note{display:none}main{padding-top:30px}.grid.three,.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){.grid,.grid.three,.flow,.checklist{grid-template-columns:1fr}.banner{grid-template-columns:1fr}.step{padding-left:68px}main{padding-inline:16px}}
+    @media print{body{background:#fff}.shell{display:block}aside,.copy{display:none}main{width:100%;padding:0}section{padding-top:38px;break-inside:avoid}.card,.step{box-shadow:none}a{color:inherit;text-decoration:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand"><strong>Wallet Testnet</strong><span>APK release readiness guide</span></div>
+      <nav aria-label="Guide sections">
+        <a href="#status">Release status</a><a href="#flow">Application flow</a><a href="#verified">Verified today</a><a href="#blockers">Remaining blockers</a><a href="#steps">Your next steps</a><a href="#phone-qa">Physical-phone QA</a><a href="#sharing">Sharing safely</a><a href="#evidence">Evidence</a>
+      </nav>
+      <div class="side-note">Generated from the repository, fresh automated checks, production API probes, Supabase audit results, and existing visual QA evidence on July 19, 2026.</div>
+    </aside>
+    <main>
+      <header id="status">
+        <p class="eyebrow">Release handoff</p>
+        <h1>Code-complete locally.<br>Signed APK still blocked.</h1>
+        <p class="lede">The project bundles for Android and its wallet/market contracts pass. Do not download or share an APK yet: the signed-in Expo account cannot access the configured EAS project, so a signed build and the required two-phone acceptance run do not exist.</p>
+        <div class="banner" role="status"><span class="label">Do not download yet</span><div><strong>One owner decision unlocks the signed build.</strong> Log in to the Expo account that owns project <code>463c7e8a-2dbd-4ba2-9203-46d4e297bc10</code>, or intentionally relink the app to an EAS project you control. Then build the Preview APK and complete the physical checklist below.</div></div>
+      </header>
+
+      <section>
+        <h2>Release snapshot</h2>
+        <div class="grid three">
+          <article class="card"><span class="pill pass">Passed</span><h3>Code and packages</h3><span class="metric">20 / 20</span><p class="muted">Expo Doctor checks passed. Expo dependencies are aligned and direct packages are installed.</p></article>
+          <article class="card"><span class="pill pass">Passed</span><h3>Wallet contract</h3><span class="metric">12 assets</span><p class="muted">Funding, transfers, conservation, fees, replay guards, validation, and archive guards pass in the deterministic suite.</p></article>
+          <article class="card"><span class="pill block">Blocked</span><h3>Signed Android build</h3><span class="metric">0 APK</span><p class="muted">The current Expo user cannot access the EAS project or its signing credentials.</p></article>
+        </div>
+      </section>
+
+      <section id="flow">
+        <p class="eyebrow">End-to-end journey</p><h2>How the application works</h2>
+        <div class="flow">
+          <article><h3>Launch and authenticate</h3><p>Email sign-in/account creation, connected-mode configuration validation, and native session persistence through SecureStore.</p></article>
+          <article><h3>Create wallets</h3><p>Create and name several testnet wallets, switch active wallet, inspect addresses, and archive only when ledger rules allow it.</p></article>
+          <article><h3>Fund assets</h3><p>Fund supported testnet assets through authenticated ledger functions with decimal-safe amounts and transaction journals.</p></article>
+          <article><h3>Send by address</h3><p>Validate address, network, amount, balance, fee, and idempotency before debit and recipient credit.</p></article>
+          <article><h3>Receive and scan</h3><p>Show wallet address/QR payload; use QR-only camera permission to populate address entry.</p></article>
+          <article><h3>Review activity</h3><p>Balances, activity, and notifications read from the ledger. Final two-device realtime observation remains required.</p></article>
+          <article><h3>Browse live markets</h3><p>Home, Markets, Search, Swap, and token detail use canonical assets and approximately 60-second fresh quote snapshots.</p></article>
+          <article><h3>Explore other flows</h3><p>Perps, Discover, browser, Buy, Swap, Settings, Preferences, Security, WalletConnect, and researched entry states remain browse/testnet-safe.</p></article>
+        </div>
+      </section>
+
+      <section id="verified">
+        <p class="eyebrow">Evidence-backed</p><h2>What is verified now</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Area</th><th>Result</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Type safety</td><td><span class="pill pass">Pass</span></td><td><code>npm run typecheck</code></td></tr>
+            <tr><td>Wallet contract</td><td><span class="pill pass">Pass</span></td><td>Three wallets, 12 assets, billion-scale values, exact conservation, wrong-network/overdraft validation, replay and archive guards. The fresh suite uses deterministic visual-demo mode; it is not a substitute for live two-user Supabase QA.</td></tr>
+            <tr><td>Markets contract</td><td><span class="pill pass">Pass</span></td><td>38 current quote records and 10 derivative markets normalize successfully.</td></tr>
+            <tr><td>Expo alignment</td><td><span class="pill pass">Pass</span></td><td><code>expo install --check</code> is current; Expo Doctor reports 20/20.</td></tr>
+            <tr><td>Local exports</td><td><span class="pill pass">Pass</span></td><td>Fresh web, iOS Hermes (1,781 modules, 4.8 MB HBC), and Android Hermes (1,903 modules, 5.1 MB HBC) exports completed after the final accessibility/asset changes.</td></tr>
+            <tr><td>Hosted database</td><td><span class="pill pass">Pass</span></td><td>Nine hosted migrations match local versions; 12 ledger RPCs are authenticated-only and private tables expose no client grants.</td></tr>
+            <tr><td>Live quotes</td><td><span class="pill pass">Pass</span></td><td><code>/api/markets</code> returns 38 fresh JSON quotes; <code>/api/perps</code> returns 10 markets.</td></tr>
+            <tr><td>History and stream</td><td><span class="pill warn">Fallback active</span></td><td>History returns a truthful 503 without a server CMC key; stream is unavailable and the app uses 60-second polling.</td></tr>
+            <tr><td>Package audit</td><td><span class="pill warn">Track upstream</span></td><td>11 moderate transitive Expo tooling advisories; none high/critical. Do not force the incompatible Expo 46 downgrade.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="blockers">
+        <p class="eyebrow">Acceptance blockers</p><h2>What is still lacking before sharing</h2>
+        <div class="grid">
+          <article class="card"><span class="pill block">P0</span><h3>EAS project ownership</h3><p><code>eas whoami</code> is <code>aruun_chukkala</code>, while <code>eas project:info</code> returns <code>Entity not authorized</code>. No signed APK can be created from this account.</p></article>
+          <article class="card"><span class="pill block">P0</span><h3>Distribution identity</h3><p>Sharing an unofficial APK under Trust Wallet's official identity can imply affiliation and resemble a fake wallet. Obtain written permission or use a distinct name/icon with a visible “Unofficial Testnet prototype” identity.</p></article>
+          <article class="card"><span class="pill block">P0</span><h3>Physical Android acceptance</h3><p>No signed build has been installed on two phones. Camera, keyboard, safe areas, clipboard, resume, cellular access, network failures, and realtime recipient updates remain unobserved in the final binary.</p></article>
+          <article class="card"><span class="pill warn">P1</span><h3>Authentication controls</h3><p>Disable anonymous sign-ins, enable leaked-password protection, and verify email confirmation, SMTP, CAPTCHA, rate limits, redirects, backups, and admin MFA. Password recovery, confirmation resend, account deletion, privacy, terms, and first-party support remain gaps.</p></article>
+          <article class="card"><span class="pill warn">P1</span><h3>Environment alignment</h3><p>Vercel Production lacks the public Supabase URL/key. EAS Preview variables cannot be checked or created until Expo project access is restored.</p></article>
+          <article class="card"><span class="pill warn">P1</span><h3>Fresh visual certification</h3><p>Chrome control and Windows Computer Use both failed after retry/reset. Existing same-viewport evidence is useful, but the latest binary has not received a fresh recording-by-recording or native visual audit. The email/password launch also differs from the recorded wallet-first launch.</p></article>
+          <article class="card"><span class="pill warn">P2</span><h3>Remaining source-asset limits</h3><p>Audited icon-only controls now have semantic labels/roles/states. Balancer, Beefy, Jito, and Aster now prefer verified higher-resolution Trust Wallet repository artwork with offline fallbacks. Liquid Collective, Origami Finance, and Symbiotic remain lower-resolution because no verified official replacement was found; check them on a high-density phone rather than inventing artwork.</p></article>
+          <article class="card"><span class="pill warn">P2</span><h3>Release operations</h3><p>No crash monitoring, release-health dashboard, remote kill switch, or verified EAS Update/runtime-version policy exists. Add these before broad distribution.</p></article>
+        </div>
+      </section>
+
+      <section id="steps">
+        <p class="eyebrow">Owner handoff</p><h2>Do these steps in order</h2>
+        <div class="steps">
+          <article class="step"><h3>Choose a distributable identity</h3><p>Either obtain written permission for the Trust Wallet name/artwork or approve a distinct testnet identity. Keep the Testnet disclosure; the app must never request recovery phrases, private keys, real payments, or real signing.</p></article>
+          <article class="step"><h3>Restore Expo project access</h3><p>Preferred: sign in to the Expo account that owns the configured project, then confirm access.</p>
+            <pre><button class="copy" type="button">Copy</button>cd "C:\Users\arunk\professional\trust wallet\expo-wallet"
+eas logout
+eas login
+eas whoami
+eas project:info</pre>
+            <p class="callout">If the old project cannot be accessed, deliberately relink with <code>eas init --force</code>, then run <code>eas project:info</code>. This changes the cloud project association, so make the choice explicitly.</p>
+          </article>
+          <article class="step"><h3>Create the EAS Preview environment</h3><p>Use public client values only. Never place a Supabase secret/service-role key or CMC server key in an <code>EXPO_PUBLIC_</code> variable.</p>
+            <pre><button class="copy" type="button">Copy</button>eas env:create --environment preview --name EXPO_PUBLIC_WALLET_MODE --value connected --visibility plaintext
+eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value &lt;YOUR_SUPABASE_URL&gt; --visibility plaintext
+eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value &lt;YOUR_SUPABASE_PUBLISHABLE_KEY&gt; --visibility sensitive
+eas env:create --environment preview --name EXPO_PUBLIC_MARKET_API_BASE_URL --value https://expo-wallet.vercel.app --visibility plaintext
+eas env:list --environment preview</pre>
+          </article>
+          <article class="step"><h3>Finish hosted release settings</h3><p>In Supabase Auth, disable anonymous sign-ins and enable leaked-password protection. Confirm email, production SMTP, CAPTCHA/rate limits, redirects, backups, and admin MFA. Add matching public Supabase client values to Vercel Production. Keep all server keys server-only.</p></article>
+          <article class="step"><h3>Run local release gates</h3>
+            <pre><button class="copy" type="button">Copy</button>npm ci
+npx expo install --check
+npm run typecheck
+npm run test:wallet
+npm run test:markets
+npx expo-doctor
+git diff --check
+npx expo export --platform all --output-dir output\apk-release-final --clear</pre>
+            <p>Every command must exit successfully. Record moderate tooling advisories; do not use an incompatible force-fix.</p>
+          </article>
+          <article class="step"><h3>Build the signed Android APK</h3>
+            <pre><button class="copy" type="button">Copy</button>eas build --platform android --profile preview</pre>
+            <p>The Preview profile uses internal distribution, <code>android.buildType: apk</code>, and the EAS Preview environment. Allow EAS to manage the keystore and preserve the owner account.</p>
+          </article>
+          <article class="step"><h3>Install on two Android phones</h3><p>Open the completed EAS build URL on each phone, download/install the APK, and do not forward the link yet.</p></article>
+          <article class="step"><h3>Pass the physical acceptance run</h3><p>Create two accounts and wallets, fund testnet balances, then transfer both ways by address. Record build ID/screenshots. Share only after every item below passes without a P0/P1 defect.</p></article>
+        </div>
+      </section>
+
+      <section id="phone-qa">
+        <p class="eyebrow">Final go/no-go</p><h2>Two-phone acceptance checklist</h2>
+        <ul class="checklist">
+          <li>Fresh install launches without Metro or a developer computer.</li><li>Account creation, confirmation, sign-in, sign-out, and session restore work.</li>
+          <li>Wallet create, rename, switch, archive guards, and address display work.</li><li>Funding updates only the selected user's wallet.</li>
+          <li>Sender decreases by amount plus fee exactly once.</li><li>Recipient increases by amount exactly once.</li>
+          <li>Repeat submit, slow network, and resume cannot duplicate transfer.</li><li>Wrong network, malformed address, overdraft, and archived recipient fail clearly.</li>
+          <li>Recipient activity updates realtime or immediately after refresh.</li><li>QR permission, scan, flashlight, and denial recovery work.</li>
+          <li>Copy/paste, numeric keyboard, keyboard avoidance, and back work.</li><li>Safe areas and navigation fit small and tall Android screens.</li>
+          <li>Home, Markets, Search, Swap, token detail, Settings, and secondary routes do not dead-end.</li><li>Offline, stale, timeout, and reconnect states are truthful.</li>
+          <li>No secret phrase, private key, real payment, or real signing prompt appears.</li><li>Name, icon, About, support, privacy, and terms identify the publisher accurately.</li>
+        </ul>
+        <div class="callout"><strong>Release rule:</strong> one failed security, identity, ledger, install, or crash item is a no-go. Fix it, rebuild, and repeat both-device testing from a fresh install.</div>
+      </section>
+
+      <section id="sharing">
+        <p class="eyebrow">Distribution</p><h2>How to share after it passes</h2>
+        <div class="grid">
+          <article class="card"><h3>Android</h3><p>Share the EAS internal URL only with intended testers. Tell them the exact publisher/build identity and that it is an unofficial testnet prototype. Restrict Expo project access if the link must remain private.</p></article>
+          <article class="card"><h3>iPhone 17 and iOS</h3><p>An APK cannot run on iPhone. iOS needs a separate signed build, Apple Developer membership, TestFlight/ad-hoc provisioning, iOS physical testing, and its own distribution path.</p></article>
+        </div>
+        <p class="callout"><strong>Runtime prices:</strong> Exa is for research, not price delivery. Current production already returns fresh main-asset quotes without Exa. A server CMC key is optional for history/faster streaming only after proxy abuse controls are added.</p>
+      </section>
+
+      <section id="evidence">
+        <p class="eyebrow">Audit trail</p><h2>Evidence and references</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Artifact</th><th>Location</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>Primary transfer QA</td><td><a href="../expo-wallet/output/video-rebuild/wallet-transfer-e2e-20260719-013614/qa-report.md">qa-report.md</a></td><td>Strong automated/browser evidence; result remains blocked because physical native QA is missing.</td></tr>
+            <tr><td>Focused UI retest</td><td><a href="../expo-wallet/output/video-rebuild/latest-fixes-retest-20260719-025630/qa-report.md">qa-report.md</a></td><td>Captured Fund/asset states had no P0/P1/P2 issue; wrong-network visual remained missing.</td></tr>
+            <tr><td>Fresh release audit</td><td><a href="../expo-wallet/output/release-audit-20260719/qa-report.md">qa-report.md</a></td><td>Fresh build/contract matrix and explicit unobserved states.</td></tr>
+            <tr><td>All-platform export</td><td><a href="../expo-wallet/output/apk-release-final-20260719/">export folder</a></td><td>Current web, iOS, and Android bundle output; not a signed APK or iOS archive.</td></tr>
+            <tr><td>Expo APK builds</td><td><a href="https://docs.expo.dev/build-reference/apk/">Official docs</a></td><td>Preview profile creates an installable APK.</td></tr>
+            <tr><td>EAS environments</td><td><a href="https://docs.expo.dev/eas/environment-variables/">Official docs</a></td><td>How Preview/Production variables enter a build.</td></tr>
+            <tr><td>Supabase production</td><td><a href="https://supabase.com/docs/guides/deployment/going-into-prod">Official checklist</a></td><td>Auth, security, backups, and operational release controls.</td></tr>
+            <tr><td>Trust Wallet terms</td><td><a href="https://portal.trustwallet.com/terms-of-service">Official terms</a></td><td>Do not imply endorsement or affiliation without permission.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <footer class="footer">
+        <p><strong>Current verdict:</strong> local build readiness is high; public/shareable APK readiness is blocked by EAS ownership, distributable identity, hosted release settings, and physical acceptance.</p>
+        <p>This guide separates automated evidence from unobserved native behavior. It does not certify custody or mainnet transactions; the app remains a testnet simulation and must not accept secrets or real funds.</p>
+      </footer>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('.copy').forEach((button)=>{
+      button.addEventListener('click',async()=>{
+        const value=button.parentElement.textContent.replace('Copy','').trim();
+        try{await navigator.clipboard.writeText(value);button.textContent='Copied';setTimeout(()=>button.textContent='Copy',1400)}
+        catch{button.textContent='Select'}
+      });
+    });
+  </script>
+</body>
+</html>

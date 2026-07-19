@@ -1,80 +1,98 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { AppScreen, SearchInput, TokenAvatar } from "@/components/trust-ui";
+import { NetworkLogo } from "@/components/trust-assets";
+import { TrustIcon } from "@/components/trust-icon";
+import { AppScreen, SearchInput } from "@/components/trust-ui";
 import { useAppContext } from "@/context/app-context";
 
-const popular = [
-  { symbol: "BTC", name: "Bitcoin" },
-  { symbol: "ETH", name: "Ethereum" },
-  { symbol: "SOL", name: "Solana" },
-  { symbol: "BNB", name: "BNB Smart Chain" },
-  { symbol: "TRX", name: "Tron" },
-  { symbol: "ARB", name: "Arbitrum", network: "ARB" },
-  { symbol: "BASE", name: "Base", network: "BASE" },
-];
-const alphabetic = [
-  { symbol: "ACA", name: "Acala" },
-  { symbol: "APT", name: "Aptos" },
-  { symbol: "AVAX", name: "Avalanche" },
+const networks = [
+  "Ethereum",
+  "Tron",
+  "Bitcoin",
+  "BNB Smart Chain",
+  "Solana",
+  "Base",
+  "Robinhood Chain",
+  "Polygon",
+  "Hyperliquid",
+  "Scroll",
+  "Blast",
+  "Celo",
+  "Avalanche C-Chain",
+  "OP Mainnet",
+  "Arbitrum",
+  "Linea",
+  "Fantom",
+  "TON",
+  "zkSync Era",
+  "XRP",
+  "Aurora",
+  "Bitcoin Cash",
+  "THORChain",
+  "Cosmos",
+  "Litecoin",
+  "Dogecoin",
+  "Sui",
+  "Sonic",
+  "Plasma",
+  "Monad",
+  "Zcash",
+  "MegaETH",
 ];
 
 export default function NetworkSelectorScreen() {
   const { theme } = useAppContext();
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState("ALL");
+  const [selected, setSelected] = useState("All Networks");
+
+  const rows = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return networks.filter((network) => !term || network.toLowerCase().includes(term));
+  }, [query]);
 
   return (
     <AppScreen padded={false}>
-      <View style={{ paddingHorizontal: 16, gap: 18 }}>
-        <FlowHeader title="Select network" />
-        <SearchInput value={query} onChangeText={setQuery} placeholder="Search for network" />
+      <View style={{ paddingHorizontal: 16, gap: 14 }}>
+        <View style={{ height: 55, alignItems: "center", justifyContent: "center" }}>
+          <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+            <TrustIcon color={theme.secondary} name="arrow-left" size={24} />
+          </Pressable>
+          <Text style={{ color: theme.text, fontSize: 18, fontWeight: "800" }}>Networks</Text>
+        </View>
+        <SearchInput value={query} onChangeText={setQuery} placeholder="Search networks" />
 
-        <NetworkRow symbol="ALL" name="All networks" selected={selected === "ALL"} onPress={() => setSelected("ALL")} />
-        <Text style={{ color: theme.secondary, fontSize: 17, fontWeight: "900" }}>Popular networks</Text>
-        <View style={{ gap: 22 }}>
-          {popular.map((network) => (
-            <NetworkRow key={network.name} {...network} selected={selected === network.symbol} onPress={() => setSelected(network.symbol)} />
+        {!query ? <NetworkRow name="All Networks" selected={selected === "All Networks"} onPress={() => setSelected("All Networks")} /> : null}
+        <View style={{ height: 1, width: 36, marginLeft: 16, backgroundColor: theme.border }} />
+
+        <View style={{ gap: 1 }}>
+          {rows.map((network) => (
+            <NetworkRow key={network} name={network} selected={selected === network} onPress={() => setSelected(network)} />
           ))}
         </View>
-        <Text style={{ color: theme.secondary, fontSize: 17, fontWeight: "900", marginTop: 8 }}>A-Z networks</Text>
-        <View style={{ gap: 22 }}>
-          {alphabetic.map((network) => (
-            <NetworkRow key={network.name} {...network} selected={selected === network.symbol} onPress={() => setSelected(network.symbol)} />
-          ))}
-        </View>
+
+        {!rows.length ? (
+          <View style={{ minHeight: 280, alignItems: "center", justifyContent: "center", gap: 9 }}>
+            <TrustIcon color={theme.secondary} name="magnify-close" size={34} />
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: "800" }}>No network found</Text>
+          </View>
+        ) : null}
       </View>
     </AppScreen>
   );
 }
 
-function FlowHeader({ title }: { title: string }) {
+function NetworkRow({ name, selected, onPress }: { name: string; selected: boolean; onPress: () => void }) {
   const { theme } = useAppContext();
-
   return (
-    <View style={{ height: 74, alignItems: "center", justifyContent: "center" }}>
-      <Pressable onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 48, height: 48, alignItems: "flex-start", justifyContent: "center" }}>
-        <Text style={{ color: theme.secondary, fontSize: 36 }}>‹</Text>
-      </Pressable>
-      <Text style={{ color: theme.text, fontSize: 23, fontWeight: "900" }}>{title}</Text>
-    </View>
-  );
-}
-
-function NetworkRow({ symbol, name, network, selected, onPress }: { symbol: string; name: string; network?: string; selected?: boolean; onPress: () => void }) {
-  const { theme } = useAppContext();
-
-  return (
-    <Pressable onPress={onPress} style={{ minHeight: 64, flexDirection: "row", alignItems: "center", gap: 18 }}>
-      {symbol === "ALL" ? (
-        <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#3a3a3e", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: theme.secondary, fontSize: 26 }}>◎</Text>
+    <Pressable onPress={onPress} style={{ minHeight: 61, flexDirection: "row", alignItems: "center", gap: 13 }}>
+      {name === "All Networks" ? (
+        <View style={{ width: 39, height: 39, borderRadius: 10, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>
+          <TrustIcon color={theme.secondary} name="web" size={21} />
         </View>
-      ) : (
-        <TokenAvatar symbol={symbol} network={network} size={54} />
-      )}
-      <Text style={{ flex: 1, color: theme.text, fontSize: 21, fontWeight: "900" }}>{name}</Text>
-      <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: selected ? 4 : 3, borderColor: selected ? theme.blue : theme.secondary, alignItems: "center", justifyContent: "center" }}>
+      ) : <NetworkLogo network={name} size={39} />}
+      <Text numberOfLines={1} style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: "800" }}>{name}</Text>
+      <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: selected ? theme.blue : theme.secondary, alignItems: "center", justifyContent: "center" }}>
         {selected ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.blue }} /> : null}
       </View>
     </Pressable>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth-context";
+import { TrustIcon } from "@/components/trust-icon";
 
 export default function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -18,8 +19,8 @@ export default function AuthScreen() {
 
   async function handleSignUp() {
     setNotice(null);
-    const hasSession = await signUpWithPassword(email.trim(), password);
-    if (!hasSession) {
+    const outcome = await signUpWithPassword(email.trim(), password);
+    if (outcome === "confirmation-required") {
       setNotice("Check your inbox to confirm your email before signing in.");
     }
   }
@@ -29,12 +30,12 @@ export default function AuthScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboard}>
         <View style={styles.container}>
           <View style={styles.brandMark}>
-            <Text style={styles.brandText}>TW</Text>
+            <TrustIcon color="#ffffff" name="shield-check" size={36} />
           </View>
 
           <View style={styles.header}>
             <Text style={styles.title}>Trust Wallet</Text>
-            <Text style={styles.subtitle}>Sign in to sync your demo wallets, balances, transfers, and protected Supabase data.</Text>
+            <Text style={styles.subtitle}>Sign in to sync your wallets, balances, transfers, and account security.</Text>
           </View>
 
           <View style={styles.form}>
@@ -116,11 +117,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#0500e8",
-  },
-  brandText: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "900",
   },
   header: {
     gap: 8,

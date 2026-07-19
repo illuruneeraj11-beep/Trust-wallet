@@ -1,0 +1,10 @@
+.env
+.expo
+.playwright-cli
+audit-trustwallet1
+design-reference
+dist
+dist-all
+output
+design-qa-*.png
+*.log

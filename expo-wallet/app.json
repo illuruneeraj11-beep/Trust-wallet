@@ -1,25 +1,48 @@
 {
   "expo": {
-    "name": "Trust Wallet Mock",
-    "slug": "trust-wallet-mock",
-    "scheme": "trustwalletmock",
-    "version": "0.2.0",
+    "name": "Trust Wallet Testnet",
+    "slug": "trust-wallet-testnet",
+    "scheme": "trustwallettestnet",
+    "version": "0.3.0",
+    "icon": "./assets/brands/trust-wallet-icon.png",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.mock.trustwallet"
+      "bundleIdentifier": "com.arunn7.trustwallet.testnet",
+      "icon": "./assets/brands/trust-wallet-icon.png"
     },
     "android": {
-      "package": "com.mock.trustwallet",
-      "versionCode": 11,
+      "package": "com.arunn7.trustwallet.testnet",
+      "versionCode": 12,
       "adaptiveIcon": {
-        "backgroundColor": "#0500e8"
+        "foregroundImage": "./assets/brands/trust-wallet-icon.png",
+        "backgroundColor": "#f4f4f7"
       }
     },
+    "web": {
+      "favicon": "./assets/brands/trust-wallet-icon.png"
+    },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Trust Wallet Testnet to scan wallet QR codes.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f4f4f7",
+          "image": "./assets/brands/trust-wallet-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

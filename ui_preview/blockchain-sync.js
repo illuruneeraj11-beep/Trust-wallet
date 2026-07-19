@@ -159,15 +159,15 @@ async function syncBlockchainBalances() {
 
   /* Push to Supabase so UI gets realtime update */
   try {
-    const sbAdmin = window.supabase?.createClient(SUPABASE_URL, SUPABASE_SERVICE);
-    if (sbAdmin && typeof _walletRow !== 'undefined' && _walletRow) {
+    const sbClient = typeof getSupabase === 'function' ? getSupabase() : null;
+    if (sbClient && typeof _walletRow !== 'undefined' && _walletRow) {
       /* Merge — on-chain wins for keys it has, keep manual entries for the rest */
       const merged  = { ...(_walletRow.balances || {}), ...onChain };
       const finalUSD = totalUSD > 0
         ? parseFloat(totalUSD.toFixed(2))
         : parseFloat(_walletRow.total_balance_usd || 0);
 
-      const { error } = await sbAdmin.from('wallets').update({
+      const { error } = await sbClient.from('wallets').update({
         balances:          merged,
         total_balance_usd: finalUSD,
         updated_at:        new Date().toISOString(),
@@ -210,8 +210,8 @@ async function reconcilePendingTransactions() {
 
     if (!pending?.length) return;
 
-    const sbAdmin = window.supabase?.createClient(SUPABASE_URL, SUPABASE_SERVICE);
-    if (!sbAdmin) return;
+    const sbClient = typeof getSupabase === 'function' ? getSupabase() : null;
+    if (!sbClient) return;
 
     const now = Date.now();
     for (const tx of pending) {
@@ -219,7 +219,7 @@ async function reconcilePendingTransactions() {
 
       if (ageMs >= 30000) {
         /* Confirm the transaction */
-        const { error } = await sbAdmin
+        const { error } = await sbClient
           .from('transactions')
           .update({ status: 'Confirmed' })
           .eq('id', tx.id);

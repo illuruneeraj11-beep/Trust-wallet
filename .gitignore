@@ -12,6 +12,16 @@ expo-wallet/.expo/
 expo-wallet/dist/
 expo-wallet/dist-check*/
 apk_outputs/
+.codex/
+.playwright-mcp/
+docs/.release-guide-qa/
+expo-wallet/.playwright-cli/
+expo-wallet/audit-*/
+expo-wallet/design-qa*
+expo-wallet/design-reference/
+expo-wallet/dist-all/
+expo-wallet/dist-native/
+expo-wallet/output/
 .local-tools/
 supabase/.temp/
 

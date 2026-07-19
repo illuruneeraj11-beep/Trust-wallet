@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mock Trust Wallet Transactions — Supabase Architecture Review</title>
+  <style>
+    :root{--ink:#14151a;--muted:#626977;--line:#dfe3ea;--paper:#fff;--blue:#1559ed;--blue2:#edf3ff;--green:#087a53;--green2:#eaf8f2;--amber:#936000;--amber2:#fff4dc;--red:#b42318;--red2:#fff0ee;--navy:#111a3a;--code:#f4f6f9}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f2f4f7;color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--blue)}
+    .layout{display:grid;grid-template-columns:260px minmax(0,1fr);max-width:1500px;margin:auto;min-height:100vh}aside{position:sticky;top:0;height:100vh;padding:28px 22px;background:var(--navy);color:#fff;overflow:auto}aside .eyebrow{color:#a7beff;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}aside h1{margin:8px 0 5px;font-size:22px;line-height:1.2}aside small{color:#aeb7d2}nav{display:grid;gap:5px;margin-top:28px}nav a{padding:8px 10px;border-radius:7px;color:#dce3f7;text-decoration:none;font-size:13px}nav a:hover{background:#202d59;color:#fff}
+    main{min-width:0;padding:44px clamp(24px,5vw,72px) 80px;background:var(--paper)}.hero{max-width:1050px;padding-bottom:28px;border-bottom:1px solid var(--line)}.kicker{color:var(--blue);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h2{margin:10px 0 12px;font-size:42px;line-height:1.08;letter-spacing:-.035em}.lead{max-width:920px;color:#404754;font-size:19px}
+    h2{margin:52px 0 16px;font-size:28px;line-height:1.2;scroll-margin-top:24px}h3{margin:30px 0 10px;font-size:19px}h4{margin:16px 0 6px}p{max-width:920px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:1080px}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}.card h3,.card h4{margin-top:0}.metric{font-size:30px;font-weight:900;letter-spacing:-.04em}.red{color:var(--red)}.green{color:var(--green)}.muted{color:var(--muted)}
+    .verdict,.callout{max-width:1030px;margin:20px 0;padding:17px 19px;border-radius:9px;background:var(--blue2)}.verdict{border-left:5px solid var(--amber);background:var(--amber2)}.verdict strong{display:block;color:#6a4300;font-size:18px}.callout.good{background:var(--green2)}.callout.bad{background:var(--red2)}
+    table{width:100%;max-width:1130px;margin:18px 0 28px;border-collapse:collapse;font-size:13px}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f7f8fa;color:#484f5b;font-size:11px;letter-spacing:.04em;text-transform:uppercase}tr:hover td{background:#fbfcfe}code{padding:2px 5px;border-radius:4px;background:var(--code);font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}pre{max-width:1080px;padding:16px;border-radius:10px;overflow:auto;background:#101831;color:#dfe7ff;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:900}.pill.bad{color:var(--red);background:var(--red2)}.pill.warn{color:var(--amber);background:var(--amber2)}.pill.good{color:var(--green);background:var(--green2)}.flow{display:flex;align-items:stretch;gap:8px;max-width:1120px;margin:18px 0 27px;overflow-x:auto;padding-bottom:5px}.step{min-width:145px;flex:1;padding:14px;border:1px solid var(--line);border-radius:10px}.step b{display:block;margin-bottom:5px;color:var(--blue);font-size:11px;text-transform:uppercase}.arrow{align-self:center;color:#8994a8;font-size:24px}
+    .arch{max-width:1090px;border:1px solid var(--line);border-radius:14px;overflow:hidden}.arch-row{display:grid;grid-template-columns:160px 1fr;border-bottom:1px solid var(--line)}.arch-row:last-child{border:0}.arch-label{padding:16px;background:var(--navy);color:#fff;font-size:11px;font-weight:900;text-transform:uppercase}.arch-content{padding:12px 16px;background:#fbfcff}.arch-content span{display:inline-block;margin:3px;padding:7px 10px;border:1px solid #d8dfed;border-radius:7px;background:#fff;font-size:12px}.checklist{padding:0;list-style:none;max-width:950px}.checklist li{position:relative;margin:8px 0;padding-left:28px}.checklist li:before{content:"□";position:absolute;left:0;color:var(--blue);font-size:18px}.source{max-width:1000px;padding:10px 0;border-bottom:1px solid var(--line)}.source small{display:block;color:var(--muted)}.foot{margin-top:54px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    @media(max-width:900px){.layout{display:block}aside{position:relative;height:auto}nav{grid-template-columns:repeat(2,1fr)}main{padding:32px 20px 60px}.hero h2{font-size:34px}.grid,.grid.three{grid-template-columns:1fr}}@media print{body{background:#fff}.layout{display:block}aside{display:none}main{padding:20px}.card,table,.arch{break-inside:avoid}}
+  </style>
+</head>
+<body><div class="layout">
+  <aside>
+    <div class="eyebrow">Clarified target</div><h1>Mock wallet transactions on Supabase</h1><small>Architecture review · 17 July 2026</small>
+    <nav><a href="#answer">1. Direct answer</a><a href="#goal">2. Intended behavior</a><a href="#current">3. Current architecture</a><a href="#missing">4. Required improvements</a><a href="#schema">5. Recommended schema</a><a href="#flow">6. Transfer flow</a><a href="#security">7. Security</a><a href="#priority">8. Build priority</a></nav>
+  </aside>
+  <main>
+    <section class="hero" id="answer">
+      <div class="kicker">No blockchain required</div>
+      <h2>Supabase is enough. The existing schema is not.</h2>
+      <p class="lead">For an app that <strong>looks and behaves like Trust Wallet using mock currency</strong>, Supabase/Postgres is a good backend. You do not need chains, keys, gas RPCs or cryptographic signing. However, the present database only supports internal transfers between two wallets owned by the <em>same</em> user and immediately marks them completed.</p>
+      <div class="verdict"><strong>Recommendation: keep Supabase, upgrade the ledger.</strong>Build a secure internal double-entry ledger with mock wallet addresses, cross-user recipient lookup, pending/completed/failed states, idempotency, reserved funds, immutable entries and Realtime history updates.</div>
+      <div class="grid three">
+        <div class="card"><div class="metric green">Keep</div><div class="muted">Supabase Auth, Postgres, RLS and Realtime</div></div>
+        <div class="card"><div class="metric red">Replace</div><div class="muted">Same-owner-only transfer function and local write fallback</div></div>
+        <div class="card"><div class="metric green">Mock</div><div class="muted">Addresses, transaction IDs, fees and confirmation timing</div></div>
+      </div>
+    </section>
+
+    <section id="goal">
+      <h2>1. What the mock app should resemble</h2>
+      <p>“Realistic” here means reproducing the user experience and transaction semantics, while the balance remains entirely inside your database.</p>
+      <div class="grid">
+        <div class="card"><h3>User-visible behavior</h3><ul><li>Every user has one or more named wallets.</li><li>Each wallet has a unique shareable mock address and QR code.</li><li>A sender can paste/scan an address or choose a handle.</li><li>The review screen shows amount, recipient and a clearly labeled mock fee.</li><li>History shows Sent/Received, pending, completed or failed.</li><li>The receiver sees the incoming transfer through Realtime.</li></ul></div>
+        <div class="card"><h3>Backend behavior</h3><ul><li>Only the server-side transaction operation changes balances.</li><li>Sender funds are checked and reserved atomically.</li><li>Every transfer creates balanced debit and credit ledger entries.</li><li>Retries cannot charge a user twice.</li><li>Both parties can read the same transaction but no unrelated user can.</li><li>An admin faucet controls creation of mock currency.</li></ul></div>
+      </div>
+      <div class="callout"><strong>Important:</strong> call the assets “demo” or “mock” throughout the app. Do not imply that the values are redeemable cryptocurrency or that the mock transaction ID exists on a public network.</div>
+    </section>
+
+    <section id="current">
+      <h2>2. What the current architecture already does well</h2>
+      <table><thead><tr><th>Existing part</th><th>Assessment</th></tr></thead><tbody>
+        <tr><td>Supabase Auth ownership</td><td><span class="pill good">Useful</span> Wallet rows reference <code>auth.users</code>, giving a sound identity boundary for a mock app.</td></tr>
+        <tr><td>RLS on all five mock tables</td><td><span class="pill good">Good base</span> Users can read only their own wallets, balances, funding events and transfers.</td></tr>
+        <tr><td>Atomic database function</td><td><span class="pill good">Good base</span> The current transfer locks the source balance with <code>FOR UPDATE</code> and performs both balance changes in one Postgres transaction.</td></tr>
+        <tr><td>Positive amounts and non-negative balances</td><td><span class="pill good">Useful</span> Constraints prevent several simple ledger errors.</td></tr>
+        <tr><td>Asset catalog</td><td><span class="pill warn">Extend</span> A shared catalog works for mock assets, although symbol-only identity and precision need improvement.</td></tr>
+        <tr><td>Expo/Supabase service boundary</td><td><span class="pill warn">Extend</span> The app already centralizes ledger calls, but it currently falls back to mutable local money after errors.</td></tr>
+      </tbody></table>
+
+      <h3>Why the existing transfer cannot work between users</h3>
+      <p>The function <code>transfer_between_mock_wallets</code> checks that both <code>p_from_wallet_id</code> and <code>p_to_wallet_id</code> belong to <code>auth.uid()</code>. Alice therefore cannot send to Bob. It is currently a transfer between Alice’s own “Main Wallet” and Alice’s own “Savings Wallet.”</p>
+    </section>
+
+    <section id="missing">
+      <h2>3. What must improve</h2>
+      <table><thead><tr><th>Priority</th><th>Gap</th><th>Required change</th></tr></thead><tbody>
+        <tr><td><strong>P0</strong></td><td>Cross-user recipients</td><td>Add a unique public mock address per wallet. The transfer operation accepts a recipient address, resolves the destination privately, and verifies only the <em>source</em> belongs to the caller.</td></tr>
+        <tr><td><strong>P0</strong></td><td>No immutable ledger</td><td>Add double-entry <code>ledger_entries</code>. A transfer produces a sender debit and receiver credit. Never edit or delete posted entries; correct mistakes with reversal entries.</td></tr>
+        <tr><td><strong>P0</strong></td><td>Unsafe write fallback</td><td>Remove local fallback for funding and transfers. A database failure must show “not sent.” Local fixtures may remain only in an explicit demo/offline build.</td></tr>
+        <tr><td><strong>P0</strong></td><td>Anyone can mint demo money</td><td>The current authenticated funding RPC lets each signed-in user add arbitrary funds. Replace it with an admin-only faucet, fixed starter grant or rate-limited daily claim.</td></tr>
+        <tr><td><strong>P0</strong></td><td>No retry protection</td><td>Require a client-generated UUID <code>idempotency_key</code>, unique per sender. Returning the same request must return the original transaction—not debit twice.</td></tr>
+        <tr><td><strong>P1</strong></td><td>No lifecycle</td><td>Add <code>created</code>, <code>pending</code>, <code>completed</code>, <code>failed</code>, <code>cancelled</code> and <code>reversed</code>. Reserve sender funds while pending.</td></tr>
+        <tr><td><strong>P1</strong></td><td>No receiver visibility</td><td>Store both sender and receiver owner IDs on the protected transaction row and permit SELECT when either equals <code>auth.uid()</code>.</td></tr>
+        <tr><td><strong>P1</strong></td><td>No address/handle privacy design</td><td>Expose only mock address, unique handle, display name and avatar in recipient search. Never expose emails, balances or internal user UUIDs.</td></tr>
+        <tr><td><strong>P1</strong></td><td>Weak amount representation</td><td>Use integer base units in Postgres and strings/BigInt in TypeScript. Avoid JavaScript <code>Number</code> for ledger arithmetic.</td></tr>
+        <tr><td><strong>P2</strong></td><td>No realistic transaction metadata</td><td>Add a generated display reference, note/memo, fee, timestamps, failure reason and balance snapshots. Label references as mock.</td></tr>
+        <tr><td><strong>P2</strong></td><td>No operational controls</td><td>Add transfer limits, rate limits, blocked accounts, audit events, reconciliation queries and admin reversal workflow.</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="schema">
+      <h2>4. Recommended Supabase model</h2>
+      <div class="arch">
+        <div class="arch-row"><div class="arch-label">Identity</div><div class="arch-content"><span>auth.users</span><span>profiles</span><span>public handle</span></div></div>
+        <div class="arch-row"><div class="arch-label">Wallet</div><div class="arch-content"><span>wallets</span><span>unique mock_address</span><span>owner + status</span></div></div>
+        <div class="arch-row"><div class="arch-label">Money</div><div class="arch-content"><span>assets</span><span>wallet_balances</span><span>available + reserved</span></div></div>
+        <div class="arch-row"><div class="arch-label">Transfer</div><div class="arch-content"><span>transactions</span><span>idempotency</span><span>status lifecycle</span></div></div>
+        <div class="arch-row"><div class="arch-label">Accounting</div><div class="arch-content"><span>immutable ledger_entries</span><span>debits = credits</span><span>reversals</span></div></div>
+        <div class="arch-row"><div class="arch-label">Operations</div><div class="arch-content"><span>faucet_claims</span><span>audit_events</span><span>limits</span><span>admin tools</span></div></div>
+      </div>
+
+      <pre>profiles
+  user_id PK/FK, handle UNIQUE, display_name, avatar_url, status
+
+wallets
+  id, owner_id, name, mock_address UNIQUE, status, created_at
+
+assets
+  id, symbol UNIQUE, name, decimals, icon_key, mock_fee_base_units
+
+wallet_balances                         -- fast current projection
+  wallet_id + asset_id PK, available_base_units, reserved_base_units, version
+
+transactions
+  id, display_reference UNIQUE, idempotency_key,
+  sender_owner_id, sender_wallet_id,
+  receiver_owner_id, receiver_wallet_id,
+  asset_id, amount_base_units, fee_base_units,
+  status, memo, failure_code,
+  created_at, pending_at, completed_at, failed_at
+
+ledger_entries                         -- immutable accounting truth
+  id, transaction_id, wallet_id, asset_id,
+  entry_type(debit | credit | fee | reversal | faucet),
+  amount_base_units, created_at
+
+faucet_claims
+  id, user_id, wallet_id, asset_id, amount_base_units, claim_day, created_at
+
+audit_events
+  id, actor_user_id, action, target_type, target_id, metadata, created_at</pre>
+
+      <h3>Why keep balances and ledger entries?</h3>
+      <p><code>wallet_balances</code> makes the home screen fast. <code>ledger_entries</code> makes the system auditable. A reconciliation query can recompute every balance from immutable entries and detect corruption. Only the transfer/faucet/reversal operations may change the balance projection.</p>
+
+      <div class="callout good"><strong>Mock transaction reference:</strong> generate something visually familiar, such as <code>mtx_01J...</code> or a 64-character hex string, but label it “Mock transaction ID.” Do not call it an on-chain hash.</div>
+    </section>
+
+    <section id="flow">
+      <h2>5. Realistic user-to-user mock transfer</h2>
+      <div class="flow">
+        <div class="step"><b>1 · Recipient</b>Bob shares his mock address/QR or Alice searches his handle.</div><div class="arrow">→</div>
+        <div class="step"><b>2 · Review</b>Alice selects asset/amount and sees Bob’s masked address and mock fee.</div><div class="arrow">→</div>
+        <div class="step"><b>3 · Initiate</b>Server verifies Alice, resolves Bob, checks limits and reserves funds atomically.</div><div class="arrow">→</div>
+        <div class="step"><b>4 · Pending</b>Both users receive the same pending transaction through Realtime.</div><div class="arrow">→</div>
+        <div class="step"><b>5 · Settle</b>Worker posts debit/credit/fee entries and changes status to completed.</div><div class="arrow">→</div>
+        <div class="step"><b>6 · History</b>Alice sees Sent; Bob sees Received; balances reconcile to the ledger.</div>
+      </div>
+
+      <h3>Atomic initiation rules</h3>
+      <ol>
+        <li>Authenticate a permanent user and validate source-wallet ownership.</li>
+        <li>Return the original result if the idempotency key already exists.</li>
+        <li>Resolve destination by exact mock address; do not expose its owner UUID.</li>
+        <li>Lock the relevant sender balance row.</li>
+        <li>Check <code>available ≥ amount + fee</code>, wallet status and transfer limits.</li>
+        <li>Move amount + fee from available to reserved and insert one pending transaction.</li>
+        <li>Commit everything together or commit nothing.</li>
+      </ol>
+
+      <h3>Settlement rules</h3>
+      <table><thead><tr><th>Outcome</th><th>Accounting action</th><th>User experience</th></tr></thead><tbody>
+        <tr><td>Completed</td><td>Consume sender reserve; write debit and receiver credit; route fee to a system wallet or record a balanced fee entry.</td><td>Both histories update; receiver balance increases.</td></tr>
+        <tr><td>Failed</td><td>Release the entire reserved amount to sender; no receiver credit.</td><td>Both see failed if the pending transaction was already shared; reason is user-safe.</td></tr>
+        <tr><td>Cancelled</td><td>Release reserve before settlement.</td><td>Sender sees cancelled; receiver does not receive funds.</td></tr>
+        <tr><td>Reversed</td><td>Create a new linked reversal transaction and opposite ledger entries—never edit the original.</td><td>History preserves both original and reversal.</td></tr>
+      </tbody></table>
+      <div class="callout"><strong>Simpler MVP option:</strong> settle immediately in one RPC and animate “Processing” for 1–2 seconds only in the UI. This avoids a worker and reserved balances. If you show a true persisted Pending state, however, implement real reservation and recovery logic; never use a timer alone.</div>
+    </section>
+
+    <section id="security">
+      <h2>6. Supabase security changes</h2>
+      <ul class="checklist">
+        <li>Use permanent email/OAuth accounts for user-to-user value. Anonymous Supabase users receive the <code>authenticated</code> database role but can lose the identity when local credentials disappear.</li>
+        <li>Allow clients to SELECT only their own wallets/balances and transactions where they are sender or receiver.</li>
+        <li>Deny direct client INSERT/UPDATE/DELETE on balances, transactions and ledger entries.</li>
+        <li>Perform transfers through a trusted Edge Function or narrowly exposed RPC; never ship the service-role key in the Expo app.</li>
+        <li>Prefer internal tables/functions in a non-exposed schema. Supabase specifically warns against exposed <code>SECURITY DEFINER</code> functions.</li>
+        <li>Explicitly revoke default function execute privileges and grant only the intended API role.</li>
+        <li>Rate-limit recipient lookup and transfer initiation to prevent handle enumeration and spam.</li>
+        <li>Test RLS as Alice, Bob, an unrelated user, an anonymous Auth user and an unauthenticated request.</li>
+        <li>Store authorization flags in protected app metadata/database roles, never user-editable metadata.</li>
+      </ul>
+
+      <h3>Required RLS visibility</h3>
+      <table><thead><tr><th>Object</th><th>Alice may see</th><th>Bob may see</th><th>Other user may see</th></tr></thead><tbody>
+        <tr><td>Public recipient directory</td><td colspan="3">Handle, display name, avatar and public mock address only.</td></tr>
+        <tr><td>Alice wallet/balance</td><td>Yes</td><td>No</td><td>No</td></tr>
+        <tr><td>Bob wallet/balance</td><td>No</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Alice → Bob transaction</td><td>Yes, sender view</td><td>Yes, receiver view</td><td>No</td></tr>
+        <tr><td>Ledger internals/audit</td><td>No direct table access</td><td>No direct table access</td><td>No</td></tr>
+      </tbody></table>
+      <p>Supabase’s current documentation distinguishes Auth anonymous users from the unauthenticated <code>anon</code> Postgres role and recommends RLS plus minimum grants. It also cautions that functions are controlled by execute grants rather than table RLS.</p>
+    </section>
+
+    <section id="priority">
+      <h2>7. What to build next</h2>
+      <table><thead><tr><th>Order</th><th>Work</th><th>Completion test</th></tr></thead><tbody>
+        <tr><td>1</td><td>Profiles, handles and unique mock wallet addresses.</td><td>Alice can find Bob by exact handle/address without seeing Bob’s email, UUID or balance.</td></tr>
+        <tr><td>2</td><td>New cross-user transfer operation with idempotency and row lock.</td><td>Twenty concurrent sends cannot overspend; retrying one request creates exactly one transaction.</td></tr>
+        <tr><td>3</td><td>Immutable double-entry ledger and reconciliation.</td><td>Every completed transaction balances to zero and recomputed balances match projections.</td></tr>
+        <tr><td>4</td><td>Remove write fallback and restrict faucet.</td><td>Database outage shows not-sent; normal users cannot create arbitrary currency.</td></tr>
+        <tr><td>5</td><td>Connect actual Send/Receive/History screens.</td><td>Alice sends to Bob’s QR; both devices update correctly through Realtime.</td></tr>
+        <tr><td>6</td><td>Pending/reserved lifecycle or deliberately immediate MVP settlement.</td><td>Failures/cancellations never lose, duplicate or create funds.</td></tr>
+        <tr><td>7</td><td>RLS and abuse test suite.</td><td>Alice, Bob and an unrelated user pass the complete access matrix.</td></tr>
+      </tbody></table>
+
+      <div class="verdict"><strong>Final assessment</strong>The current database is approximately the right <em>technology</em> and a useful prototype, but it is not enough for user-to-user mock transfers. The smallest credible upgrade is: public mock addresses + cross-user atomic RPC + idempotency + immutable ledger + restricted faucet + no local write fallback. Pending status, reserved funds, fees and Realtime then provide the Trust Wallet-like experience.</div>
+
+      <h3>Sources and repository evidence</h3>
+      <div class="source"><a href="https://supabase.com/docs/guides/database/postgres/row-level-security"><strong>Supabase Row Level Security documentation</strong></a><small>RLS patterns, anonymous Auth role distinction and warning about security-definer functions in exposed schemas.</small></div>
+      <div class="source"><a href="https://supabase.com/docs/guides/api/securing-your-api"><strong>Supabase API security documentation</strong></a><small>Minimum grants, function execute controls, RLS boundaries and additional request protections.</small></div>
+      <div class="source"><strong>Repository audit</strong><small><code>supabase/migrations/20260425030500_mock_wallet_ledger.sql</code>, <code>expo-wallet/src/services/wallet-ledger.ts</code>, <code>expo-wallet/app/send.tsx</code>, <code>expo-wallet/app/receive.tsx</code> and <code>expo-wallet/src/lib/supabase.ts</code>.</small></div>
+    </section>
+    <div class="foot">Architecture recommendation for a clearly labeled mock-currency application. No public blockchain, real cryptocurrency, private keys or recovery phrases are required by this design.</div>
+  </main>
+</div></body></html>

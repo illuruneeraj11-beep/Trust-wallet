@@ -1,27 +1,56 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AppState, Platform } from "react-native";
 import {
   addressBookSeed,
   currencyOptions,
   dappCategories,
-  formatCurrencyValue,
-  getFilteredTrendingTokens,
   marketFilters,
   networkOptions,
-  predictionMarkets,
   rewardRedeemItems,
   rewardsCampaigns,
   socialLinks,
-  topTradedTokens as fallbackTopTradedTokens,
   trustAlphaCampaigns,
   type AddressBookEntry,
   type CurrencyOption,
   type TrendingToken,
 } from "@/data/trust-wallet";
-import { fetchLiveMarkets } from "@/services/market-prices";
-import { ensureStarterWallets, listTransfers, primaryBalance } from "@/services/wallet-ledger";
+import {
+  fetchLiveMarkets,
+  isMarketsResponse,
+  probeMarketStreamAvailability,
+  subscribeToMarketStream,
+  toLegacyMarketLists,
+} from "@/services/market-prices";
+import { useAuth } from "@/context/auth-context";
+import {
+  archiveWallet as archiveWalletService,
+  bootstrapDemoAccount,
+  clearTransferRecoveryIntent,
+  fundDemoWallet as fundDemoWalletService,
+  getPortfolio,
+  ledgerMode,
+  listTransfers,
+  renameWallet as renameWalletService,
+  resolveRecipient as resolveRecipientService,
+  sendDemoTransfer as sendDemoTransferService,
+  subscribeToLedgerInvalidations,
+} from "@/services/wallet-ledger";
 import { colors, darkColors, type ThemeColors } from "@/theme/colors";
-import type { MockTransfer, WalletWithBalances } from "@/types/wallet";
+import type {
+  DemoProfile,
+  DemoTransactionReceipt,
+  FundDemoWalletInput,
+  LedgerMode,
+  LedgerStatus,
+  MockAsset,
+  MockTransfer,
+  ResolvedRecipient,
+  SendDemoTransferInput,
+  WalletWithBalances,
+} from "@/types/wallet";
+import type { MarketCurrency, MarketQuote, MarketStatus, MarketsResponse } from "@/types/market";
+import { getAssetBySymbol } from "@/data/asset-registry";
 
 type ThemeMode = "light" | "dark";
 type LayoutMode = 1 | 2 | 3;
@@ -31,7 +60,7 @@ type AutoLockTimer = "Immediately" | "1 minute" | "5 minutes" | "1 hour" | "5 ho
 
 type PersistedState = {
   themeMode: ThemeMode;
-  currencyCode: string;
+  currencyCode: MarketCurrency;
   hideBalance: boolean;
   layoutMode: LayoutMode;
   hideSmallBalances: boolean;
@@ -62,6 +91,11 @@ type AppContextValue = {
   themeMode: ThemeMode;
   theme: ThemeColors;
   currency: CurrencyOption;
+  ledgerMode: LedgerMode;
+  ledgerStatus: LedgerStatus;
+  ledgerError: string | null;
+  profile: DemoProfile | null;
+  assets: MockAsset[];
   wallets: WalletWithBalances[];
   transfers: MockTransfer[];
   loadingWallets: boolean;
@@ -95,20 +129,30 @@ type AppContextValue = {
   activeRewardsTab: RewardsTab;
   marketFilters: string[];
   marketFilter: string;
-  trendingTokens: ReturnType<typeof getFilteredTrendingTokens>;
-  topTradedTokens: typeof fallbackTopTradedTokens;
+  trendingTokens: TrendingToken[];
+  topTradedTokens: TrendingToken[];
+  marketByAssetId: Record<string, MarketQuote>;
+  marketStatus: MarketStatus;
+  marketUpdatedAt: string | null;
+  marketError: string | null;
   rewardsCampaigns: typeof rewardsCampaigns;
   trustAlphaCampaigns: typeof trustAlphaCampaigns;
   rewardRedeemItems: typeof rewardRedeemItems;
-  predictionMarkets: typeof predictionMarkets;
   dappCategories: typeof dappCategories;
   socialLinks: typeof socialLinks;
   networkOptions: typeof networkOptions;
+  refreshLedger: () => Promise<void>;
+  fundDemoWallet: (input: FundDemoWalletInput) => Promise<DemoTransactionReceipt>;
+  resolveRecipient: (query: string, assetId?: string) => Promise<ResolvedRecipient>;
+  sendDemoTransfer: (input: SendDemoTransferInput) => Promise<DemoTransactionReceipt>;
   refreshWallets: () => Promise<void>;
   refreshTransfers: () => Promise<void>;
+  renameWallet: (walletId: string, name: string) => Promise<void>;
+  archiveWallet: (walletId: string) => Promise<void>;
+  refreshMarkets: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
-  setCurrencyCode: (code: string) => void;
+  setCurrencyCode: (code: MarketCurrency) => void;
   setSelectedWalletId: (walletId: string | null) => void;
   toggleHideBalance: () => void;
   setLayoutMode: (mode: LayoutMode) => void;
@@ -139,7 +183,27 @@ type AppContextValue = {
   setMarketFilter: (filter: string) => void;
 };
 
-const STORAGE_KEY = "trust-wallet-app-context-v3";
+const STORAGE_KEY = "trust-wallet-app-context-v4";
+const MARKET_CACHE_KEY = "trust-wallet-market-snapshot-v1";
+const DEFAULT_MARKET_POLL_INTERVAL_MS = 60_000;
+
+type MarketCacheEnvelope = {
+  snapshot: MarketsResponse;
+  fxRate: number | null;
+};
+
+function readMarketCache(value: unknown, currency: MarketCurrency): MarketCacheEnvelope | null {
+  if (isMarketsResponse(value)) {
+    return value.currency === currency ? { snapshot: value, fxRate: currency === "USD" ? 1 : null } : null;
+  }
+  if (!value || typeof value !== "object" || !("snapshot" in value) || !("fxRate" in value)) return null;
+  const envelope = value as { snapshot: unknown; fxRate: unknown };
+  if (!isMarketsResponse(envelope.snapshot) || envelope.snapshot.currency !== currency) return null;
+  const fxRate = envelope.fxRate === null || (typeof envelope.fxRate === "number" && Number.isFinite(envelope.fxRate) && envelope.fxRate > 0)
+    ? envelope.fxRate
+    : null;
+  return { snapshot: envelope.snapshot, fxRate: currency === "USD" ? 1 : fxRate };
+}
 
 const defaultState: PersistedState = {
   themeMode: "light",
@@ -173,81 +237,374 @@ const defaultState: PersistedState = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [persisted, setPersisted] = useState<PersistedState>(defaultState);
+  const [profile, setProfile] = useState<DemoProfile | null>(null);
+  const [assets, setAssets] = useState<MockAsset[]>([]);
   const [wallets, setWallets] = useState<WalletWithBalances[]>([]);
   const [transfers, setTransfers] = useState<MockTransfer[]>([]);
+  const [ledgerDataIdentity, setLedgerDataIdentity] = useState<string | null>(null);
   const [loadingWallets, setLoadingWallets] = useState(true);
   const [loadingTransfers, setLoadingTransfers] = useState(true);
+  const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus>("idle");
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
   const [marketFilter, setMarketFilter] = useState<string>("hot");
-  const [liveTopTradedTokens, setLiveTopTradedTokens] = useState<TrendingToken[] | null>(null);
-  const [liveTrendingTokens, setLiveTrendingTokens] = useState<TrendingToken[] | null>(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((stored: string | null) => {
-        if (stored) {
-          setPersisted({ ...defaultState, ...JSON.parse(stored) as PersistedState });
-        }
-      })
-      .finally(() => setReady(true));
-  }, []);
-
-  useEffect(() => {
-    if (!ready) return;
-    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
-  }, [persisted, ready]);
-
-  const refreshWallets = useCallback(async () => {
-    setLoadingWallets(true);
-    try {
-      const rows = await ensureStarterWallets();
-      setWallets(rows);
-      setPersisted((current) => ({
-        ...current,
-        selectedWalletId: current.selectedWalletId && rows.some((wallet) => wallet.id === current.selectedWalletId)
-          ? current.selectedWalletId
-          : rows[0]?.id ?? null,
-      }));
-    } finally {
-      setLoadingWallets(false);
-    }
-  }, []);
-
-  const refreshTransfers = useCallback(async () => {
-    setLoadingTransfers(true);
-    try {
-      const rows = await listTransfers();
-      setTransfers(rows);
-    } finally {
-      setLoadingTransfers(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshWallets();
-    void refreshTransfers();
-  }, [refreshTransfers, refreshWallets]);
+  const [liveTopTradedTokens, setLiveTopTradedTokens] = useState<TrendingToken[]>([]);
+  const [liveTrendingTokens, setLiveTrendingTokens] = useState<TrendingToken[]>([]);
+  const [marketByAssetId, setMarketByAssetId] = useState<Record<string, MarketQuote>>({});
+  const [marketStatus, setMarketStatus] = useState<MarketStatus>("idle");
+  const [marketUpdatedAt, setMarketUpdatedAt] = useState<string | null>(null);
+  const [marketError, setMarketError] = useState<string | null>(null);
+  const [marketFxRate, setMarketFxRate] = useState<number | null>(1);
+  const [marketPollAfterMs, setMarketPollAfterMs] = useState(DEFAULT_MARKET_POLL_INTERVAL_MS);
+  const [marketVisible, setMarketVisible] = useState(true);
+  const marketRequestRef = useRef<Promise<void> | null>(null);
+  const marketAbortRef = useRef<AbortController | null>(null);
+  const marketVisibleRef = useRef(true);
+  const marketHasDataRef = useRef(false);
+  const marketSnapshotRef = useRef<MarketsResponse | null>(null);
+  const marketStreamUnavailableRef = useRef(false);
+  const ledgerRequestRef = useRef<Promise<void> | null>(null);
+  const ledgerRequestTokenRef = useRef<symbol | null>(null);
+  const ledgerHasLoadedRef = useRef(false);
+  const cacheIdentity = ledgerMode === "visual-demo" ? "visual-demo" : user && !user.is_anonymous ? user.id : null;
+  const ledgerIdentityRef = useRef<string | null>(cacheIdentity);
+  ledgerIdentityRef.current = cacheIdentity;
+  const storageKey = cacheIdentity ? `${STORAGE_KEY}:${cacheIdentity}` : null;
 
   useEffect(() => {
     let cancelled = false;
-    async function refreshMarkets() {
-      try {
-        const next = await fetchLiveMarkets();
-        if (!cancelled) {
-          setLiveTopTradedTokens(next.top);
-          setLiveTrendingTokens(next.trending);
+    setReady(false);
+    setLoadedStorageKey(null);
+    setPersisted(defaultState);
+    if (!storageKey) return () => { cancelled = true; };
+    void AsyncStorage.getItem(storageKey)
+      .then((stored: string | null) => {
+        if (!cancelled && stored) {
+          setPersisted({ ...defaultState, ...JSON.parse(stored) as PersistedState });
         }
-      } catch {
-        // Static market data remains the offline fallback.
-      }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) {
+          setLoadedStorageKey(storageKey);
+          setReady(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!ready || !storageKey || loadedStorageKey !== storageKey) return;
+    void AsyncStorage.setItem(storageKey, JSON.stringify(persisted));
+  }, [loadedStorageKey, persisted, ready, storageKey]);
+
+  const refreshLedger = useCallback(() => {
+    if (ledgerRequestRef.current) return ledgerRequestRef.current;
+    if (!cacheIdentity) {
+      setProfile(null);
+      setAssets([]);
+      setWallets([]);
+      setTransfers([]);
+      setLedgerDataIdentity(null);
+      setLoadingWallets(false);
+      setLoadingTransfers(false);
+      setLedgerStatus("idle");
+      setLedgerError(null);
+      return Promise.resolve();
     }
-    void refreshMarkets();
-    const id = setInterval(refreshMarkets, 60_000);
+
+    setLedgerStatus(ledgerHasLoadedRef.current ? "refreshing" : "loading");
+    setLedgerError(null);
+    setLoadingWallets(true);
+    setLoadingTransfers(true);
+    const requestIdentity = cacheIdentity;
+    const requestToken = Symbol(requestIdentity);
+    ledgerRequestTokenRef.current = requestToken;
+    const request = (async () => {
+      try {
+        const portfolio = ledgerMode === "visual-demo" ? await getPortfolio() : await bootstrapDemoAccount();
+        const activity = await listTransfers();
+        if (ledgerIdentityRef.current !== requestIdentity) return;
+        setProfile(portfolio.profile);
+        setAssets(portfolio.assets);
+        setWallets(portfolio.wallets);
+        setTransfers(activity);
+        setLedgerDataIdentity(requestIdentity);
+        setPersisted((current) => ({
+          ...current,
+          selectedWalletId: current.selectedWalletId && portfolio.wallets.some((wallet) => wallet.id === current.selectedWalletId)
+            ? current.selectedWalletId
+            : portfolio.wallets[0]?.id ?? null,
+        }));
+        ledgerHasLoadedRef.current = true;
+        setLedgerStatus("ready");
+      } catch (error) {
+        if (ledgerIdentityRef.current !== requestIdentity) return;
+        const message = error instanceof Error ? error.message : "Unable to load the wallet ledger.";
+        setLedgerError(message);
+        setLedgerStatus("error");
+        throw error;
+      } finally {
+        if (ledgerIdentityRef.current === requestIdentity) {
+          setLoadingWallets(false);
+          setLoadingTransfers(false);
+        }
+        if (ledgerRequestTokenRef.current === requestToken) {
+          ledgerRequestTokenRef.current = null;
+          ledgerRequestRef.current = null;
+        }
+      }
+    })();
+    ledgerRequestRef.current = request;
+    return request;
+  }, [cacheIdentity]);
+
+  const refreshWallets = useCallback(() => refreshLedger(), [refreshLedger]);
+  const refreshTransfers = useCallback(() => refreshLedger(), [refreshLedger]);
+
+  useEffect(() => {
+    ledgerHasLoadedRef.current = false;
+    ledgerRequestRef.current = null;
+    ledgerRequestTokenRef.current = null;
+    setProfile(null);
+    setAssets([]);
+    setWallets([]);
+    setTransfers([]);
+    setLedgerDataIdentity(null);
+    void refreshLedger().catch(() => undefined);
+  }, [cacheIdentity, refreshLedger]);
+
+  useEffect(() => {
+    if (ledgerMode !== "connected" || !user?.id || user.is_anonymous) return undefined;
+    return subscribeToLedgerInvalidations({
+      userId: user.id,
+      onInvalidate: () => {
+        void refreshLedger().catch(() => undefined);
+      },
+      onError: (error) => setLedgerError(`Live updates are temporarily unavailable: ${error.message}`),
+    });
+  }, [refreshLedger, user?.id]);
+
+  const runLedgerMutation = useCallback(async <T,>(operation: () => Promise<T>) => {
+    setLedgerStatus("mutating");
+    setLedgerError(null);
+    try {
+      const result = await operation();
+      const inFlightRefresh = ledgerRequestRef.current;
+      if (inFlightRefresh) await inFlightRefresh.catch(() => undefined);
+      await refreshLedger();
+      return result;
+    } catch (error) {
+      setLedgerError(error instanceof Error ? error.message : "The wallet ledger operation failed.");
+      setLedgerStatus("error");
+      throw error;
+    }
+  }, [refreshLedger]);
+
+  const fundDemoWallet = useCallback(
+    (input: FundDemoWalletInput) => runLedgerMutation(() => fundDemoWalletService(input)),
+    [runLedgerMutation],
+  );
+
+  const resolveRecipient = useCallback(
+    (query: string, assetId?: string) => resolveRecipientService(query, assetId),
+    [],
+  );
+
+  const sendDemoTransfer = useCallback(async (input: SendDemoTransferInput) => {
+    const receipt = await runLedgerMutation(() => sendDemoTransferService(input));
+    if (input.idempotencyKey) {
+      await clearTransferRecoveryIntent(input.idempotencyKey).catch(() => undefined);
+    }
+    return receipt;
+  }, [runLedgerMutation]);
+
+  const renameWallet = useCallback(
+    async (walletId: string, name: string) => {
+      await runLedgerMutation(() => renameWalletService(walletId, name));
+    },
+    [runLedgerMutation],
+  );
+
+  const archiveWallet = useCallback(
+    async (walletId: string) => {
+      await runLedgerMutation(() => archiveWalletService(walletId));
+    },
+    [runLedgerMutation],
+  );
+
+  const applyMarketSnapshot = useCallback((snapshot: MarketsResponse) => {
+    const legacy = toLegacyMarketLists(snapshot);
+    const updatedAtMs = Date.parse(snapshot.asOf);
+    const providerPollAfterMs = Math.min(60_000, Math.max(15_000, snapshot.pollAfterMs));
+    const pollAfterMs = marketStreamUnavailableRef.current
+      ? DEFAULT_MARKET_POLL_INTERVAL_MS
+      : providerPollAfterMs;
+    const stale = snapshot.stale || !Number.isFinite(updatedAtMs) || Date.now() - updatedAtMs > 2 * pollAfterMs;
+    marketHasDataRef.current = Object.values(legacy.quoteByAssetId).some((quote) => quote.price !== null);
+    marketSnapshotRef.current = snapshot;
+    setMarketPollAfterMs(pollAfterMs);
+    setMarketByAssetId(legacy.quoteByAssetId);
+    setLiveTopTradedTokens(legacy.top);
+    setLiveTrendingTokens(legacy.trending);
+    setMarketUpdatedAt(snapshot.asOf);
+    setMarketStatus(stale ? "stale" : "live");
+  }, []);
+
+  const refreshMarkets = useCallback(() => {
+    if (marketRequestRef.current) return marketRequestRef.current;
+    const controller = new AbortController();
+    marketAbortRef.current = controller;
+    if (!marketHasDataRef.current) setMarketStatus("loading");
+    setMarketError(null);
+
+    const request = (async () => {
+      try {
+        const currencyCode = persisted.currencyCode;
+        const [next, usd] = await Promise.all([
+          fetchLiveMarkets(currencyCode, controller.signal),
+          currencyCode === "USD" ? Promise.resolve(null) : fetchLiveMarkets("USD", controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
+        let nextFxRate: number | null = 1;
+        if (currencyCode !== "USD") {
+          const usdByAssetId = usd?.quoteByAssetId ?? {};
+          const sharedQuote = next.snapshot.quotes.find((quote) => {
+            const usdQuote = usdByAssetId[quote.assetId];
+            return quote.price !== null && usdQuote?.price != null && Number.isFinite(quote.price / usdQuote.price);
+          });
+          const usdPrice = sharedQuote ? usdByAssetId[sharedQuote.assetId]?.price : null;
+          nextFxRate = sharedQuote?.price != null && usdPrice ? sharedQuote.price / usdPrice : null;
+        }
+        setMarketFxRate(nextFxRate);
+        applyMarketSnapshot(next.snapshot);
+        const cache: MarketCacheEnvelope = { snapshot: next.snapshot, fxRate: nextFxRate };
+        void AsyncStorage.setItem(`${MARKET_CACHE_KEY}:${currencyCode}`, JSON.stringify(cache)).catch(() => undefined);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setMarketPollAfterMs(DEFAULT_MARKET_POLL_INTERVAL_MS);
+        setMarketError(error instanceof Error ? error.message : "Unable to refresh market prices");
+        setMarketStatus(marketHasDataRef.current ? "stale" : "error");
+      } finally {
+        if (marketAbortRef.current === controller) {
+          marketAbortRef.current = null;
+          marketRequestRef.current = null;
+        }
+      }
+    })();
+    marketRequestRef.current = request;
+    return request;
+  }, [applyMarketSnapshot, persisted.currencyCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const currencyCode = persisted.currencyCode;
+    marketStreamUnavailableRef.current = false;
+    marketHasDataRef.current = false;
+    marketSnapshotRef.current = null;
+    setMarketByAssetId({});
+    setLiveTopTradedTokens([]);
+    setLiveTrendingTokens([]);
+    setMarketUpdatedAt(null);
+    setMarketError(null);
+    setMarketFxRate(currencyCode === "USD" ? 1 : null);
+    setMarketPollAfterMs(DEFAULT_MARKET_POLL_INTERVAL_MS);
+    setMarketStatus("loading");
+    void AsyncStorage.getItem(`${MARKET_CACHE_KEY}:${currencyCode}`)
+      .then((stored) => {
+        if (cancelled || !stored) return;
+        const parsed = JSON.parse(stored) as unknown;
+        const cached = readMarketCache(parsed, currencyCode);
+        if (!cached) return;
+        setMarketFxRate(cached.fxRate);
+        applyMarketSnapshot(cached.snapshot);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) void refreshMarkets();
+      });
     return () => {
       cancelled = true;
-      clearInterval(id);
+      marketAbortRef.current?.abort();
+      marketAbortRef.current = null;
+      marketRequestRef.current = null;
     };
+  }, [applyMarketSnapshot, persisted.currencyCode, refreshMarkets]);
+
+  useEffect(() => {
+    if (!marketVisible || persisted.currencyCode !== "USD") return undefined;
+    return subscribeToMarketStream({
+      onQuote: (quote) => {
+        marketStreamUnavailableRef.current = false;
+        const current = marketSnapshotRef.current;
+        if (!current) return;
+        const quoteIndex = current.quotes.findIndex((candidate) => candidate.assetId === quote.assetId);
+        const quotes = [...current.quotes];
+        if (quoteIndex >= 0) quotes[quoteIndex] = quote;
+        else quotes.push(quote);
+        applyMarketSnapshot({ ...current, asOf: quote.lastUpdated, stale: false, quotes });
+      },
+      onError: (error) => {
+        if (!marketHasDataRef.current) setMarketError(error.message);
+      },
+      onUnavailable: (reason) => {
+        marketStreamUnavailableRef.current = true;
+        setMarketPollAfterMs(DEFAULT_MARKET_POLL_INTERVAL_MS);
+        if (!marketHasDataRef.current) setMarketError(reason);
+      },
+    });
+  }, [applyMarketSnapshot, marketVisible, persisted.currencyCode]);
+
+  useEffect(() => {
+    if (!marketVisible || (Platform.OS === "web" && persisted.currencyCode === "USD")) return undefined;
+    const controller = new AbortController();
+    void probeMarketStreamAvailability(controller.signal)
+      .then(({ available, pollAfterMs }) => {
+        marketStreamUnavailableRef.current = !available;
+        setMarketPollAfterMs(pollAfterMs);
+      })
+      .catch(() => {
+        marketStreamUnavailableRef.current = true;
+        setMarketPollAfterMs(DEFAULT_MARKET_POLL_INTERVAL_MS);
+      });
+    return () => controller.abort();
+  }, [marketVisible, persisted.currencyCode]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (marketVisibleRef.current) void refreshMarkets();
+    }, marketPollAfterMs);
+    return () => clearInterval(id);
+  }, [marketPollAfterMs, refreshMarkets]);
+
+  useEffect(() => {
+    const onVisibilityChange = (active: boolean) => {
+      const wasVisible = marketVisibleRef.current;
+      marketVisibleRef.current = active;
+      setMarketVisible(active);
+      if (active && !wasVisible) void refreshMarkets();
+    };
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      onVisibilityChange(state === "active");
+    });
+    const webVisibilityHandler = () => onVisibilityChange(document.visibilityState !== "hidden");
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      marketVisibleRef.current = document.visibilityState !== "hidden";
+      document.addEventListener("visibilitychange", webVisibilityHandler);
+    }
+    return () => {
+      appStateSubscription.remove();
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", webVisibilityHandler);
+      }
+    };
+  }, [refreshMarkets]);
+
+  useEffect(() => () => {
+    marketAbortRef.current?.abort();
   }, []);
 
   const currency = useMemo(
@@ -257,19 +614,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const theme = persisted.themeMode === "dark" ? darkColors : colors;
 
+  const ledgerIdentityMatches = ledgerDataIdentity === cacheIdentity;
+  const visibleProfile = ledgerIdentityMatches ? profile : null;
+  const visibleAssets = useMemo(() => ledgerIdentityMatches ? assets : [], [assets, ledgerIdentityMatches]);
+  const visibleWallets = useMemo(() => ledgerIdentityMatches ? wallets : [], [ledgerIdentityMatches, wallets]);
+  const visibleTransfers = useMemo(() => ledgerIdentityMatches ? transfers : [], [ledgerIdentityMatches, transfers]);
+
   const selectedWallet = useMemo(
-    () => wallets.find((wallet) => wallet.id === persisted.selectedWalletId) ?? wallets[0] ?? null,
-    [persisted.selectedWalletId, wallets],
+    () => visibleWallets.find((wallet) => wallet.id === persisted.selectedWalletId) ?? visibleWallets[0] ?? null,
+    [persisted.selectedWalletId, visibleWallets],
   );
 
-  const totalBalance = useMemo(
-    () => wallets.reduce((sum, wallet) => sum + primaryBalance(wallet), 0),
-    [wallets],
-  );
+  const totalBalance = useMemo(() => {
+    if (!selectedWallet) return 0;
+    return selectedWallet.balances.reduce((sum, balance) => {
+      const amount = Number(balance.display_amount);
+      if (!Number.isFinite(amount)) return sum;
+      if (["USD", "USDT", "USDC"].includes(balance.asset.symbol)) return sum + amount;
+      const marketAsset = getAssetBySymbol(balance.asset.symbol);
+      const price = marketAsset ? marketByAssetId[marketAsset.assetId]?.price : null;
+      return typeof price === "number" && Number.isFinite(price) ? sum + amount * price : sum;
+    }, 0);
+  }, [marketByAssetId, selectedWallet]);
 
-  const visibleBalance = persisted.hideBalance ? "*****" : formatCurrencyValue(totalBalance, currency);
+  const visibleBalance = persisted.hideBalance
+    ? "*****"
+    : marketFxRate === null
+      ? "Unavailable"
+      : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: currency.code,
+        currencyDisplay: "narrowSymbol",
+        maximumFractionDigits: 2,
+      }).format(totalBalance * marketFxRate);
 
-  const setCurrencyCode = useCallback((code: string) => {
+  const setCurrencyCode = useCallback((code: MarketCurrency) => {
+    marketAbortRef.current?.abort();
+    marketAbortRef.current = null;
+    marketRequestRef.current = null;
+    marketHasDataRef.current = false;
+    marketSnapshotRef.current = null;
+    setMarketByAssetId({});
+    setLiveTopTradedTokens([]);
+    setLiveTrendingTokens([]);
+    setMarketUpdatedAt(null);
+    setMarketError(null);
+    setMarketFxRate(code === "USD" ? 1 : null);
+    setMarketPollAfterMs(DEFAULT_MARKET_POLL_INTERVAL_MS);
+    setMarketStatus("loading");
     setPersisted((current) => ({ ...current, currencyCode: code }));
   }, []);
 
@@ -353,10 +745,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     themeMode: persisted.themeMode,
     theme,
     currency,
-    wallets,
-    transfers,
-    loadingWallets,
-    loadingTransfers,
+    ledgerMode,
+    ledgerStatus,
+    ledgerError,
+    profile: visibleProfile,
+    assets: visibleAssets,
+    wallets: visibleWallets,
+    transfers: visibleTransfers,
+    loadingWallets: !ledgerIdentityMatches || loadingWallets,
+    loadingTransfers: !ledgerIdentityMatches || loadingTransfers,
     selectedWalletId: selectedWallet?.id ?? null,
     selectedWallet,
     totalBalance,
@@ -386,21 +783,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     activeRewardsTab: persisted.activeRewardsTab,
     marketFilters,
     marketFilter,
-    trendingTokens: liveTrendingTokens
-      ? (marketFilter === "gainers"
-        ? [...liveTrendingTokens].sort((left, right) => right.change - left.change)
-        : liveTrendingTokens.filter((token) => token.categories.includes(marketFilter) || marketFilter === "hot"))
-      : getFilteredTrendingTokens(marketFilter),
-    topTradedTokens: liveTopTradedTokens ?? fallbackTopTradedTokens,
+    trendingTokens: marketFilter === "gainers"
+      ? [...liveTrendingTokens].sort((left, right) => right.change - left.change)
+      : liveTrendingTokens.filter((token) => token.categories.includes(marketFilter) || marketFilter === "hot"),
+    topTradedTokens: liveTopTradedTokens,
+    marketByAssetId,
+    marketStatus,
+    marketUpdatedAt,
+    marketError,
     rewardsCampaigns,
     trustAlphaCampaigns,
     rewardRedeemItems,
-    predictionMarkets,
     dappCategories,
     socialLinks,
     networkOptions,
+    refreshLedger,
+    fundDemoWallet,
+    resolveRecipient,
+    sendDemoTransfer,
     refreshWallets,
     refreshTransfers,
+    renameWallet,
+    archiveWallet,
+    refreshMarkets,
     setThemeMode,
     toggleThemeMode,
     setCurrencyCode,
@@ -434,19 +839,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMarketFilter,
   }), [
     addAddressBookEntry,
+    archiveWallet,
     clearBrowserCache,
     currency,
     dismissBackupBanner,
+    fundDemoWallet,
+    ledgerError,
+    ledgerIdentityMatches,
+    ledgerStatus,
     loadingTransfers,
     loadingWallets,
     liveTopTradedTokens,
     liveTrendingTokens,
+    marketByAssetId,
+    marketError,
     marketFilter,
+    marketStatus,
+    marketUpdatedAt,
     persisted,
+    refreshLedger,
+    refreshMarkets,
     refreshTransfers,
     refreshWallets,
+    renameWallet,
     resetBackupBanner,
+    resolveRecipient,
     selectedWallet,
+    sendDemoTransfer,
     setCurrencyCode,
     setLayoutMode,
     setSelectedWalletId,
@@ -460,9 +879,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toggleThemeMode,
     toggleWatchlistToken,
     totalBalance,
-    transfers,
+    visibleAssets,
+    visibleProfile,
+    visibleTransfers,
+    visibleWallets,
     visibleBalance,
-    wallets,
   ]);
 
   return createElement(AppContext.Provider, { value }, children);

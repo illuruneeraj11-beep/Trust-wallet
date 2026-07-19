@@ -1,8 +1,9 @@
+import type { MarketCurrency } from "@/types/market";
+
 export type CurrencyOption = {
-  code: string;
+  code: MarketCurrency;
   label: string;
   symbol: string;
-  rate: number;
 };
 
 export type TrendingToken = {
@@ -38,38 +39,6 @@ export type RewardRedeemItem = {
   cost: number;
 };
 
-export type PerpsMarket = {
-  symbol: string;
-  pair: string;
-  leverage: string;
-  volume: string;
-  price: string;
-  change: string;
-};
-
-export type PredictionMarket = {
-  id: string;
-  title: string;
-  volume: string;
-  endsIn: string;
-  provider: string;
-};
-
-export type MemeRushEntry = {
-  symbol: string;
-  age: string;
-  holders: string;
-  score: number;
-  price: string;
-  trend: string;
-};
-
-export type EarnOpportunity = {
-  symbol: string;
-  name: string;
-  apy: string;
-};
-
 export type AddressBookEntry = {
   id: string;
   name: string;
@@ -90,39 +59,17 @@ export type SocialLink = {
 };
 
 export const currencyOptions: CurrencyOption[] = [
-  { code: "USD", label: "US Dollar", symbol: "$", rate: 1 },
-  { code: "EUR", label: "Euro", symbol: "€", rate: 0.92 },
-  { code: "GBP", label: "British Pound", symbol: "£", rate: 0.79 },
-  { code: "JPY", label: "Japanese Yen", symbol: "¥", rate: 154.2 },
-  { code: "AUD", label: "Australian Dollar", symbol: "A$", rate: 1.53 },
-  { code: "INR", label: "Indian Rupee", symbol: "₹", rate: 83.5 },
+  { code: "USD", label: "US Dollar", symbol: "$" },
+  { code: "EUR", label: "Euro", symbol: "€" },
+  { code: "GBP", label: "British Pound", symbol: "£" },
+  { code: "JPY", label: "Japanese Yen", symbol: "¥" },
+  { code: "AUD", label: "Australian Dollar", symbol: "A$" },
+  { code: "INR", label: "Indian Rupee", symbol: "₹" },
 ];
 
 export const languageOptions = ["English", "Español", "Français", "Deutsch", "日本語", "हिन्दी"];
 
 export const marketFilters = ["hot", "ondo", "preipo", "gainers", "meme", "defi", "ai", "rwa"];
-
-export const topTradedTokens: TrendingToken[] = [
-  { symbol: "ETH", name: "Ethereum", price: 1625.97, change: 4.06, marketCap: "$197.14B", volume: "$14.73B", categories: ["hot", "defi"], network: "ETH", holdings: 0.25 },
-  { symbol: "BNB", name: "BNB Smart Chain", price: 590.71, change: 2.48, marketCap: "$79.89B", volume: "$889.18M", categories: ["hot", "defi"], network: "BNB", holdings: 0.61 },
-  { symbol: "BTC", name: "Bitcoin", price: 61945, change: 1.67, marketCap: "$1.25T", volume: "$31.43B", categories: ["hot", "rwa"], network: "BTC", holdings: 0.03 },
-  { symbol: "SOL", name: "Solana", price: 64.86, change: 3.3, marketCap: "$37.77B", volume: "$3.24B", categories: ["gainers", "ai"], network: "SOL", holdings: 1.8 },
-];
-
-export const trendingTokens: TrendingToken[] = [
-  { symbol: "WSTETH", name: "Wrapped Staked Ether", price: 2012.61, change: 4.12, marketCap: "$7.18B", volume: "$9.53M", categories: ["hot", "defi"], network: "ETH" },
-  { symbol: "AETHWETH", name: "Aethir Wrapped ETH", price: 1625.97, change: 4.06, marketCap: "$5.18B", volume: "$21.90M", categories: ["hot", "ai"], network: "ETH" },
-  { symbol: "XAUT", name: "Tether Gold", price: 4299.08, change: 0.3, marketCap: "$2.64B", volume: "$95.57M", categories: ["rwa"], network: "ETH" },
-  { symbol: "PAXG", name: "PAX Gold", price: 4301.89, change: 0.14, marketCap: "$1.98B", volume: "$110.86M", categories: ["rwa"], network: "ETH" },
-  { symbol: "DEXE", name: "DeXe", price: 19.85, change: -0.33, marketCap: "$928.63M", volume: "$15.59M", categories: ["defi", "hot"], network: "BNB" },
-  { symbol: "TRUMP", name: "Trump", price: 1.63, change: 2.56, marketCap: "$388.27M", volume: "$70.30M", categories: ["meme"], network: "SOL" },
-  { symbol: "PUMP", name: "Pump", price: 0.001512, change: 6.16, marketCap: "$529.54M", volume: "$44.90M", categories: ["meme"], network: "SOL" },
-  { symbol: "AERO", name: "Aerodrome", price: 0.3319, change: 3.55, marketCap: "$314.56M", volume: "$9.53M", categories: ["defi"], network: "BASE" },
-  { symbol: "RIVER", name: "River", price: 6.6, change: 11.32, marketCap: "$129.26M", volume: "$54.52M", categories: ["gainers", "ai"], network: "ETH" },
-  { symbol: "SKR", name: "SKR", price: 0.0198, change: 29.95, marketCap: "$104.70M", volume: "$150.4M", categories: ["gainers", "meme"], network: "ETH" },
-  { symbol: "OPENAI", name: "OpenAI", price: 1431.1, change: -0.09, marketCap: "$2.24M", volume: "$3.89M", categories: ["ai"], network: "BASE" },
-  { symbol: "NEURALINK", name: "Neuralink", price: 346.47, change: 0, marketCap: "$1.73M", volume: "$6.77M", categories: ["ai"], network: "SOL" },
-];
 
 export const dappCategories: Record<string, DappItem[]> = {
   Featured: [
@@ -199,33 +146,6 @@ export const rewardRedeemItems: RewardRedeemItem[] = [
   { id: "redeem-3", title: "Exclusive Trust merch drop", partner: "Trust Wallet", cost: 1200 },
 ];
 
-export const perpsMarkets: PerpsMarket[] = [
-  { symbol: "ASTER", pair: "ASTERUSDT", leverage: "x200", volume: "$28.7M", price: "$0.6694", change: "-0.14%" },
-  { symbol: "BTC", pair: "BTCUSDT", leverage: "x200", volume: "$31.43B", price: "$61,945", change: "+1.67%" },
-  { symbol: "ETH", pair: "ETHUSDT", leverage: "x200", volume: "$14.73B", price: "$1,625.97", change: "+4.06%" },
-  { symbol: "SOL", pair: "SOLUSDT", leverage: "x100", volume: "$3.24B", price: "$64.86", change: "+3.30%" },
-  { symbol: "XRP", pair: "XRPUSDT", leverage: "x100", volume: "$15.2M", price: "$1.44", change: "+1.65%" },
-];
-
-export const predictionMarkets: PredictionMarket[] = [
-  { id: "pred-1", title: "Bitcoin closes above $70k this week?", volume: "$6.1M", endsIn: "2D 4H", provider: "Polymarket" },
-  { id: "pred-2", title: "Ethereum ETF inflows stay positive tomorrow?", volume: "$1.8M", endsIn: "19H 20M", provider: "Polymarket" },
-  { id: "pred-3", title: "Will Solana daily fees beat Ethereum this weekend?", volume: "$3.4M", endsIn: "3D 12H", provider: "Polymarket" },
-];
-
-export const memeRushEntries: MemeRushEntry[] = [
-  { symbol: "BONKX", age: "3m age", holders: "1/5", score: 72, price: "$0.00038", trend: "+18.2%" },
-  { symbol: "WEN2", age: "9m age", holders: "3/5", score: 61, price: "$0.0029", trend: "+6.4%" },
-  { symbol: "PEPPER", age: "14m age", holders: "5/5", score: 87, price: "$0.019", trend: "+22.1%" },
-  { symbol: "FROGX", age: "18m age", holders: "2/5", score: 44, price: "$0.00011", trend: "-4.1%" },
-];
-
-export const earnOpportunities: EarnOpportunity[] = [
-  { symbol: "STARS", name: "STARS", apy: "31.15%" },
-  { symbol: "JUNO", name: "JUNO", apy: "27.16%" },
-  { symbol: "KSM", name: "KSM", apy: "15.28%" },
-];
-
 export const addressBookSeed: AddressBookEntry[] = [
   { id: "addr-1", name: "Binance Hot Wallet", network: "BNB Smart Chain", address: "0x93d7E8F4...087A15" },
   { id: "addr-2", name: "Arun Savings", network: "Ethereum", address: "0x1245A7c1...A87109" },
@@ -265,22 +185,3 @@ export const socialLinks: SocialLink[] = [
   { label: "Instagram", url: "https://instagram.com/trustwallet" },
   { label: "Discord", url: "https://discord.gg/trustwallet" },
 ];
-
-export function getFilteredTrendingTokens(filter: string) {
-  if (filter === "gainers") {
-    return [...trendingTokens].sort((left, right) => right.change - left.change);
-  }
-
-  return trendingTokens.filter((token) => token.categories.includes(filter) || filter === "hot");
-}
-
-export function formatCurrencyValue(amount: number, currency: CurrencyOption) {
-  const converted = amount * currency.rate;
-  const prefix = currency.symbol || `${currency.code} `;
-
-  if (converted >= 1000) {
-    return `${prefix}${converted.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-  }
-
-  return `${prefix}${converted.toFixed(2)}`;
-}

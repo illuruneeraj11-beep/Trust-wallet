@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppContext } from "@/context/app-context";
 import { font } from "@/theme/colors";
+import { TrustIcon, type TrustIconName } from "@/components/trust-icon";
 
 type ScreenProps = {
   title?: string;
@@ -12,6 +13,7 @@ type ScreenProps = {
   children: ReactNode;
   scrollable?: boolean;
   padded?: boolean;
+  withTabBar?: boolean;
 };
 
 type PillProps = {
@@ -29,7 +31,7 @@ type SheetModalProps = {
 };
 
 type RowProps = {
-  icon: string;
+  icon: TrustIconName;
   title: string;
   subtitle?: string;
   value?: string;
@@ -43,7 +45,7 @@ type ToggleRowProps = RowProps & {
 };
 
 type ActionProps = {
-  icon: string;
+  icon: TrustIconName;
   label: string;
   onPress: () => void;
 };
@@ -59,11 +61,13 @@ type TokenRowProps = {
   trailing?: ReactNode;
 };
 
-export function AppScreen({ title, subtitle, right, children, scrollable = true, padded = true }: ScreenProps) {
+export function AppScreen({ title, subtitle, right, children, scrollable = true, padded = true, withTabBar = false }: ScreenProps) {
   const { theme } = useAppContext();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = withTabBar ? 88 + insets.bottom : 24 + insets.bottom;
 
   const content = (
-    <View style={{ flex: scrollable ? undefined : 1, gap: 18, paddingHorizontal: padded ? 16 : 0, paddingBottom: 120 }}>
+    <View style={{ flex: scrollable ? undefined : 1, gap: 18, paddingHorizontal: padded ? 16 : 0, paddingBottom: bottomPadding }}>
       {title ? (
         <View style={{ paddingTop: 8, gap: 6 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -78,7 +82,7 @@ export function AppScreen({ title, subtitle, right, children, scrollable = true,
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === "web" ? 18 : 0 }} edges={["top"]}>
       {scrollable ? (
         <ScrollView contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 8 }}>
           {content}
@@ -101,7 +105,7 @@ export function GradientBanner({ title, subtitle, buttonLabel, onPress }: { titl
       </View>
       <View style={{ alignItems: "flex-end", justifyContent: "space-between" }}>
         <View style={{ width: 54, height: 54, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 26 }}>🎭</Text>
+          <TrustIcon color="#ffffff" name="drama-masks" size={28} />
         </View>
         <Pressable onPress={onPress} style={{ minHeight: 34, paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
           <Text style={{ color: theme.blue, fontSize: 12, fontWeight: "900" }}>{buttonLabel}</Text>
@@ -111,12 +115,19 @@ export function GradientBanner({ title, subtitle, buttonLabel, onPress }: { titl
   );
 }
 
-export function HeaderIcon({ icon, onPress }: { icon: string; onPress: () => void }) {
+export function HeaderIcon({ icon, onPress }: { icon: TrustIconName; onPress: () => void }) {
   const { theme } = useAppContext();
+  const accessibilityLabel = icon === "arrow-left" || icon === "back" || icon === "back-compact"
+    ? "Back"
+    : icon === "close"
+      ? "Close"
+      : icon === "magnify"
+        ? "Search"
+        : "Open action";
 
   return (
-    <Pressable onPress={onPress} style={{ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: theme.secondary, fontSize: 28, fontWeight: "800" }}>{icon}</Text>
+    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole="button" onPress={onPress} style={{ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" }}>
+      <TrustIcon color={theme.secondary} name={icon} size={26} />
     </Pressable>
   );
 }
@@ -149,16 +160,16 @@ export function Pill({ label, active, onPress }: PillProps) {
     <Pressable
       onPress={onPress}
       style={{
-        minHeight: 42,
-        paddingHorizontal: 18,
+        minHeight: 34,
+        paddingHorizontal: 13,
         borderRadius: 999,
-        backgroundColor: active ? "#6f7773" : theme.surface,
+        backgroundColor: active ? "#dedee2" : theme.surface,
         borderWidth: 0,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: active ? theme.text : theme.text, fontSize: 14, fontWeight: "900", textTransform: "capitalize" }}>{label}</Text>
+      <Text style={{ color: theme.text, fontSize: 12, fontWeight: "700", textTransform: "capitalize" }}>{label}</Text>
     </Pressable>
   );
 }
@@ -169,21 +180,21 @@ export function ActionCircle({ icon, label, onPress }: ActionProps) {
   return (
     <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", gap: 10 }}>
       <View style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>{icon}</Text>
+        <TrustIcon color="#ffffff" name={icon} size={26} />
       </View>
       <Text style={{ color: theme.text, fontSize: 13, fontWeight: "900" }}>{label}</Text>
     </Pressable>
   );
 }
 
-export function EmptyStateCard({ icon, title, subtitle, linkLabel, onPress }: { icon: string; title: string; subtitle: string; linkLabel?: string; onPress?: () => void }) {
+export function EmptyStateCard({ icon, title, subtitle, linkLabel, onPress }: { icon: TrustIconName; title: string; subtitle: string; linkLabel?: string; onPress?: () => void }) {
   const { theme } = useAppContext();
 
   return (
     <Card muted>
       <View style={{ alignItems: "center", gap: 10, paddingVertical: 10 }}>
         <View style={{ width: 86, height: 86, borderRadius: 28, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 36 }}>{icon}</Text>
+          <TrustIcon color={theme.secondary} name={icon} size={38} />
         </View>
         <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900", textAlign: "center" }}>{title}</Text>
         <Text style={{ color: theme.secondary, fontSize: 14, textAlign: "center", lineHeight: 20 }}>{subtitle}</Text>
@@ -210,11 +221,12 @@ export function StatCard({ label, value, accent }: { label: string; value: strin
 
 export function SheetModal({ visible, title, subtitle, onClose, children }: SheetModalProps) {
   const { theme } = useAppContext();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "flex-end" }}>
-        <Pressable style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: theme.surface, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 28, gap: 16 }}>
+        <Pressable style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: theme.surface, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 20 + insets.bottom, gap: 16 }}>
           <View style={{ alignItems: "center" }}>
             <View style={{ width: 52, height: 5, borderRadius: 999, backgroundColor: theme.secondary }} />
           </View>
@@ -235,13 +247,13 @@ export function SettingRow({ icon, title, subtitle, value, onPress, destructive 
   return (
     <Pressable onPress={onPress} style={{ minHeight: 72, borderRadius: 20, backgroundColor: theme.surface, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 14 }}>
       <View style={{ width: 42, height: 42, borderRadius: 16, backgroundColor: theme.cardSecondary, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+        <TrustIcon color={destructive ? theme.negative : theme.secondary} name={icon} size={22} />
       </View>
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={{ color: destructive ? theme.negative : theme.text, fontSize: 17, fontWeight: "900" }}>{title}</Text>
         {subtitle ? <Text style={{ color: theme.secondary, fontSize: 13 }}>{subtitle}</Text> : null}
       </View>
-      <Text style={{ color: value ? theme.text : theme.secondary, fontSize: 14, fontWeight: "800" }}>{value ?? "›"}</Text>
+      {value ? <Text style={{ color: theme.text, fontSize: 14, fontWeight: "800" }}>{value}</Text> : <TrustIcon color={theme.secondary} name="chevron-right" size={22} />}
     </Pressable>
   );
 }
@@ -252,7 +264,7 @@ export function ToggleRow({ icon, title, subtitle, valueEnabled, onValueChange, 
   return (
     <Pressable onPress={onPress} style={{ minHeight: 72, borderRadius: 20, backgroundColor: theme.surface, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 14 }}>
       <View style={{ width: 42, height: 42, borderRadius: 16, backgroundColor: theme.cardSecondary, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+        <TrustIcon color={theme.secondary} name={icon} size={22} />
       </View>
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>{title}</Text>
@@ -287,14 +299,14 @@ export function SearchInput({ value, onChangeText, placeholder }: { value: strin
   const { theme } = useAppContext();
 
   return (
-    <View style={{ minHeight: 54, borderRadius: 27, backgroundColor: theme.input, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <Text style={{ color: theme.secondary, fontSize: 32, lineHeight: 34 }}>⌕</Text>
+    <View style={{ minHeight: 42, borderRadius: 21, backgroundColor: theme.input, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <TrustIcon color={theme.secondary} name="magnify" size={19} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={theme.secondary}
-        style={{ flex: 1, color: theme.text, fontSize: 18, fontWeight: "700", paddingVertical: 0 }}
+        style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "600", paddingVertical: 0 }}
       />
     </View>
   );
@@ -307,14 +319,14 @@ export function WalletPill({ title, subtitle, selected, onPress }: { title: stri
     <Pressable onPress={onPress} style={{ minHeight: 74, borderRadius: 22, backgroundColor: selected ? theme.blueSoft : theme.surface, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
         <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: selected ? theme.blue : theme.cardSecondary, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: selected ? "#fff" : theme.text, fontSize: 16, fontWeight: "900" }}>🛡</Text>
+          <TrustIcon color={selected ? "#ffffff" : theme.text} name={selected ? "shield-check" : "shield-outline"} size={22} />
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={{ color: selected ? theme.blue : theme.text, fontSize: 17, fontWeight: "900" }}>{title}</Text>
           <Text style={{ color: theme.secondary, fontSize: 13 }}>{subtitle}</Text>
         </View>
       </View>
-      <Text style={{ color: selected ? theme.blue : theme.secondary, fontSize: 16, fontWeight: "900" }}>{selected ? "✓" : "⋯"}</Text>
+      <TrustIcon color={selected ? theme.blue : theme.secondary} name={selected ? "check-circle" : "dots-horizontal"} size={22} />
     </Pressable>
   );
 }
@@ -331,19 +343,37 @@ const styles = StyleSheet.create({
 
 export function TokenAvatar({ symbol, network, size = 48 }: { symbol: string; network?: string; size?: number }) {
   const palette = tokenPalette(symbol);
-  const initials = tokenLabel(symbol);
+  const asset = tokenAssets[symbol.toUpperCase()];
+  const networkAsset = network ? tokenAssets[network.toUpperCase()] : undefined;
 
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: palette.bg, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: palette.fg, fontSize: Math.max(13, size * 0.34), fontWeight: "900" }}>{initials}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: palette.bg, alignItems: "center", justifyContent: "center", overflow: "visible" }}>
+      {asset ? <Image source={asset} resizeMode="contain" style={{ width: size, height: size, borderRadius: size / 2 }} /> : <TrustIcon color={palette.fg} name="currency-usd" size={Math.max(18, size * 0.58)} />}
       {network ? (
         <View style={{ position: "absolute", right: -3, bottom: -3, width: size * 0.38, height: size * 0.38, borderRadius: size * 0.19, backgroundColor: tokenPalette(network).bg, borderWidth: 2, borderColor: "#181818", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: tokenPalette(network).fg, fontSize: Math.max(7, size * 0.14), fontWeight: "900" }}>{tokenLabel(network).slice(0, 1)}</Text>
+          {networkAsset ? <Image source={networkAsset} resizeMode="contain" style={{ width: size * 0.34, height: size * 0.34, borderRadius: size * 0.17 }} /> : <TrustIcon color={tokenPalette(network).fg} name="web" size={Math.max(9, size * 0.2)} />}
         </View>
       ) : null}
     </View>
   );
 }
+const tokenAssets: Record<string, number> = {
+  AETHWETH: require("../../assets/tokens/AETHWETH.png"),
+  ASTER: require("../../assets/tokens/ASTER.png"),
+  AAVE: require("../../assets/tokens/AAVE.png"),
+  BNB: require("../../assets/tokens/BNB.png"),
+  BTC: require("../../assets/tokens/BTC.png"),
+  DEXE: require("../../assets/tokens/DEXE.png"),
+  ETH: require("../../assets/tokens/ETH.png"),
+  HYPE: require("../../assets/tokens/HYPE.png"),
+  LINK: require("../../assets/tokens/LINK.png"),
+  PAXG: require("../../assets/tokens/PAXG.png"),
+  RIVER: require("../../assets/tokens/RIVER.png"),
+  SOL: require("../../assets/tokens/SOL.png"),
+  TWT: require("../../assets/tokens/TWT_BADGE_BNB.png"),
+  XAUT: require("../../assets/tokens/XAUT.png"),
+  XRP: require("../../assets/tokens/XRP.png"),
+};
 
 function tokenPalette(symbol: string) {
   const upper = symbol.toUpperCase();
@@ -369,17 +399,4 @@ function tokenPalette(symbol: string) {
   };
 
   return map[upper] ?? { bg: "#303034", fg: "#f4f4f5" };
-}
-
-function tokenLabel(symbol: string) {
-  const upper = symbol.toUpperCase();
-  if (upper === "BTC") return "₿";
-  if (upper === "ETH") return "◆";
-  if (upper === "SOL") return "≋";
-  if (upper === "BNB") return "⬡";
-  if (upper === "TRX") return "△";
-  if (upper === "USDT") return "₮";
-  if (upper === "USDC") return "$";
-  if (upper === "TWT") return "▮";
-  return upper.slice(0, 2);
 }

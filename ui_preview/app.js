@@ -2586,9 +2586,8 @@ function bindVideoInteractions() {
 }
 
 function getSupabaseWriteClient() {
-  if (!window.supabase || typeof SUPABASE_URL === 'undefined') return null;
-  const key = (typeof SUPABASE_SERVICE !== 'undefined' && SUPABASE_SERVICE) ? SUPABASE_SERVICE : SUPABASE_ANON;
-  return window.supabase.createClient(SUPABASE_URL, key);
+  if (!window.supabase || typeof SUPABASE_URL === 'undefined' || !SUPABASE_ANON) return null;
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 }
 
 async function createMockWallet() {

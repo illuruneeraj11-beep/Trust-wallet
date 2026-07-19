@@ -1,48 +1,41 @@
-import { useMemo } from "react";
-import { currencyOptions, languageOptions, networkOptions } from "@/data/trust-wallet";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { TrustIcon } from "@/components/trust-icon";
+import { AppScreen, SettingRow, SheetModal, ToggleRow } from "@/components/trust-ui";
+import { currencyOptions, languageOptions } from "@/data/trust-wallet";
 import { useAppContext } from "@/context/app-context";
-import { AppScreen, Card, SearchInput, SettingRow, ToggleRow } from "@/components/trust-ui";
 
 export default function PreferencesScreen() {
-  const {
-    currency,
-    customRpcUrl,
-    dappBrowserEnabled,
-    language,
-    setCurrencyCode,
-    clearBrowserCache,
-    setCustomRpcUrl,
-    setDappBrowserEnabled,
-    setLanguage,
-  } = useAppContext();
-
-  const popularNetworks = useMemo(() => networkOptions.filter((item) => item.popular), []);
-
+  const { currency, dappBrowserEnabled, language, setCurrencyCode, setDappBrowserEnabled, setLanguage, theme } = useAppContext();
+  const [sheet, setSheet] = useState<"currency" | "language" | null>(null);
   return (
-    <AppScreen title="Preferences" subtitle="Local appearance, language, dApp browser, and custom nodes">
-      <Card>
-        {currencyOptions.map((item) => (
-          <SettingRow key={item.code} icon="💱" title={`${item.code} · ${item.label}`} subtitle="Global fiat display" value={currency.code === item.code ? "✓" : "Select"} onPress={() => setCurrencyCode(item.code)} />
-        ))}
-      </Card>
+    <>
+      <AppScreen padded={false}>
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+          <FlowHeader title="Preferences" />
+          <SettingRow icon="cash-multiple" title="Currency" subtitle="Fiat values throughout the app" value={currency.code} onPress={() => setSheet("currency")} />
+          <SettingRow icon="translate" title="App language" subtitle="Language used by the wallet interface" value={language} onPress={() => setSheet("language")} />
+          <ToggleRow icon="compass-outline" title="dApp Browser" subtitle="Show Discover and the embedded browser" valueEnabled={dappBrowserEnabled} onValueChange={setDappBrowserEnabled} />
+        </View>
+      </AppScreen>
 
-      <Card muted>
-        {languageOptions.map((item) => (
-          <SettingRow key={item} icon="🌐" title={item} subtitle="Change the wallet interface language" value={language === item ? "✓" : "Select"} onPress={() => setLanguage(item)} />
-        ))}
-      </Card>
-
-      <Card>
-        <ToggleRow icon="◇" title="Enable dApp Browser" subtitle="Show Discover and embedded browser tooling" valueEnabled={dappBrowserEnabled} onValueChange={setDappBrowserEnabled} />
-        <SettingRow icon="⌫" title="Clear browser cache" subtitle="Remove cookies and session storage for connected dApps" value="Run" onPress={clearBrowserCache} />
-      </Card>
-
-      <Card muted>
-        <SearchInput value={customRpcUrl} onChangeText={setCustomRpcUrl} placeholder="Custom RPC URL" />
-        {popularNetworks.map((network) => (
-          <SettingRow key={network.id} icon="⛓" title={network.name} subtitle="Use a faster RPC endpoint when a chain is congested" value={network.symbol} onPress={() => setCustomRpcUrl(`https://rpc.trustwallet.example/${network.symbol.toLowerCase()}`)} />
-        ))}
-      </Card>
-    </AppScreen>
+      <SheetModal visible={sheet === "currency"} title="Currency" onClose={() => setSheet(null)}>
+        {currencyOptions.map((item) => <Choice key={item.code} active={currency.code === item.code} label={`${item.code} - ${item.label}`} onPress={() => { setCurrencyCode(item.code); setSheet(null); }} />)}
+      </SheetModal>
+      <SheetModal visible={sheet === "language"} title="App language" onClose={() => setSheet(null)}>
+        {languageOptions.map((item) => <Choice key={item} active={language === item} label={item} onPress={() => { setLanguage(item); setSheet(null); }} />)}
+      </SheetModal>
+    </>
   );
+}
+
+function FlowHeader({ title }: { title: string }) {
+  const { theme } = useAppContext();
+  return <View style={{ height: 55, alignItems: "center", justifyContent: "center" }}><Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 42, height: 42, alignItems: "center", justifyContent: "center" }}><TrustIcon color={theme.secondary} name="arrow-left" size={24} /></Pressable><Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>{title}</Text></View>;
+}
+
+function Choice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  const { theme } = useAppContext();
+  return <Pressable onPress={onPress} style={{ minHeight: 54, borderRadius: 15, backgroundColor: theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }}><Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "800" }}>{label}</Text><View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: active ? theme.blue : theme.secondary, alignItems: "center", justifyContent: "center" }}>{active ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.blue }} /> : null}</View></Pressable>;
 }

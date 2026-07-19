@@ -1,217 +1,276 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { earnOpportunities, perpsMarkets, predictionMarkets } from "@/data/trust-wallet";
-import { formatCurrencyValue } from "@/data/trust-wallet";
+import { BrandLogo, TokenLogo } from "@/components/trust-assets";
+import { TrustIcon, type TrustIconName } from "@/components/trust-icon";
+import { AppScreen, SheetModal } from "@/components/trust-ui";
+import { formatMarketChange, formatUsd, MarketStateLabel } from "@/components/live-market-ui";
 import { useAppContext } from "@/context/app-context";
-import { AppScreen, SheetModal, TokenAvatar } from "@/components/trust-ui";
-import { applyLivePerps } from "@/services/market-prices";
+import { getAssetBySymbol } from "@/data/asset-registry";
+
+const exploreSymbols = ["BTC", "ETH", "BNB"];
+const earnRows = [
+  { symbol: "JUNO", apy: "APY unavailable", caption: "JUNO staking" },
+  { symbol: "KSM", apy: "APY unavailable", caption: "KSM staking" },
+];
 
 export default function HomeScreen() {
-  const { activeHomeTab, currency, setActiveHomeTab, theme, topTradedTokens, trendingTokens, watchlist } = useAppContext();
-  const [sheet, setSheet] = useState<string | null>(null);
-  const livePerps = useMemo(() => applyLivePerps(perpsMarkets, topTradedTokens), [topTradedTokens]);
-  const tokens = useMemo(() => [...topTradedTokens, ...trendingTokens].slice(0, 8), [topTradedTokens, trendingTokens]);
+  const params = useLocalSearchParams<{ walletDeleted?: string }>();
+  const {
+    currency,
+    hideBalance,
+    marketByAssetId,
+    selectedWallet,
+    theme,
+    totalBalance,
+    toggleHideBalance,
+    visibleBalance,
+    watchlist,
+  } = useAppContext();
+  const [promoVisible, setPromoVisible] = useState(true);
+  const [customizeVisible, setCustomizeVisible] = useState(false);
+  const [deletedToast, setDeletedToast] = useState(params.walletDeleted === "1");
+
+  useEffect(() => {
+    if (params.walletDeleted !== "1") return;
+    setDeletedToast(true);
+    const timer = setTimeout(() => setDeletedToast(false), 2600);
+    return () => clearTimeout(timer);
+  }, [params.walletDeleted]);
+
+  const watchlistRows = useMemo(
+    () => watchlist
+      .map((symbol) => getAssetBySymbol(symbol))
+      .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset))
+      .slice(0, 5),
+    [watchlist],
+  );
+
+  const walletHoldings = useMemo(
+    () => (selectedWallet?.balances ?? [])
+      .filter((balance) => {
+        try { return BigInt(balance.available_units) > 0n; } catch { return Number(balance.display_amount) > 0; }
+      })
+      .sort((left, right) => Number(right.display_amount) - Number(left.display_amount)),
+    [selectedWallet],
+  );
 
   return (
     <>
-      <AppScreen padded={false}>
-        <View style={{ paddingHorizontal: 16, gap: 18 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <HeaderButton label="Main Wallet 1" onPress={() => router.push("/wallets")} />
+      <AppScreen padded={false} withTabBar>
+        <View style={{ paddingHorizontal: 16, gap: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Pressable
+              onPress={() => router.push("/wallets")}
+              style={{ minHeight: 46, borderRadius: 24, backgroundColor: theme.surface, paddingLeft: 6, paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 9 }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#ff9f0a", alignItems: "center", justifyContent: "center" }}>
+                <TrustIcon color="#ffffff" name="wallet-outline" size={21} />
+              </View>
+              <Text numberOfLines={1} style={{ color: theme.text, fontSize: 15, fontWeight: "800", maxWidth: 128 }}>
+                {selectedWallet?.name ?? "Wallet"}
+              </Text>
+            </Pressable>
             <View style={{ flex: 1 }} />
-            <IconButton label="🔔" onPress={() => setSheet("Notifications")} />
-            <IconButton label="⌕" onPress={() => setSheet("Search tokens and dApps")} />
-            <IconButton label="⌗" onPress={() => router.push("/qr-scanner")} />
+            <RoundHeaderButton icon="history" onPress={() => router.push("/tx-history")} />
+            <RoundHeaderButton icon="scanner" onPress={() => router.push("/qr-scanner")} />
           </View>
 
-          <Pressable onPress={() => setSheet("What’s New")} style={{ minHeight: 72, borderRadius: 18, borderWidth: 1, borderColor: "#eeeeef", padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <LinearGradient colors={["#fff4c2", "#ff7a59"]} style={{ width: 42, height: 42, borderRadius: 21 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>bStocks are officially launched</Text>
-              <Text numberOfLines={1} style={{ color: theme.secondary, fontSize: 13 }}>Buy tokenized stock market assets directly in wallet</Text>
-            </View>
-            <Text style={{ color: theme.secondary, fontSize: 28 }}>›</Text>
+          {promoVisible ? (
+            <Pressable onPress={() => router.push("/fund")} style={{ minHeight: 58, borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 9 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff1df", alignItems: "center", justifyContent: "center" }}>
+                <TrustIcon color="#ff9800" name="clock-outline" size={23} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text numberOfLines={1} style={{ color: theme.text, fontSize: 13, fontWeight: "800" }}>Fund your wallet</Text>
+                <Text numberOfLines={1} style={{ color: theme.secondary, fontSize: 11 }}>Add crypto to start using Trust Wallet</Text>
+              </View>
+              <Pressable accessibilityLabel="Dismiss promotion" onPress={(event) => { event.stopPropagation(); setPromoVisible(false); }} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+                <TrustIcon color={theme.secondary} name="close" size={20} />
+              </Pressable>
+            </Pressable>
+          ) : null}
+
+          <Pressable onPress={() => router.push("/fund")} style={{ alignSelf: "flex-start", gap: 3, minHeight: 48, justifyContent: "center" }}>
+            <Text style={{ color: theme.text, fontSize: hideBalance ? 31 : 24, fontWeight: "900", letterSpacing: hideBalance ? 3 : 0 }}>
+              {hideBalance ? "*****" : totalBalance > 0 ? visibleBalance : "Get started by adding some crypto"}
+            </Text>
           </Pressable>
 
-          <View style={{ alignItems: "center", gap: 18, paddingTop: 4 }}>
-            <Text style={{ color: theme.text, fontSize: 22, fontWeight: "900" }}>Get started by adding some crypto</Text>
-            <View style={{ flexDirection: "row", gap: 16 }}>
-              <ActionTile label="Receive" icon="⌘" onPress={() => router.push("/receive")} />
-              <ActionTile label="From Binance" icon="₿" onPress={() => router.push("/deposit-binance")} />
-            </View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <HomeAction label="Receive" onPress={() => router.push("/receive")}>
+              <TrustIcon color={theme.text} name="receive" size={25} />
+            </HomeAction>
+            <HomeAction label="From Binance" onPress={() => router.push("/deposit-binance")}>
+              <BrandLogo brand="binance" size={27} />
+            </HomeAction>
+            <HomeAction label="With Cards" onPress={() => router.push("/buy")}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                <BrandLogo brand="visa" size={23} />
+                <BrandLogo brand="mastercard" size={23} />
+              </View>
+            </HomeAction>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: theme.border }}>
-            <TopTab label="Tokens" active={activeHomeTab === "crypto"} onPress={() => setActiveHomeTab("crypto")} />
-            <TopTab label="Watchlist" active={activeHomeTab === "watchlist"} onPress={() => setActiveHomeTab("watchlist")} />
-            <TopTab label="NFTs" active={activeHomeTab === "nfts"} onPress={() => setActiveHomeTab("nfts")} />
-            <Pressable onPress={() => setSheet("Portfolio filters")} style={{ marginLeft: "auto" }}><Text style={{ color: theme.secondary, fontSize: 26 }}>☷</Text></Pressable>
+          {walletHoldings.length ? (
+            <>
+              <SectionTitle label="Tokens" onPress={() => router.push("/tx-history")} />
+              <View style={{ gap: 2 }}>
+                {walletHoldings.map((balance) => (
+                  <Pressable
+                    key={`${balance.wallet_id}:${balance.asset_id}`}
+                    onPress={() => {
+                      const marketAsset = getAssetBySymbol(balance.asset.symbol);
+                      if (marketAsset) router.push({ pathname: "/token-detail", params: { assetId: marketAsset.assetId, symbol: marketAsset.symbol, name: marketAsset.name } });
+                      else router.push("/tx-history");
+                    }}
+                    style={{ minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12 }}
+                  >
+                    <TokenLogo network={balance.asset.network_slug} symbol={balance.asset.symbol} size={40} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ color: theme.text, fontSize: 16, fontWeight: "800" }}>{balance.asset.symbol}</Text>
+                      <Text numberOfLines={1} style={{ color: theme.secondary, fontSize: 11 }}>{balance.asset.name}</Text>
+                    </View>
+                    <View style={{ maxWidth: "48%", alignItems: "flex-end", gap: 2 }}>
+                      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: 15, fontWeight: "800" }}>{formatTokenAmount(balance.display_amount)} {balance.asset.symbol}</Text>
+                      <Text style={{ color: theme.secondary, fontSize: 11 }}>{balance.asset.network_name}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          <SectionTitle label="Explore tokens" onPress={() => router.push("/(tabs)/trending")} />
+          <View style={{ gap: 2 }}>
+            {exploreSymbols.map((symbol) => {
+              const asset = getAssetBySymbol(symbol);
+              if (!asset) return null;
+              const quote = marketByAssetId[asset.assetId];
+              const change = quote?.percentChange24h;
+              return (
+                <Pressable
+                  key={asset.assetId}
+                  onPress={() => router.push({ pathname: "/token-detail", params: { assetId: asset.assetId, symbol: asset.symbol, name: asset.name } })}
+                  style={{ minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12 }}
+                >
+                  <TokenLogo symbol={asset.symbol} uri={asset.logo} size={40} />
+                  <Text numberOfLines={1} style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: "800" }}>{asset.name}</Text>
+                  <View style={{ alignItems: "flex-end", gap: 2 }}>
+                    <Text style={{ color: theme.text, fontSize: 15, fontWeight: "800" }}>{formatUsd(quote?.price, false, currency.code)}</Text>
+                    <Text style={{ color: Number(change) >= 0 ? theme.positive : theme.negative, fontSize: 12, fontWeight: "700" }}>{formatMarketChange(change)}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Pressable onPress={() => router.push("/(tabs)/trending")} style={{ minHeight: 36, borderRadius: 18, backgroundColor: theme.surface, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ color: theme.text, fontSize: 13, fontWeight: "800" }}>View all</Text>
+              <TrustIcon color={theme.text} name="chevron-right" size={17} />
+            </Pressable>
+            <MarketStateLabel compact />
           </View>
 
-          {activeHomeTab === "crypto" ? (
-            <View style={{ gap: 8 }}>
-              {tokens.slice(0, 4).map((token) => (
-                <AssetRow
-                  key={token.symbol}
-                  symbol={token.symbol}
-                  name={token.name}
-                  price={formatCurrencyValue(token.price, currency)}
-                  change={`${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%`}
-                  onPress={() => router.push({ pathname: "/token-detail", params: { symbol: token.symbol, name: token.name, price: formatCurrencyValue(token.price, currency), change: `${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%` } })}
-                />
-              ))}
-              <Pressable onPress={() => router.push("/trending")} style={{ alignSelf: "center", minHeight: 38, borderRadius: 19, backgroundColor: theme.surface, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>View all ›</Text>
+          <SectionTitle label="Earn" onPress={() => router.push("/(tabs)/rewards")} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {earnRows.map((row) => (
+              <Pressable key={row.symbol} onPress={() => router.push("/(tabs)/rewards")} style={{ width: 153, minHeight: 126, borderRadius: 17, backgroundColor: theme.surface, padding: 16, justifyContent: "space-between" }}>
+                <TokenLogo symbol={row.symbol} size={39} />
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>{row.apy}</Text>
+                  <Text style={{ color: theme.secondary, fontSize: 13 }}>{row.caption}</Text>
+                </View>
               </Pressable>
+            ))}
+          </ScrollView>
+
+          <Pressable
+            onPress={() => router.push({ pathname: "/token-detail", params: { assetId: "ethereum:native", symbol: "ETH", name: "Ethereum", ai: "1" } })}
+            style={{ minHeight: 72, borderRadius: 18, backgroundColor: theme.surface, paddingHorizontal: 15, flexDirection: "row", alignItems: "center", gap: 9 }}
+          >
+            <TrustIcon color={theme.text} name="creation" size={23} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: "900" }}>Trust Wallet AI</Text>
+            <View style={{ minHeight: 42, borderRadius: 21, backgroundColor: "#dedee2", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 5 }}>
+              <Text style={{ color: theme.text, fontSize: 13, fontWeight: "800" }}>Ask anything</Text>
+              <TrustIcon color={theme.text} name="chevron-right" size={16} />
             </View>
-          ) : activeHomeTab === "watchlist" ? (
-            <View style={{ gap: 8 }}>
-              {tokens.filter((token) => watchlist.includes(token.symbol)).concat(tokens.filter((token) => !watchlist.includes(token.symbol))).slice(0, 4).map((token) => (
-                <AssetRow
-                  key={token.symbol}
-                  symbol={token.symbol}
-                  name={token.name}
-                  price={formatCurrencyValue(token.price, currency)}
-                  change={`${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%`}
-                  onPress={() => router.push({ pathname: "/token-detail", params: { symbol: token.symbol, name: token.name, price: formatCurrencyValue(token.price, currency), change: `${token.change >= 0 ? "+" : ""}${token.change.toFixed(2)}%` } })}
-                />
-              ))}
-              <Pressable onPress={() => setSheet("Customize watchlist")} style={{ alignSelf: "center", minHeight: 38, borderRadius: 19, backgroundColor: theme.blueSoft, paddingHorizontal: 20, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ color: theme.blue, fontSize: 14, fontWeight: "900" }}>Customize</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={{ alignItems: "center", gap: 14, paddingVertical: 44 }}>
-              <Text style={{ fontSize: 64 }}>🖼</Text>
-              <Text style={{ color: theme.secondary, fontSize: 17 }}>No NFTs yet</Text>
-            </View>
-          )}
+          </Pressable>
 
-          <SectionRail title="Predictions" onPress={() => router.push("/predictions")}>
-            {predictionMarkets.map((item, index) => (
-              <PredictionCard key={item.id} title={index === 0 ? "France vs. Morocco" : index === 1 ? "Norway vs. England" : item.title} meta={`${item.volume} · ${item.endsIn}`} />
-            ))}
-          </SectionRail>
+          <SectionTitle label="Watchlist" onPress={() => router.push("/(tabs)/trending")} />
+          <View style={{ gap: 2 }}>
+            {watchlistRows.map((asset) => {
+              const quote = marketByAssetId[asset.assetId];
+              return (
+                <Pressable key={asset.assetId} onPress={() => router.push({ pathname: "/token-detail", params: { assetId: asset.assetId, symbol: asset.symbol, name: asset.name } })} style={{ minHeight: 58, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <TokenLogo symbol={asset.symbol} uri={asset.logo} size={38} />
+                  <Text style={{ flex: 1, color: theme.text, fontSize: 15, fontWeight: "800" }}>{asset.name}</Text>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={{ color: theme.text, fontSize: 14, fontWeight: "800" }}>{formatUsd(quote?.price, false, currency.code)}</Text>
+                    <Text style={{ color: Number(quote?.percentChange24h) >= 0 ? theme.positive : theme.negative, fontSize: 11, fontWeight: "700" }}>{formatMarketChange(quote?.percentChange24h)}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
 
-          <SectionRail title="Perps" onPress={() => router.push("/perps")}>
-            {livePerps.slice(1, 4).map((item) => (
-              <MarketMiniCard key={item.pair} symbol={item.symbol} title={`Trade ${item.symbol} with up to ${item.leverage.replace("x", "")}x leverage`} subtitle={`${item.volume} Vol`} />
-            ))}
-          </SectionRail>
-
-          <SectionRail title="Earn" onPress={() => setSheet("Earn")}>
-            {earnOpportunities.map((item) => (
-              <MarketMiniCard key={item.symbol} symbol={item.symbol} title={`Earn up to ${item.apy} APY`} subtitle={`on ${item.name}`} />
-            ))}
-          </SectionRail>
-
-          <SectionRail title="Stocks" onPress={() => router.push("/perps")}>
-            {["NVIDIA", "MRVL", "MU"].map((symbol, index) => (
-              <MarketMiniCard key={symbol} symbol={symbol} title={symbol} subtitle={["$206.38  +1.55%", "$287.69  +7.58%", "$876.71  +1.62%"][index]} />
-            ))}
-          </SectionRail>
+          <Pressable onPress={() => setCustomizeVisible(true)} style={{ alignSelf: "flex-end", minHeight: 34, borderRadius: 17, backgroundColor: theme.surface, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TrustIcon color={theme.secondary} name="tune-variant" size={16} />
+            <Text style={{ color: theme.secondary, fontSize: 12, fontWeight: "800" }}>Customize</Text>
+          </Pressable>
         </View>
       </AppScreen>
 
-      <SheetModal visible={!!sheet} title={sheet ?? ""} subtitle={sheet === "What’s New" ? "bStocks has officially launched. Tokenized equities, ETFs, and market assets are now available in this demo flow." : "This action is connected."} onClose={() => setSheet(null)}>
-        {sheet === "What’s New" ? (
-          <View style={{ alignItems: "center", gap: 18 }}>
-            <LinearGradient colors={["#6fffe6", "#fff05a", "#ff47a3"]} style={{ width: 150, height: 150, borderRadius: 32, transform: [{ rotate: "-8deg" }] }} />
-            <Pressable onPress={() => { setSheet(null); router.push("/perps"); }} style={{ alignSelf: "stretch", height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Buy now</Text>
-            </Pressable>
+      <SheetModal visible={customizeVisible} title="Customize Home" subtitle="Choose the sections you want to see." onClose={() => setCustomizeVisible(false)}>
+        {["Explore tokens", "Earn", "Trust Wallet AI", "Watchlist"].map((label) => (
+          <View key={label} style={{ minHeight: 54, borderRadius: 15, backgroundColor: theme.cardSecondary, paddingHorizontal: 15, flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <TrustIcon color={theme.secondary} name="drag-horizontal-variant" size={20} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 15, fontWeight: "800" }}>{label}</Text>
+            <TrustIcon color={theme.blue} name="eye-outline" size={20} />
           </View>
-        ) : (
-          <Pressable onPress={() => setSheet(null)} style={{ height: 56, borderRadius: 28, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Done</Text>
-          </Pressable>
-        )}
+        ))}
       </SheetModal>
+      {deletedToast ? (
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: 94, alignItems: "center" }}>
+          <View style={{ minHeight: 44, borderRadius: 22, backgroundColor: "#858589", paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}><BrandLogo brand="trust-wallet" size={25} /><Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }}>Wallet Deleted</Text></View>
+        </View>
+      ) : null}
     </>
   );
 }
 
-function HeaderButton({ label, onPress }: { label: string; onPress: () => void }) {
+function RoundHeaderButton({ icon, onPress }: { icon: TrustIconName; onPress: () => void }) {
+  const { theme } = useAppContext();
+  const accessibilityLabel = icon === "history" ? "Activity" : icon === "scanner" ? "Scan QR code" : "Open action";
   return (
-    <Pressable onPress={onPress} style={{ minHeight: 38, borderRadius: 19, backgroundColor: "#f3f3f6", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text style={{ color: "#f59e0b", fontSize: 16 }}>●</Text>
-      <Text style={{ color: "#202124", fontSize: 15, fontWeight: "900" }}>{label}</Text>
-      <Text style={{ color: "#202124", fontSize: 20 }}>›</Text>
+    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole="button" onPress={onPress} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>
+      <TrustIcon color={theme.text} name={icon} size={22} />
     </Pressable>
   );
 }
 
-function IconButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return <Pressable onPress={onPress} style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#6d6d72", fontSize: 24 }}>{label}</Text></Pressable>;
-}
-
-function ActionTile({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function HomeAction({ children, label, onPress }: { children: React.ReactNode; label: string; onPress: () => void }) {
+  const { theme } = useAppContext();
   return (
-    <Pressable onPress={onPress} style={{ width: 128, minHeight: 80, borderRadius: 18, backgroundColor: "#f4f4f7", alignItems: "center", justifyContent: "center", gap: 8 }}>
-      <Text style={{ color: "#202124", fontSize: 26, fontWeight: "900" }}>{icon}</Text>
-      <Text style={{ color: "#202124", fontSize: 15, fontWeight: "900" }}>{label}</Text>
+    <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", gap: 7 }}>
+      <View style={{ width: "100%", minHeight: 62, borderRadius: 15, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>{children}</View>
+      <Text numberOfLines={1} style={{ color: theme.text, fontSize: 11, fontWeight: "800" }}>{label}</Text>
     </Pressable>
   );
 }
 
-function TopTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function SectionTitle({ label, onPress }: { label: string; onPress: () => void }) {
+  const { theme } = useAppContext();
   return (
-    <Pressable onPress={onPress} style={{ paddingBottom: 10, marginRight: 26, borderBottomWidth: 4, borderBottomColor: active ? "#0500ff" : "transparent" }}>
-      <Text style={{ color: active ? "#202124" : "#6d6d72", fontSize: 20, fontWeight: "900" }}>{label}</Text>
+    <Pressable onPress={onPress} style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>{label}</Text>
+      <TrustIcon color={theme.text} name="chevron-right" size={19} />
     </Pressable>
   );
 }
 
-function AssetRow({ symbol, name, price, change, onPress }: { symbol: string; name: string; price: string; change: string; onPress: () => void }) {
-  const positive = change.startsWith("+");
-  return (
-    <Pressable onPress={onPress} style={{ minHeight: 70, flexDirection: "row", alignItems: "center", gap: 14 }}>
-      <TokenAvatar symbol={symbol} size={50} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: "#202124", fontSize: 19, fontWeight: "900" }}>{name}</Text>
-        <Text style={{ color: "#6d6d72", fontSize: 15 }}>0 {symbol}</Text>
-      </View>
-      <View style={{ alignItems: "flex-end" }}>
-        <Text style={{ color: "#202124", fontSize: 18, fontWeight: "900" }}>{price}</Text>
-        <Text style={{ color: positive ? "#0aa84f" : "#cf3030", fontSize: 14, fontWeight: "800" }}>{change}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function SectionRail({ title, onPress, children }: { title: string; onPress: () => void; children: ReactNode }) {
-  return (
-    <View style={{ gap: 10 }}>
-      <Pressable onPress={onPress} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text style={{ color: "#202124", fontSize: 22, fontWeight: "900" }}>{title}</Text>
-        <Text style={{ color: "#6d6d72", fontSize: 32 }}>›</Text>
-      </Pressable>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>{children}</ScrollView>
-    </View>
-  );
-}
-
-function MarketMiniCard({ symbol, title, subtitle }: { symbol: string; title: string; subtitle: string }) {
-  return (
-    <Pressable onPress={() => router.push("/perps")} style={{ width: 170, borderRadius: 18, backgroundColor: "#f4f4f7", padding: 16, gap: 12 }}>
-      <TokenAvatar symbol={symbol} size={44} />
-      <Text style={{ color: "#202124", fontSize: 16, fontWeight: "900", lineHeight: 22 }}>{title}</Text>
-      <Text style={{ color: "#6d6d72", fontSize: 14 }}>{subtitle}</Text>
-    </Pressable>
-  );
-}
-
-function PredictionCard({ title, meta }: { title: string; meta: string }) {
-  return (
-    <Pressable onPress={() => router.push("/predictions")} style={{ width: 210, minHeight: 136, borderRadius: 18, backgroundColor: "#f4f4f7", padding: 14, justifyContent: "space-between" }}>
-      <View style={{ width: 44, height: 34, borderRadius: 8, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 20 }}>▣</Text>
-      </View>
-      <Text numberOfLines={2} style={{ color: "#202124", fontSize: 17, fontWeight: "900", lineHeight: 23 }}>{title}</Text>
-      <Text style={{ color: "#6d6d72", fontSize: 13, fontWeight: "800" }}>{meta}</Text>
-    </Pressable>
-  );
+function formatTokenAmount(value: string) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return value;
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 }).format(amount);
 }

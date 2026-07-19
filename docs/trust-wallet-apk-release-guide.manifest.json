@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-19T00:00:00-07:00",
+  "artifact": "docs/trust-wallet-apk-release-guide.html",
+  "title": "Wallet Testnet APK Release Readiness",
+  "status": "blocked",
+  "deterministicExport": {
+    "format": "standalone-html",
+    "externalAssets": false,
+    "externalFonts": false,
+    "runtimeNetworkRequired": false
+  },
+  "verified": [
+    "Expo Doctor 20/20",
+    "Expo dependencies aligned",
+    "TypeScript typecheck passes",
+    "Wallet contract suite passes",
+    "Market contract suite passes",
+    "Web production export passes",
+    "iOS Hermes export passes",
+    "Android Hermes export passes",
+    "Hosted ledger migrations and RPC permissions audited",
+    "Production market and perps endpoints return JSON",
+    "Audited icon-only controls have accessibility labels, roles, and states",
+    "Four low-resolution dApp assets now prefer verified higher-resolution official sources"
+  ],
+  "releaseBlockers": [
+    "Signed-in Expo account cannot read configured EAS project",
+    "No signed APK has been produced",
+    "No final two-device physical Android acceptance run",
+    "Unofficial distribution requires a distinct identity or written branding permission",
+    "Supabase Auth release controls and Vercel Production environment require owner action",
+    "Fresh browser/native visual recertification unavailable in the current tool session"
+  ],
+  "evidence": [
+    "expo-wallet/output/video-rebuild/wallet-transfer-e2e-20260719-013614/qa-report.md",
+    "expo-wallet/output/video-rebuild/latest-fixes-retest-20260719-025630/qa-report.md",
+    "expo-wallet/output/release-audit-20260719/qa-report.md",
+    "expo-wallet/output/apk-release-final-20260719",
+    "expo-wallet/eas.json",
+    "expo-wallet/app.json",
+    "expo-wallet/package.json"
+  ],
+  "provenance": [
+    "Local repository inspection",
+    "Automated Expo, TypeScript, wallet, market, web, and Android export checks",
+    "Hosted Supabase catalog and migration audit",
+    "Production market API smoke tests",
+    "Existing same-viewport visual QA artifacts",
+    "Official Expo, Supabase, CoinMarketCap, and Trust Wallet documentation"
+  ]
+}

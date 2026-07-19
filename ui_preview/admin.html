@@ -110,7 +110,11 @@ input:focus,select:focus{border-color:#00FFA3;}
 <div class="toast-msg" id="toast" style="opacity:0;pointer-events:none;"></div>
 
 <script>
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
+// Never initialize a browser client with a service-role key. Any operation on
+// this legacy page must pass normal authentication and database RLS.
+const sb = SUPABASE_ANON
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+  : null;
 
 /* ──────────────────────── NETWORKS ──────────────────────── */
 async function loadNetworks() {
@@ -267,6 +271,10 @@ function toast(msg, type = 'ok') {
 
 /* ──────────────────────── INIT ──────────────────────── */
 (async () => {
+  if (!sb) {
+    toast('Legacy admin preview disabled: configure public auth and RLS first.', 'err');
+    return;
+  }
   await loadNetworks();
   await loadAssets();
   await loadBalances();

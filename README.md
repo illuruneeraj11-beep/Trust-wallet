@@ -1,168 +1,45 @@
-# Trust Wallet Demo
+# Trust Wallet-Style Mobile App
 
-A premium, production-ready cryptocurrency wallet demo built with Flutter 3.24+. This app features a modern, Trust Wallet-inspired UI with smooth animations, dark theme, and complete mock data for demonstration purposes.
+An educational cryptocurrency wallet project focused on reproducing the polished mobile experience and interaction patterns of Trust Wallet. The repository contains a native Expo app, a browser-based visual reference, and an earlier Flutter prototype.
 
-## Features
+> This is an independent demo project. It is not affiliated with or endorsed by Trust Wallet. Do not use it to hold real funds or collect real recovery phrases.
 
-### Complete Wallet Experience
-- **Onboarding Flow**: Animated splash screen, wallet creation/import, seed phrase backup, PIN setup
-- **Home Screen**: Balance display with animated numbers, portfolio chart, quick actions, token/NFT tabs
-- **Token Details**: Interactive price charts with multiple timeframes, holdings info, transaction history
-- **Send/Receive**: Multi-step flows with QR codes, address validation, amount input with percentage buttons
-- **Swap**: Token swapping with animated flip, slippage settings, preview and confirmation
-- **Earn/Staking**: Staking opportunities with APY display, detailed modal views
-- **Trending**: Market overview, trending tokens, category filters
-- **Discover**: dApp browser with bookmarks, popular dApps grid
-- **Settings**: Complete settings with wallet management, security, preferences
+## Primary app
 
-### Technical Highlights
-- **Flutter 3.24+** with Material 3 design system
-- **Riverpod** for state management
-- **go_router** for navigation with bottom tabs and nested stacks
-- **flutter_animate** for premium Reanimated-level smoothness
-- **fl_chart** for interactive price charts
-- **qr_flutter** for QR code generation
-- **Google Fonts (Inter)** for consistent typography
-- **Custom dark theme** with Trust Wallet-inspired color palette
+The active upgrade target is [`expo-wallet/`](./expo-wallet/), built with Expo, React Native, TypeScript, Expo Router, and Supabase.
 
-## Getting Started
-
-### Prerequisites
-- Flutter SDK 3.24 or higher
-- Dart SDK 3.0 or higher
-- Android Studio / Xcode for emulators
-
-### Installation
-
-1. **Clone or extract the project**
-   ```bash
-   cd "trust wallet"
-   ```
-
-2. **Get dependencies**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Run the app**
-   ```bash
-   flutter run
-   ```
-
-   Or specify a device:
-   ```bash
-   flutter run -d emulator-5554  # Android
-   flutter run -d iphone         # iOS simulator
-   ```
-
-### Project Structure
-
-```
-lib/
-├── core/
-│   ├── routing/          # go_router configuration
-│   └── theme/            # AppTheme with dark mode colors
-├── features/
-│   ├── onboarding/       # Splash, welcome, create/import wallet
-│   ├── home/             # Wallet home, balance, tokens, NFTs
-│   ├── token_detail/     # Token info, charts, transactions
-│   ├── send/             # Send flow with steps
-│   ├── receive/          # Receive with QR code
-│   ├── swap/             # Token swapping
-│   ├── earn/             # Staking opportunities
-│   ├── trending/         # Market trends
-│   ├── discover/         # dApp browser
-│   └── settings/         # App settings
-├── shared/
-│   ├── models/           # Data models (Token, Wallet, NFT, Transaction)
-│   └── providers/        # Riverpod providers with mock data
-└── main.dart             # App entry point
-
-assets/
-├── mock/                 # Mock JSON data (optional)
-├── svg/                  # SVG icons and logos
-└── lottie/               # Lottie animations (optional)
-```
-
-## Design System
-
-### Colors
-- **Background**: `#0F1117`
-- **Surface/Cards**: `#1A1F2E`
-- **Text Primary**: `#FFFFFF`
-- **Text Secondary**: `#A3A8B8`
-- **Trust Blue**: `#2D9FFF`
-- **Trust Green**: `#00D4A5`
-- **Red (Negative)**: `#FF4D4D`
-- **Border/Dividers**: `#2A3142`
-
-### Typography
-- Primary font: Inter (Google Fonts)
-- Weights: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)
-
-## Navigation
-
-The app uses a 5-tab bottom navigation:
-1. **Home** - Wallet overview and tokens
-2. **Trending** - Market data and trending tokens
-3. **Swap** - Token exchange
-4. **Earn** - Staking opportunities
-5. **Discover** - dApp browser and bookmarks
-
-## Mock Data
-
-All blockchain interactions are mocked. The app includes:
-- 12+ tokens with realistic prices and balances
-- Multiple wallets for switching
-- Transaction history
-- NFT gallery with mock items
-- Staking opportunities with APY data
-- Popular dApps for discovery
-
-## Animations
-
-Premium animations throughout:
-- Splash screen logo animation
-- Page transitions with spring curves
-- List item stagger animations
-- Balance number animations
-- Token flip animation in swap
-- Pull-to-refresh with custom indicator
-- Modal spring animations
-
-## Building for Production
-
-### Android
 ```bash
-flutter build apk --release
-flutter build appbundle --release
+cd expo-wallet
+npm install
+npm run start
 ```
 
-### iOS
+Before using Supabase, copy `expo-wallet/.env.example` to `expo-wallet/.env` and fill in the public project URL and publishable key. See [`expo-wallet/README.md`](./expo-wallet/README.md) for the complete setup.
+
+## Repository map
+
+| Path | Purpose | Status |
+| --- | --- | --- |
+| `expo-wallet/` | Android, iOS, and web app | Primary implementation |
+| `ui_preview/` | Detailed browser mock and visual reference | Design/reference only |
+| `supabase/` | Database migrations | Shared backend setup |
+| `docs/` | Architecture and build notes | Project documentation |
+| `lib/`, `pubspec.yaml` | Original Flutter prototype | Legacy reference |
+| `assets/` | Assets used by the Flutter prototype | Legacy reference |
+
+## Expo verification
+
 ```bash
-flutter build ios --release
+cd expo-wallet
+npm ci
+npm run typecheck
+npx expo-doctor
 ```
 
-## Notes
+## Product direction
 
-- This is a **demo application** for educational purposes
-- No real blockchain transactions are performed
-- All data is mock data for demonstration
-- The app is designed to look and feel like a premium crypto wallet
-- Internet connection required for loading token icons from remote URLs
+The Expo app should be treated as the single production-facing mobile implementation. The web and Flutter versions remain useful references while screens and behavior are brought into parity. New mobile features should normally be added under `expo-wallet/app/`, reusable UI under `expo-wallet/src/components/`, shared state under `expo-wallet/src/context/`, and integrations under `expo-wallet/src/services/` or `expo-wallet/src/lib/`.
 
-## Dependencies
+## Safety
 
-See `pubspec.yaml` for the full list of dependencies. Key packages:
-- `go_router` - Navigation
-- `flutter_riverpod` - State management
-- `fl_chart` - Charts
-- `flutter_animate` - Animations
-- `qr_flutter` - QR codes
-- `google_fonts` - Typography
-- `lottie` - Complex animations
-- `intl` - Number/date formatting
-
-## License
-
-This project is for educational and demonstration purposes.
+This project currently includes mock/demo wallet behavior. Any future real-wallet implementation requires a dedicated security review, secure key storage, audited transaction signing, strict secret handling, and clear protection against recovery-phrase collection.

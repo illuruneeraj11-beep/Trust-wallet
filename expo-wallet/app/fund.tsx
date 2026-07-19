@@ -1,149 +1,374 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import { AppScreen, SheetModal, TokenAvatar } from "@/components/trust-ui";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import {
+  AssetChoiceRow,
+  DemoFlowHeader,
+  DemoModeBanner,
+  FlowButton,
+  FlowCard,
+  FlowLabel,
+  FlowTextInput,
+  ResultPanel,
+  StepDots,
+  newIdempotencyKey,
+  normalizeDecimalInput,
+  shortDemoId,
+} from "@/components/demo-wallet-flow-ui";
+import { BrandLogo } from "@/components/trust-assets";
+import { TrustIcon, type TrustIconName } from "@/components/trust-icon";
+import { AppScreen, SheetModal } from "@/components/trust-ui";
 import { useAppContext } from "@/context/app-context";
+import { useAuth } from "@/context/auth-context";
+import { baseUnitsToDecimal, decimalToBaseUnits } from "@/lib/wallet-amounts";
 
-const fiatRows = [
-  { code: "INR", label: "Indian Rupee", flag: "🇮🇳" },
-  { code: "USD", label: "US Dollar", flag: "🇺🇸" },
-  { code: "EUR", label: "Euro", flag: "🇪🇺" },
-  { code: "GBP", label: "British Pound", flag: "🇬🇧" },
-];
+type Step = "methods" | "details" | "review" | "result";
+type PendingFunding = { walletId: string; assetId: string; amount: string; idempotencyKey: string; createdAt: number };
+const pendingFundingStoragePrefix = "trust-wallet:pending-funding:v2";
+const maxFundingUnits = 10n ** 24n;
 
 export default function FundScreen() {
-  const { theme } = useAppContext();
-  const [amount, setAmount] = useState("0");
-  const [currencySheet, setCurrencySheet] = useState(false);
-  const [cryptoSheet, setCryptoSheet] = useState(false);
-  const [paymentSheet, setPaymentSheet] = useState(false);
-  const [selectedFiat, setSelectedFiat] = useState(fiatRows[0]);
-  const [selectedCrypto, setSelectedCrypto] = useState({ symbol: "USDT", label: "Tether USD" });
-  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const { height: windowHeight } = useWindowDimensions();
+  const { user, visualDemo } = useAuth();
+  const {
+    assets,
+    fundDemoWallet,
+    ledgerError,
+    ledgerMode,
+    ledgerStatus,
+    refreshLedger,
+    selectedWallet,
+    setSelectedWalletId,
+    theme,
+    wallets,
+  } = useAppContext();
+  const [walletId, setWalletId] = useState("");
+  const [assetId, setAssetId] = useState("");
+  const [amount, setAmount] = useState("100");
+  const [step, setStep] = useState<Step>("methods");
+  const [sheet, setSheet] = useState<"wallet" | "asset" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<{ transaction_id: string; mock_hash: string | null } | null>(null);
+  const [intentKey, setIntentKey] = useState(() => newIdempotencyKey("fund"));
+  const storageIdentity = visualDemo ? "visual-demo" : user && !user.is_anonymous ? user.id : null;
+  const pendingFundingStorageKey = storageIdentity ? `${pendingFundingStoragePrefix}:${storageIdentity}` : null;
 
-  function pressKey(key: string) {
-    setAmount((current) => {
-      if (key === "⌫") return current.length > 1 ? current.slice(0, -1) : "0";
-      if (key === "." && current.includes(".")) return current;
-      if (current === "0" && key !== ".") return key;
-      return `${current}${key}`;
+  useEffect(() => {
+    if (!walletId && selectedWallet) setWalletId(selectedWallet.id);
+  }, [selectedWallet, walletId]);
+
+  useEffect(() => {
+    if (!assetId && assets.length) setAssetId((assets.find((item) => item.symbol === "USDT") ?? assets[0]).id);
+  }, [assetId, assets]);
+
+  useEffect(() => {
+    if (!pendingFundingStorageKey || ledgerStatus !== "ready") return undefined;
+    let active = true;
+    void AsyncStorage.getItem(pendingFundingStorageKey).then((raw) => {
+      if (!active || !raw) return;
+      try {
+        const pending = JSON.parse(raw) as Partial<PendingFunding>;
+        const valid = typeof pending.createdAt === "number"
+          && Date.now() - pending.createdAt < 24 * 60 * 60 * 1000
+          && typeof pending.walletId === "string"
+          && typeof pending.assetId === "string"
+          && typeof pending.amount === "string"
+          && typeof pending.idempotencyKey === "string";
+        if (!valid) {
+          void AsyncStorage.removeItem(pendingFundingStorageKey);
+          return;
+        }
+        if (!wallets.some((item) => item.id === pending.walletId) || !assets.some((item) => item.id === pending.assetId)) {
+          void AsyncStorage.removeItem(pendingFundingStorageKey);
+          return;
+        }
+        setWalletId(pending.walletId!);
+        setAssetId(pending.assetId!);
+        setAmount(pending.amount!);
+        setIntentKey(pending.idempotencyKey!);
+        setStep("details");
+        setLocalError("A pending funding request was restored. Review and confirm it to recover the final receipt.");
+      } catch {
+        void AsyncStorage.removeItem(pendingFundingStorageKey);
+      }
     });
+    return () => { active = false; };
+  }, [assets, ledgerStatus, pendingFundingStorageKey, wallets]);
+
+  const wallet = wallets.find((item) => item.id === walletId) ?? selectedWallet ?? wallets[0] ?? null;
+  const asset = assets.find((item) => item.id === assetId) ?? assets[0] ?? null;
+  const validation = useMemo(() => {
+    if (!asset || !amount) return { valid: false, message: "Enter an amount." };
+    try {
+      const units = decimalToBaseUnits(amount, asset.decimals);
+      if (BigInt(units) > maxFundingUnits) {
+        return { valid: false, message: `Maximum per request is ${baseUnitsToDecimal(maxFundingUnits.toString(), asset.decimals)} ${asset.symbol}.` };
+      }
+      return { valid: true, message: `You will receive ${amount} ${asset.symbol}.` };
+    } catch (error) {
+      return { valid: false, message: error instanceof Error ? error.message : "Enter a valid amount." };
+    }
+  }, [amount, asset]);
+  const displayedError = localError ?? ledgerError;
+  const loading = ledgerStatus === "loading" || ledgerStatus === "refreshing";
+  const stepIndex = step === "details" ? 0 : step === "review" ? 1 : 2;
+
+  function rotateIntent() {
+    setIntentKey(newIdempotencyKey("fund"));
+    setLocalError(null);
   }
 
-  const canContinue = Number(amount) > 0;
+  async function submit() {
+    if (!wallet || !asset || !validation.valid || submitting) return;
+    setSubmitting(true);
+    setLocalError(null);
+    try {
+      const pending: PendingFunding = { walletId: wallet.id, assetId: asset.id, amount, idempotencyKey: intentKey, createdAt: Date.now() };
+      if (pendingFundingStorageKey) await AsyncStorage.setItem(pendingFundingStorageKey, JSON.stringify(pending));
+      const result = await fundDemoWallet({
+        walletId: wallet.id,
+        assetId: asset.id,
+        amount,
+        cardBrand: "Testnet",
+        cardLast4: "4242",
+        idempotencyKey: intentKey,
+      });
+      setSelectedWalletId(wallet.id);
+      setReceipt({ transaction_id: result.transaction_id, mock_hash: result.mock_hash });
+      if (pendingFundingStorageKey) await AsyncStorage.removeItem(pendingFundingStorageKey);
+      setIntentKey(newIdempotencyKey("fund"));
+      setStep("result");
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : "The funding request failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function reset() {
+    if (pendingFundingStorageKey) void AsyncStorage.removeItem(pendingFundingStorageKey);
+    setAmount("100");
+    setReceipt(null);
+    setLocalError(null);
+    setIntentKey(newIdempotencyKey("fund"));
+    setStep("details");
+  }
 
   return (
     <>
-      <AppScreen scrollable={false} padded={false}>
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
-          <View style={{ height: 72, alignItems: "center", justifyContent: "center" }}>
-            <Pressable onPress={() => router.back()} style={{ position: "absolute", left: 0 }}><Text style={{ color: theme.text, fontSize: 36 }}>‹</Text></Pressable>
-            <Text style={{ color: theme.text, fontSize: 23, fontWeight: "900" }}>Buy</Text>
-            <Text style={{ position: "absolute", right: 0, color: theme.text, fontSize: 28, fontWeight: "900" }}>...</Text>
-          </View>
+      <AppScreen scrollable={step !== "result"} padded={false}>
+        <View style={{ flex: 1, paddingHorizontal: 16, gap: 14 }}>
+          <DemoFlowHeader
+            onBack={step === "review" ? () => setStep("details") : step === "details" ? () => setStep("methods") : undefined}
+            subtitle={step === "methods" ? undefined : wallet?.name ?? "Wallet balance"}
+            title={step === "result" ? "Funding receipt" : step === "methods" ? "Fund your wallet" : "Add funds"}
+          />
+          {step !== "methods" ? <StepDots count={3} step={stepIndex} /> : null}
 
-          <View style={{ height: 380, justifyContent: "center" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 }}>
-              <View style={{ alignItems: "flex-end", minWidth: 210 }}>
-                <Text style={{ color: theme.text, fontSize: 68, fontWeight: "900" }}>{amount}</Text>
-                <Text style={{ color: theme.secondary, fontSize: 34, fontWeight: "800" }}>_</Text>
+          {step === "methods" ? (
+            <View style={{ gap: 12, paddingTop: 10 }}>
+              <FundingSectionLabel>Recommended for you</FundingSectionLabel>
+              <View>
+                <FundingMethodRow
+                  detail="Express Pay up to $500"
+                  logo={(
+                    <View style={{ width: 46, height: 28, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
+                      <BrandLogo brand="google-pay" size={34} />
+                    </View>
+                  )}
+                  onPress={() => router.push("/buy?method=google-pay")}
+                  title="Google Pay"
+                />
               </View>
-              <View style={{ gap: 20 }}>
-                <Selector label={selectedFiat.code} icon={selectedFiat.flag} onPress={() => setCurrencySheet(true)} />
-                <Selector label={selectedCrypto.symbol} icon={<TokenAvatar symbol={selectedCrypto.symbol} size={30} />} onPress={() => setCryptoSheet(true)} />
+              <FundingSectionLabel spaced>All options</FundingSectionLabel>
+              <View style={{ borderRadius: 17, backgroundColor: theme.cardSecondary, overflow: "hidden", paddingHorizontal: 14 }}>
+                <FundingMethodRow grouped icon="credit-card-outline" onPress={() => router.push("/buy")} title="All payment methods" />
+                <FundingMethodRow
+                  grouped
+                  icon="swap-horizontal"
+                  onPress={() => router.push("/deposit-binance")}
+                  title="Exchange"
+                />
+                <FundingMethodRow
+                  grouped
+                  icon="qrcode"
+                  onPress={() => router.push("/receive")}
+                  title="Crypto wallet"
+                />
+                <FundingMethodRow
+                  grouped
+                  icon="cash-multiple"
+                  last
+                  onPress={() => setStep("details")}
+                  title="Deposit cash"
+                />
               </View>
             </View>
-          </View>
+          ) : null}
 
-          <Pressable onPress={() => setPaymentSheet(true)} style={{ minHeight: 86, borderRadius: 18, backgroundColor: theme.surface, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <View style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.border }}>
-              <Text style={{ color: "#333", fontSize: 15, fontWeight: "900" }}>{paymentMethod}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: theme.secondary, fontSize: 15 }}>Pay with</Text>
-              <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>{paymentMethod}</Text>
-            </View>
-            <Text style={{ color: theme.secondary, fontSize: 34 }}>›</Text>
-          </Pressable>
+          {step === "details" ? (
+            <>
+              <DemoModeBanner />
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.secondary, fontSize: 10, fontWeight: "800" }}>{ledgerMode === "connected" ? "SECURE LEDGER" : "LOCAL TESTNET"}</Text>
+                {loading ? <Text style={{ color: theme.blue, fontSize: 10, fontWeight: "800" }}>Refreshing...</Text> : null}
+              </View>
+              {displayedError ? <ErrorNotice message={displayedError} onRetry={() => void refreshLedger()} /> : null}
 
-          <Keypad onKeyPress={pressKey} />
-          <Pressable disabled={!canContinue} onPress={() => setPaymentSheet(true)} style={{ height: 62, borderRadius: 31, backgroundColor: canContinue ? theme.blue : theme.blueSoft, alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
-            <Text style={{ color: canContinue ? "#fff" : "#9691af", fontSize: 18, fontWeight: "900" }}>Continue</Text>
-          </Pressable>
+              <View style={{ gap: 7 }}>
+                <FlowLabel>Deposit to</FlowLabel>
+                <FlowCard onPress={() => setSheet("wallet")}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.blueSoft, alignItems: "center", justifyContent: "center" }}>
+                      <TrustIcon color={theme.blue} name="wallet-outline" size={20} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>{wallet?.name ?? "No wallet available"}</Text>
+                      <Text style={{ color: theme.secondary, fontSize: 10 }}>Destination wallet</Text>
+                    </View>
+                    <TrustIcon color={theme.secondary} name="menu-down" size={18} />
+                  </View>
+                </FlowCard>
+              </View>
+
+              <View style={{ gap: 7 }}>
+                <FlowLabel>Asset</FlowLabel>
+                {asset ? (
+                  <AssetChoiceRow name={asset.name} network={asset.network_name} onPress={() => setSheet("asset")} symbol={asset.symbol} />
+                ) : (
+                  <FlowCard><Text style={{ color: theme.negative, fontSize: 12 }}>No ledger assets are available.</Text></FlowCard>
+                )}
+              </View>
+
+              <View style={{ gap: 7 }}>
+                <FlowLabel>Amount</FlowLabel>
+                <FlowTextInput
+                  keyboardType="decimal-pad"
+                  onChangeText={(value) => { setAmount(normalizeDecimalInput(value)); rotateIntent(); }}
+                  placeholder="0.00"
+                  right={<Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>{asset?.symbol}</Text>}
+                  value={amount}
+                />
+                <Text style={{ color: amount && !validation.valid ? theme.negative : theme.secondary, fontSize: 10 }}>{validation.message}</Text>
+              </View>
+
+              <FlowCard muted>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <TrustIcon color={theme.secondary} name="credit-card-outline" size={23} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>Testnet Faucet</Text>
+                    <Text style={{ color: theme.secondary, fontSize: 10 }}>Creates testnet balance · no payment required</Text>
+                  </View>
+                  <TrustIcon color={theme.positive} name="shield-check-outline" size={20} />
+                </View>
+              </FlowCard>
+              <FlowButton disabled={!wallet || !asset || !validation.valid || loading} label="Review funding" onPress={() => setStep("review")} />
+            </>
+          ) : null}
+
+          {step === "review" ? (
+            <>
+              <DemoModeBanner compact />
+              <View style={{ alignItems: "center", gap: 6, paddingVertical: 18 }}>
+                <Text style={{ color: theme.secondary, fontSize: 12 }}>You are adding</Text>
+                <Text style={{ color: theme.text, fontSize: 38, fontWeight: "900" }}>{amount} {asset?.symbol}</Text>
+                <Text style={{ color: theme.secondary, fontSize: 11 }}>{asset?.network_name}</Text>
+              </View>
+              <FlowCard>
+                <ReviewRow label="Wallet" value={wallet?.name ?? "—"} />
+                <ReviewRow label="Asset" value={`${asset?.name ?? "—"} (${asset?.symbol ?? ""})`} />
+                <ReviewRow label="Source" value="Testnet Faucet" />
+                <ReviewRow label="Network fee" value="No fee" last />
+              </FlowCard>
+              {displayedError ? <ErrorNotice message={displayedError} onRetry={() => void submit()} /> : null}
+              <FlowButton label="Add funds" loading={submitting} onPress={() => void submit()} />
+              <FlowButton label="Edit details" onPress={() => setStep("details")} secondary />
+            </>
+          ) : null}
+
+          {step === "result" ? (
+            <>
+              <ResultPanel
+                detail={<Text selectable style={{ color: theme.secondary, fontSize: 10 }}>Reference {shortDemoId(receipt?.mock_hash ?? receipt?.transaction_id, 13, 9)}</Text>}
+                message={`${amount} ${asset?.symbol ?? ""} is now recorded in ${wallet?.name ?? "your wallet"}.`}
+                success
+                title="Funds added"
+              />
+              <FlowButton label="View transaction history" onPress={() => router.replace("/tx-history")} />
+              <FlowButton label="Add more funds" onPress={reset} secondary />
+            </>
+          ) : null}
         </View>
       </AppScreen>
 
-      <SheetModal visible={currencySheet} title="Select currency" onClose={() => setCurrencySheet(false)}>
-        <View style={{ backgroundColor: theme.cardSecondary, borderRadius: 18, overflow: "hidden" }}>
-          {fiatRows.map((row) => (
-            <Pressable key={row.code} onPress={() => { setSelectedFiat(row); setCurrencySheet(false); }} style={{ minHeight: 82, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16 }}>
-              <Text style={{ fontSize: 38 }}>{row.flag}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>{row.code}</Text>
-                <Text style={{ color: theme.secondary, fontSize: 17 }}>{row.label}</Text>
-              </View>
-              <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: row.code === selectedFiat.code ? theme.blue : theme.secondary }} />
-            </Pressable>
-          ))}
-        </View>
-      </SheetModal>
-
-      <SheetModal visible={cryptoSheet} title="Select crypto" onClose={() => setCryptoSheet(false)}>
-        <View style={{ backgroundColor: theme.cardSecondary, borderRadius: 18, overflow: "hidden" }}>
-          {[
-            { symbol: "USDT", label: "Tether USD" },
-            { symbol: "BTC", label: "Bitcoin" },
-            { symbol: "ETH", label: "Ethereum" },
-            { symbol: "SOL", label: "Solana" },
-          ].map((row) => (
-            <Pressable key={`${row.symbol}-${row.label}`} onPress={() => { setSelectedCrypto(row); setCryptoSheet(false); }} style={{ minHeight: 82, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16 }}>
-              <TokenAvatar symbol={row.symbol} size={46} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>{row.symbol}</Text>
-                <Text style={{ color: theme.secondary, fontSize: 17 }}>{row.label}</Text>
-              </View>
-              <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: row.symbol === selectedCrypto.symbol ? theme.blue : theme.secondary }} />
-            </Pressable>
-          ))}
-        </View>
-      </SheetModal>
-
-      <SheetModal visible={paymentSheet} title="Payment method" subtitle={canContinue ? `Ready to buy ${selectedCrypto.symbol} with ${selectedFiat.code} ${amount}` : "Select an amount to continue"} onClose={() => setPaymentSheet(false)}>
-        {["UPI", "Card", "Bank"].map((method) => (
-          <Pressable key={method} onPress={() => { setPaymentMethod(method); setPaymentSheet(false); }} style={{ minHeight: 62, borderRadius: 18, backgroundColor: theme.cardSecondary, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>{method}</Text>
-            <Text style={{ color: method === paymentMethod ? theme.blue : theme.secondary, fontSize: 22 }}>{method === paymentMethod ? "✓" : "›"}</Text>
+      <SheetModal onClose={() => setSheet(null)} subtitle="Choose the authoritative destination wallet" title="Select wallet" visible={sheet === "wallet"}>
+        {wallets.map((item) => (
+          <Pressable key={item.id} onPress={() => { setWalletId(item.id); setSelectedWalletId(item.id); rotateIntent(); setSheet(null); }} style={{ minHeight: 58, borderRadius: 15, backgroundColor: item.id === wallet?.id ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <TrustIcon color={item.id === wallet?.id ? theme.blue : theme.secondary} name="wallet-outline" size={21} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{item.name}</Text>
+            {item.id === wallet?.id ? <TrustIcon color={theme.blue} name="check" size={19} /> : null}
           </Pressable>
         ))}
+      </SheetModal>
+      <SheetModal onClose={() => setSheet(null)} title="Select asset" visible={sheet === "asset"}>
+        <ScrollView
+          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          style={{ maxHeight: Math.max(280, Math.min(620, windowHeight - 180)) }}
+        >
+          {assets.map((item) => (
+            <AssetChoiceRow active={item.id === asset?.id} key={item.id} name={item.name} network={item.network_name} onPress={() => { setAssetId(item.id); rotateIntent(); setSheet(null); }} symbol={item.symbol} />
+          ))}
+        </ScrollView>
       </SheetModal>
     </>
   );
 }
 
-function Selector({ label, icon, onPress }: { label: string; icon: string | ReactNode; onPress: () => void }) {
+function ReviewRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  const { theme } = useAppContext();
+  return <View style={{ minHeight: 46, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14 }}><Text style={{ color: theme.secondary, fontSize: 11 }}>{label}</Text><Text numberOfLines={2} style={{ maxWidth: "68%", color: theme.text, fontSize: 11, fontWeight: "900", textAlign: "right" }}>{value}</Text></View>;
+}
+
+function ErrorNotice({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { theme } = useAppContext();
   return (
-    <Pressable onPress={onPress} style={{ minHeight: 56, minWidth: 150, borderRadius: 28, backgroundColor: theme.surface, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-      {typeof icon === "string" ? <Text style={{ fontSize: 20 }}>{icon}</Text> : icon}
-      <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>{label}</Text>
-      <Text style={{ color: theme.secondary, fontSize: 26 }}>›</Text>
-    </Pressable>
+    <View style={{ borderRadius: 14, backgroundColor: "#fdecec", padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
+      <TrustIcon color={theme.negative} name="alert-circle-outline" size={19} />
+      <Text style={{ flex: 1, color: theme.negative, fontSize: 11, lineHeight: 16 }}>{message}</Text>
+      <Pressable onPress={onRetry}><Text style={{ color: theme.negative, fontSize: 11, fontWeight: "900" }}>Retry</Text></Pressable>
+    </View>
   );
 }
 
-function Keypad({ onKeyPress }: { onKeyPress: (key: string) => void }) {
+function FundingSectionLabel({ children, spaced = false }: { children: ReactNode; spaced?: boolean }) {
+  const { theme } = useAppContext();
+  return <Text style={{ color: theme.secondary, fontSize: 15, fontWeight: "600", marginTop: spaced ? 16 : 0 }}>{children}</Text>;
+}
+
+function FundingMethodRow({ title, detail, icon, logo, grouped = false, last = false, onPress }: { title: string; detail?: string; icon?: TrustIconName; logo?: ReactNode; grouped?: boolean; last?: boolean; onPress: () => void }) {
+  const { theme } = useAppContext();
   return (
-    <View style={{ gap: 20, paddingVertical: 26 }}>
-      {[["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], [".", "0", "⌫"]].map((row) => (
-        <View key={row.join("")} style={{ flexDirection: "row", justifyContent: "space-around" }}>
-          {row.map((key) => (
-            <Pressable key={key} onPress={() => onKeyPress(key)} style={{ width: 80, minHeight: 42, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ textAlign: "center", color: "#202124", fontSize: 28, fontWeight: "900" }}>{key}</Text>
-            </Pressable>
-          ))}
+    <Pressable
+      accessibilityLabel={detail ? `${title}. ${detail}` : title}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{ minHeight: 80, borderRadius: grouped ? 0 : 17, borderBottomWidth: grouped && !last ? 1 : 0, borderBottomColor: theme.border, backgroundColor: grouped ? "transparent" : theme.cardSecondary, paddingHorizontal: grouped ? 0 : 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+    >
+      {logo ?? (
+        <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.blueSoft, alignItems: "center", justifyContent: "center" }}>
+          <TrustIcon color={theme.blue} name={icon ?? "wallet-outline"} size={21} />
         </View>
-      ))}
-    </View>
+      )}
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>{title}</Text>
+        {detail ? <Text style={{ color: theme.secondary, fontSize: 12 }}>{detail}</Text> : null}
+      </View>
+      <TrustIcon color={theme.secondary} name="chevron-right" size={21} />
+    </Pressable>
   );
 }
