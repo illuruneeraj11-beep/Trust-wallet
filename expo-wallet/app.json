@@ -18,7 +18,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/brands/trust-wallet-icon.png",
         "backgroundColor": "#f4f4f7"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/brands/trust-wallet-icon.png"
@@ -50,8 +53,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "463c7e8a-2dbd-4ba2-9203-46d4e297bc10"
+        "projectId": "8344d88c-423d-4f81-9fee-79c5296fa195"
       }
-    }
+    },
+    "owner": "tommy7s-team"
   }
 }
