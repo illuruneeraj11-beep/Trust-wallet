@@ -158,6 +158,25 @@ screenshot to VERIFY the field contains exactly what you expect before submittin
 - [ ] Sign out → session cleared; relaunch → session restored when signed in
 - [ ] Screenshot every step; save logcat output for any anomaly
 
+## OPEN issue — for the next agent (backend, not app)
+
+**`add_demo_funds` (and likely `submit_transfer`) fail via the REST API with
+`42501 permission denied for schema demo_ledger` — but only through PostgREST.**
+Facts established (2026-07-20):
+- Same call succeeds when run in SQL as `role authenticated` with jwt claims set.
+- All ledger RPCs are `SECURITY DEFINER`, owner `postgres`, identical ACLs; live
+  definition matches the local migration; all 9 migrations applied remotely.
+- Other RPCs work fine via REST from the installed app: `bootstrap_demo_account`,
+  `get_portfolio`, `get_activity`, `rename_wallet`, `create_demo_wallet`,
+  `create_transfer_quote` (reaches its own validation).
+- Only the two functions redefined by `20260719092636_wallet_ledger_fee_archive_hardening.sql`
+  fail. Suspect something in that redefinition interacts badly with PostgREST's
+  execution context (e.g. a nested call or notification insert path).
+- Repro: sign in via password grant, `POST /rest/v1/rpc/add_demo_funds` with
+  `{p_wallet_id, p_asset_code: "ETH_USDT", p_amount_units, p_idempotency_key}`.
+- Effect in app: Fund flow ("Deposit cash" → Testnet Faucet) shows the error with
+  a Retry button. Everything else in the app works.
+
 ## Known bugs already found & fixed by this process (regression watch)
 
 | Symptom | Root cause | Fix (commit) |
