@@ -90,6 +90,7 @@ export type MockTransfer = {
   counterparty_display_name: string | null;
   counterparty_handle: string | null;
   counterparty_address: string | null;
+  simulated_history?: boolean;
   created_at: string;
   updated_at: string;
   asset: MockAsset;

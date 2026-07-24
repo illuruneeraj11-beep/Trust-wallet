@@ -167,7 +167,7 @@ export default function BuyScreen() {
           />
         ))}
       </SheetModal>
-      <SheetModal visible={sheet === "preview"} title="Payments unavailable" subtitle="Buying, selling, P2P, and cash deposits are unavailable on Testnet." onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "preview"} title="Payments unavailable" subtitle="Buying, selling, P2P, and cash deposits are unavailable in this simulation." onClose={() => setSheet(null)}>
         <View style={{ minHeight: 82, borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
           <TrustIcon color={theme.blue} name="shield-check-outline" size={29} />
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>No card details, payment, deposit, wallet signature, or seed phrase is requested.</Text>

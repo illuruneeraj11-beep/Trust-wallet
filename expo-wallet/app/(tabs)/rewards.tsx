@@ -156,7 +156,7 @@ export default function PerpsTabScreen() {
                     <DisabledTradeButton color="#0aa84f" label="Long" />
                     <DisabledTradeButton color="#cf3030" label="Short" />
                   </View>
-                  <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 12 }}>Market data only. Trading is unavailable on Testnet.</Text>
+                  <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 12 }}>Market data only. Trading is unavailable.</Text>
                 </>
               ) : null}
             </>
@@ -218,21 +218,21 @@ export default function PerpsTabScreen() {
         </View>
       </SheetModal>
 
-      <SheetModal visible={sheet === "settings"} title="Perps settings" subtitle="Testnet display preferences" onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "settings"} title="Perps settings" subtitle="Display preferences" onClose={() => setSheet(null)}>
         <SheetChoice label="Show provider badges" selected onPress={() => undefined} />
         <SheetChoice label="Show 24h charts" selected onPress={() => undefined} />
         <PrimaryButton label="Done" onPress={() => setSheet(null)} />
       </SheetModal>
 
-      <SheetModal visible={sheet === "deposit"} title="Deposit to Perps" subtitle="Perpetual deposits and wallet signatures are unavailable on Testnet." onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "deposit"} title="Deposit to Perps" subtitle="Perpetual deposits and wallet signatures are unavailable in this simulation." onClose={() => setSheet(null)}>
         <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
           <TrustIcon color={theme.blue} name="shield-check-outline" size={28} />
-          <Text style={{ flex: 1, color: theme.secondary, fontSize: 14, lineHeight: 20 }}>Testnet does not connect to a live trading account.</Text>
+          <Text style={{ flex: 1, color: theme.secondary, fontSize: 14, lineHeight: 20 }}>This simulation does not connect to a live trading account.</Text>
         </View>
         <PrimaryButton label="Close" onPress={() => setSheet(null)} />
       </SheetModal>
 
-      <SheetModal visible={sheet === "ticket"} title={selectedMarket ? `${selectedMarket.symbol} Perps` : "Perps market"} subtitle="Testnet market details" onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "ticket"} title={selectedMarket ? `${selectedMarket.symbol} Perps` : "Perps market"} subtitle="Market details" onClose={() => setSheet(null)}>
         {selectedMarket ? (
           <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <MarketLogo market={selectedMarket} size={48} />
@@ -247,7 +247,7 @@ export default function PerpsTabScreen() {
           <DisabledTradeButton color="#0aa84f" label="Long" />
           <DisabledTradeButton color="#cf3030" label="Short" />
         </View>
-        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 12 }}>Trading is unavailable on Testnet.</Text>
+        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 12 }}>Trading is unavailable in this simulation.</Text>
       </SheetModal>
     </>
   );

@@ -28,7 +28,7 @@ export default function AddressBookScreen() {
   const [recipient, setRecipient] = useState("");
   const [network, setNetwork] = useState(requestedNetwork || allowedNetworks[0]?.slug || "");
   const [networkSheet, setNetworkSheet] = useState(false);
-  const selectedNetwork = allowedNetworks.find((item) => item.slug === network) ?? allowedNetworks[0] ?? { slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Testnet" };
+  const selectedNetwork = allowedNetworks.find((item) => item.slug === network) ?? allowedNetworks[0] ?? { slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Simulation" };
   const rows = useMemo(() => addressBook.filter((entry) => `${entry.name} ${entry.address} ${entry.network}`.toLowerCase().includes(query.trim().toLowerCase()))
     .filter((entry) => !selecting || !requestedNetwork || walletNetworksMatch(entry.network, requestedNetwork)), [addressBook, query, requestedNetwork, selecting]);
 
@@ -100,7 +100,7 @@ export default function AddressBookScreen() {
       </SheetModal>
 
       <SheetModal onClose={() => setNetworkSheet(false)} title="Select network" visible={networkSheet}>
-        {(allowedNetworks.length ? allowedNetworks : [{ slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Testnet" }]).map((item) => (
+        {(allowedNetworks.length ? allowedNetworks : [{ slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Simulation" }]).map((item) => (
           <Pressable accessibilityLabel={item.name} accessibilityRole="radio" accessibilityState={{ checked: item.slug === network }} key={item.slug} onPress={() => { setNetwork(item.slug); setNetworkSheet(false); }} style={{ minHeight: 54, borderRadius: 15, backgroundColor: item.slug === network ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
             <NetworkLogo network={item.slug} size={30} />
             <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{item.name}</Text>

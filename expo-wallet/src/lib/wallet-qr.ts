@@ -43,7 +43,7 @@ export function parseWalletQr(raw: string): ParsedWalletQr {
       kind: "send",
     };
   }
-  if (/^trust:/i.test(value)) throw new Error("This Trust URI is not supported on Testnet. Ask the recipient to generate a new receive QR.");
+  if (/^trust:/i.test(value)) throw new Error("This Trust URI is not supported. Ask the recipient to generate a new receive QR.");
   if (!/\s/.test(value) && value.length >= 10) return { recipient: value };
   throw new Error("Use a Trust Wallet receive QR, registered @handle, or wallet address.");
 }

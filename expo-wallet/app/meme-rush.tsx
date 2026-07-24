@@ -54,7 +54,7 @@ export default function MemeRushScreen() {
       </AppScreen>
 
       <SheetModal visible={introOpen} title="Default amount" subtitle="By proceeding, you accept the default 5.00 USD equivalent quick-buy amount." onClose={() => setIntroOpen(false)}>
-        <View style={{ borderRadius: 17, backgroundColor: theme.background, padding: 15, flexDirection: "row", gap: 11 }}><TrustIcon color={theme.blue} name="information-outline" size={23} /><Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Quick buying is unavailable on Testnet. Review current market information before continuing.</Text></View>
+        <View style={{ borderRadius: 17, backgroundColor: theme.background, padding: 15, flexDirection: "row", gap: 11 }}><TrustIcon color={theme.blue} name="information-outline" size={23} /><Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Quick buying is unavailable in this simulation. Review current market information before continuing.</Text></View>
         <PrimaryButton label="Got it" onPress={() => setIntroOpen(false)} />
       </SheetModal>
 

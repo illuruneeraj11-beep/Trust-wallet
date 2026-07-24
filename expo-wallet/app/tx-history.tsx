@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { AppScreen, SheetModal } from "@/components/trust-ui";
-import { DemoFlowHeader, DemoModeBanner, FlowButton, FlowCard, shortDemoId } from "@/components/demo-wallet-flow-ui";
+import { DemoFlowHeader, FlowButton, FlowCard, shortDemoId } from "@/components/demo-wallet-flow-ui";
 import { TokenLogo } from "@/components/trust-assets";
 import { TrustIcon } from "@/components/trust-icon";
 import { useAppContext } from "@/context/app-context";
+import { walletNetworkName } from "@/lib/wallet-networks";
 
 type UiAsset = { id: string; symbol: string; name: string; network?: string; network_code?: string };
 type UiTransfer = {
@@ -34,6 +35,7 @@ type UiTransfer = {
   counterparty_address?: string | null;
   sender_name?: string | null;
   recipient_name?: string | null;
+  simulated_history?: boolean;
   asset?: UiAsset;
   mock_wallet_assets?: UiAsset;
 };
@@ -50,7 +52,7 @@ export default function TxHistoryScreen() {
   const [dismissedTransactionId, setDismissedTransactionId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const rows = useMemo<UiRow[]>(() => transfers.filter((transfer) => {
+  const allRows = useMemo<UiRow[]>(() => transfers.filter((transfer) => {
     if (!selectedWallet || (!transfer.from_wallet_id && !transfer.to_wallet_id)) return false;
     return transfer.from_wallet_id === selectedWallet.id || transfer.to_wallet_id === selectedWallet.id;
   }).map((transfer) => {
@@ -77,7 +79,7 @@ export default function TxHistoryScreen() {
       ?? transfer.counterparty_handle
       ?? (displayDirection === "outgoing" ? transfer.recipient_name : transfer.sender_name)
       ?? counterpartyAddress
-      ?? (displayDirection === "funding" ? "Testnet Faucet" : "Wallet");
+      ?? (displayDirection === "funding" ? "Funding source" : "Wallet");
     return {
       ...transfer,
       displayDirection,
@@ -86,7 +88,14 @@ export default function TxHistoryScreen() {
       counterparty,
       createdAt: transfer.created_at ?? transfer.updated_at ?? new Date().toISOString(),
     };
-  }).filter((row) => filter === "All" || (filter === "Received" ? row.displayDirection === "incoming" || row.displayDirection === "funding" : row.displayDirection === "outgoing")), [assets, filter, selectedWallet, transfers, wallets]);
+  }).sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt) || right.id.localeCompare(left.id)), [assets, selectedWallet, transfers, wallets]);
+  const rows = useMemo(() => allRows.filter((row) => filter === "All"
+    || (filter === "Received" ? row.displayDirection === "incoming" || row.displayDirection === "funding" : row.displayDirection === "outgoing")), [allRows, filter]);
+  const counts = useMemo(() => ({
+    All: allRows.length,
+    Received: allRows.filter((row) => row.displayDirection === "incoming" || row.displayDirection === "funding").length,
+    Sent: allRows.filter((row) => row.displayDirection === "outgoing").length,
+  }), [allRows]);
 
   useEffect(() => {
     if (!params.transactionId || selected || dismissedTransactionId === params.transactionId) return;
@@ -109,31 +118,40 @@ export default function TxHistoryScreen() {
       <AppScreen scrollable={false} padded={false}>
         <View style={{ flex: 1, paddingHorizontal: 16, gap: 12 }}>
           <DemoFlowHeader title="Activity" subtitle={selectedWallet?.name ?? "Wallet"} />
-          <DemoModeBanner compact />
+          <SimulationNotice />
           <View style={{ flexDirection: "row", padding: 4, borderRadius: 18, backgroundColor: theme.surface, gap: 4 }}>
             {filters.map((item) => (
-              <Pressable key={item} onPress={() => setFilter(item)} style={{ flex: 1, minHeight: 36, borderRadius: 14, backgroundColor: filter === item ? "#ffffff" : "transparent", alignItems: "center", justifyContent: "center" }}>
+              <Pressable accessibilityRole="tab" accessibilityState={{ selected: filter === item }} key={item} onPress={() => setFilter(item)} style={{ flex: 1, minHeight: 36, borderRadius: 14, backgroundColor: filter === item ? "#ffffff" : "transparent", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 }}>
                 <Text style={{ color: filter === item ? theme.text : theme.secondary, fontSize: 12, fontWeight: "900" }}>{item}</Text>
+                <Text style={{ color: filter === item ? theme.blue : theme.secondary, fontSize: 9, fontWeight: "900" }}>{counts[item]}</Text>
               </Pressable>
             ))}
           </View>
-          <ScrollView
+          <FlatList
+            data={loadingTransfers ? [] : rows}
+            keyExtractor={(row) => row.id}
+            renderItem={({ item }) => <ActivityRow onPress={() => setSelected(item)} row={item} />}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl colors={[theme.blue]} onRefresh={() => void refresh()} refreshing={refreshing} tintColor={theme.blue} />}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 30, gap: 4 }}
-          >
-            {loadingTransfers && !transfers.length ? <View style={{ flex: 1, minHeight: 430, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={theme.blue} /></View> : null}
-            {!loadingTransfers && rows.map((row) => <ActivityRow key={row.id} onPress={() => setSelected(row)} row={row} />)}
-            {!loadingTransfers && !rows.length ? (
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
+            ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
+            initialNumToRender={12}
+            maxToRenderPerBatch={16}
+            updateCellsBatchingPeriod={40}
+            windowSize={9}
+            getItemLayout={(_, index) => ({ length: 80, offset: 80 * index, index })}
+            ListEmptyComponent={loadingTransfers && !transfers.length
+              ? <View style={{ flex: 1, minHeight: 430, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={theme.blue} /></View>
+              : (
               <View style={{ flex: 1, minHeight: 430, alignItems: "center", justifyContent: "center", gap: 11, paddingHorizontal: 24 }}>
                 <View style={{ width: 76, height: 76, borderRadius: 28, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}><TrustIcon color={theme.secondary} name="history" size={36} /></View>
                 <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>{ledgerError ? "Activity unavailable" : filter === "All" ? "No transactions yet" : `No ${filter.toLowerCase()} transactions`}</Text>
                 <Text style={{ color: ledgerError ? theme.negative : theme.secondary, fontSize: 12, textAlign: "center", lineHeight: 18 }}>{ledgerError ?? "Add funds or send to a wallet address. Confirmed activity will appear here."}</Text>
                 <View style={{ width: "100%" }}><FlowButton label={ledgerError ? "Try again" : "Add funds"} onPress={() => ledgerError ? void refresh() : router.push("/fund")} secondary /></View>
               </View>
-            ) : null}
-          </ScrollView>
+            )}
+          />
         </View>
       </AppScreen>
 
@@ -151,7 +169,7 @@ function ActivityRow({ row, onPress }: { row: UiRow; onPress: () => void }) {
   const title = self ? `Moved to ${row.counterparty}` : row.displayDirection === "funding" ? "Funds added" : incoming ? `Received from ${row.counterparty}` : `Sent to ${row.counterparty}`;
   const network = row.assetInfo?.network_code ?? row.assetInfo?.network;
   return (
-    <Pressable onPress={onPress} style={{ minHeight: 76, borderRadius: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 11 }}>
+    <Pressable accessibilityLabel={`${title}, ${row.displayAmount} ${row.assetInfo?.symbol ?? ""}, ${formatDate(row.createdAt)}`} accessibilityRole="button" onPress={onPress} style={{ height: 76, borderRadius: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 11 }}>
       <View>
         <TokenLogo network={network} symbol={row.assetInfo?.symbol ?? "USD"} size={42} />
         <View style={{ position: "absolute", right: -3, bottom: -3, width: 20, height: 20, borderRadius: 10, backgroundColor: incoming ? "#e5f8ec" : "#f1efff", borderWidth: 2, borderColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
@@ -164,7 +182,7 @@ function ActivityRow({ row, onPress }: { row: UiRow; onPress: () => void }) {
       </View>
       <View style={{ alignItems: "flex-end", gap: 3 }}>
         <Text style={{ color: incoming ? theme.positive : theme.text, fontSize: 14, fontWeight: "900" }}>{self ? "" : incoming ? "+" : "-"}{row.displayAmount} {row.assetInfo?.symbol ?? ""}</Text>
-        <Text style={{ color: theme.secondary, fontSize: 10 }}>{network ?? "Testnet"}</Text>
+        <Text style={{ color: theme.secondary, fontSize: 10 }}>{walletNetworkName(network)}</Text>
       </View>
     </Pressable>
   );
@@ -175,7 +193,7 @@ function TransactionDetail({ row, onDone }: { row: UiRow; onDone: () => void }) 
   const incoming = row.displayDirection === "incoming" || row.displayDirection === "funding";
   const self = row.displayDirection === "self";
   const reference = row.mock_hash ?? row.hash ?? row.transaction_id ?? row.id;
-  const network = row.assetInfo?.network_code ?? row.assetInfo?.network ?? "Testnet";
+  const network = walletNetworkName(row.assetInfo?.network_code ?? row.assetInfo?.network);
   return (
     <>
       <View style={{ alignItems: "center", gap: 8, paddingVertical: 8 }}>
@@ -192,7 +210,7 @@ function TransactionDetail({ row, onDone }: { row: UiRow; onDone: () => void }) 
         {row.note ? <DetailRow label="Note" value={row.note} /> : null}
         <DetailRow label="Reference" value={shortDemoId(reference, 13, 9)} last />
       </FlowCard>
-      <DemoModeBanner compact />
+      <SimulationNotice />
       <FlowButton label="Done" onPress={onDone} secondary />
     </>
   );
@@ -201,6 +219,16 @@ function TransactionDetail({ row, onDone }: { row: UiRow; onDone: () => void }) 
 function DetailRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
   const { theme } = useAppContext();
   return <View style={{ minHeight: 43, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border }}><Text style={{ color: theme.secondary, fontSize: 11 }}>{label}</Text><Text numberOfLines={2} style={{ maxWidth: "68%", color: theme.text, fontSize: 11, fontWeight: "900", textAlign: "right" }}>{value}</Text></View>;
+}
+
+function SimulationNotice() {
+  const { theme } = useAppContext();
+  return (
+    <View style={{ minHeight: 38, borderRadius: 14, backgroundColor: "#f1efff", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <TrustIcon color={theme.blue} name="shield-check-outline" size={16} />
+      <Text style={{ color: theme.secondary, fontSize: 10, fontWeight: "800" }}>Simulated history · No blockchain transaction</Text>
+    </View>
+  );
 }
 
 function formatDate(value: string) {

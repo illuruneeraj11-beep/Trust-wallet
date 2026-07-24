@@ -104,7 +104,7 @@ export default function DappBrowserScreen() {
               </View>
               <View style={{ borderRadius: 17, backgroundColor: "#ffffff", padding: 14, flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
                 <TrustIcon color={theme.blue} name="shield-lock-outline" size={24} />
-                <Text style={{ flex: 1, color: theme.secondary, fontSize: 12, lineHeight: 18 }}>Testnet browser mode does not load third-party scripts, request permissions, or expose wallet data.</Text>
+                <Text style={{ flex: 1, color: theme.secondary, fontSize: 12, lineHeight: 18 }}>Read-only browser mode does not load third-party scripts, request permissions, or expose wallet data.</Text>
               </View>
               <Pressable onPress={() => setSheet("connect")} style={{ height: 52, borderRadius: 26, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>Connect wallet</Text>
@@ -122,7 +122,7 @@ export default function DappBrowserScreen() {
         </View>
       </AppScreen>
 
-      <SheetModal visible={sheet === "blocked"} title="Address blocked" subtitle="Testnet opens only reviewed dApps in its directory." onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "blocked"} title="Address blocked" subtitle="This simulation opens only reviewed dApps in its directory." onClose={() => setSheet(null)}>
         <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 15, flexDirection: "row", alignItems: "center", gap: 11 }}>
           <TrustIcon color={theme.negative} name="shield-alert-outline" size={27} />
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 18 }}>Unknown URLs are never loaded. Only curated HTTPS entries can be opened.</Text>
@@ -169,7 +169,7 @@ export default function DappBrowserScreen() {
         </View>
       </SheetModal>
 
-      <SheetModal visible={sheet === "connect"} title="Connection disabled" subtitle="Wallet data and signatures are unavailable on Testnet." onClose={() => setSheet(null)}>
+      <SheetModal visible={sheet === "connect"} title="Connection disabled" subtitle="Wallet data and signatures are unavailable in this simulation." onClose={() => setSheet(null)}>
         <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 15, flexDirection: "row", alignItems: "center", gap: 11 }}>
           <TrustIcon color={theme.blue} name="shield-lock-outline" size={28} />
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 18 }}>Use the real Trust Wallet only after checking the dApp domain and every requested permission.</Text>

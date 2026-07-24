@@ -34,6 +34,16 @@ async function main() {
   const sender = initial.wallets[0];
   assert.ok(sender, "a primary wallet must exist");
   assert.equal(initial.assets.length, 17, "the transfer registry must expose all 17 supported assets");
+  const balancesBeforeSampleHistory = balanceSnapshot(initial);
+  const initialHistory = await ledger.listTransfers();
+  const senderSampleHistory = initialHistory.filter((item) => item.simulated_history && (item.from_wallet_id === sender.id || item.to_wallet_id === sender.id));
+  assert.equal(senderSampleHistory.length, 500, "every wallet must start with 500 balance-neutral sample history rows");
+  assert.equal(senderSampleHistory.filter((item) => item.direction === "incoming").length, 250, "sample history must contain more than 200 received rows");
+  assert.equal(senderSampleHistory.filter((item) => item.direction === "outgoing").length, 250, "sample history must contain more than 200 sent rows");
+  assert.equal(new Set(senderSampleHistory.map((item) => item.id)).size, 500, "sample history IDs must be unique");
+  assert.ok(new Set(senderSampleHistory.map((item) => item.asset_code)).size >= 10, "sample history must rotate across realistic assets and networks");
+  assert.deepEqual(balanceSnapshot(await ledger.getPortfolio()), balancesBeforeSampleHistory, "display-only sample history must never change balances");
+  assert.equal((await ledger.listTransfers()).filter((item) => item.simulated_history && (item.from_wallet_id === sender.id || item.to_wallet_id === sender.id)).length, 500, "sample history generation must be idempotent");
   assert.equal(canonicalWalletNetwork("BNB Smart Chain"), "bsc");
   assert.equal(walletNetworkName("bsc"), "BNB Smart Chain");
   assert.equal(walletNetworksMatch("ETH", "Ethereum"), true);
@@ -185,12 +195,22 @@ async function main() {
   assert.equal(historyStartBalance - balanceUnits(await ledger.getPortfolio(), sender.id, usd.id), historyUnits, "500 external sends must debit exactly 500 cents");
   assert.equal(BigInt(ledger.getVisualExternalSettlementUnits(usd.id)) - historyStartSink, historyUnits, "500 external sends must credit exactly 500 cents to settlement");
 
-  console.log("Wallet contract OK: 3 wallets, 17 assets, seven-network USDC, billion-scale funding, registered and external address transfers, exact conservation, replay safety, validation, archive guards, and 500-item activity.");
+  console.log("Wallet contract OK: 3 wallets, 17 assets, 500 balance-neutral history rows (250 received/250 sent), seven-network USDC, billion-scale funding, registered and external address transfers, exact conservation, replay safety, validation, archive guards, and 500-item live activity.");
 }
 
 function balanceUnits(portfolio: Awaited<ReturnType<typeof import("../src/services/wallet-ledger")["getPortfolio"]>>, walletId: string, assetId: string) {
   const value = portfolio.wallets.find((wallet) => wallet.id === walletId)?.balances.find((balance) => balance.asset_id === assetId)?.available_units ?? "0";
   return BigInt(value);
+}
+
+function balanceSnapshot(portfolio: Awaited<ReturnType<typeof import("../src/services/wallet-ledger")["getPortfolio"]>>) {
+  return portfolio.wallets.flatMap((wallet) => wallet.balances.map((balance) => ({
+    walletId: wallet.id,
+    assetId: balance.asset_id,
+    postedUnits: balance.posted_units,
+    heldUnits: balance.held_units,
+    availableUnits: balance.available_units,
+  }))).sort((left, right) => `${left.walletId}:${left.assetId}`.localeCompare(`${right.walletId}:${right.assetId}`));
 }
 
 void main().catch((error) => {

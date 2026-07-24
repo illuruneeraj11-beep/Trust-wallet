@@ -41,7 +41,7 @@ export function DemoModeBanner({ compact = false }: { compact?: boolean }) {
         <TrustIcon color="#ffffff" name="flask-outline" size={compact ? 12 : 16} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: theme.text, fontSize: compact ? 11 : 13, fontWeight: "900" }}>Testnet</Text>
+        <Text style={{ color: theme.text, fontSize: compact ? 11 : 13, fontWeight: "900" }}>Simulation</Text>
         {!compact ? <Text style={{ color: theme.secondary, fontSize: 10, lineHeight: 15 }}>Test balances are isolated from public blockchains and cannot be withdrawn.</Text> : null}
       </View>
     </View>

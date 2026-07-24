@@ -237,7 +237,7 @@ function SettingsSheetContent({
       <View style={{ alignItems: "center", gap: 10, paddingVertical: 8 }}>
         <BrandLogo brand="walletconnect" size={64} />
         <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>No active connections</Text>
-        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 14, lineHeight: 20 }}>Review and disconnect sessions here. New connection signing is unavailable on testnet.</Text>
+        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 14, lineHeight: 20 }}>Review and disconnect sessions here. New connection signing is unavailable in this simulation.</Text>
       </View>
       <Pressable onPress={() => { onClose(); router.push("/qr-scanner"); }} style={[styles.doneButton, { backgroundColor: theme.blue }]}><Text style={styles.doneLabel}>Scan connection QR</Text></Pressable>
     </>;
@@ -259,7 +259,7 @@ function SettingsSheetContent({
       <View style={{ alignItems: "center", gap: 9, paddingVertical: 8 }}>
         <BrandLogo brand="trust-wallet" size={68} />
         <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>Trust Wallet</Text>
-        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 13, lineHeight: 19 }}>Testnet environment. It never requests a recovery phrase or moves assets on a public blockchain.</Text>
+        <Text style={{ color: theme.secondary, textAlign: "center", fontSize: 13, lineHeight: 19 }}>Simulation environment. It never requests a recovery phrase or moves assets on a public blockchain.</Text>
       </View>
       <Pressable onPress={onClose} style={[styles.doneButton, { backgroundColor: theme.blue }]}><Text style={styles.doneLabel}>Done</Text></Pressable>
     </>;

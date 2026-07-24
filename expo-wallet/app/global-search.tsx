@@ -109,7 +109,7 @@ export default function GlobalSearchScreen() {
         {addressLike ? (
           <View style={{ borderRadius: 18, backgroundColor: theme.surface, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <TrustIcon color={theme.blue} name="card-account-details-outline" size={25} />
-            <View style={{ flex: 1, gap: 3 }}><Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>Address detected</Text><Text style={{ color: theme.secondary, fontSize: 12, lineHeight: 17 }}>External address lookup is unavailable on Testnet.</Text></View>
+            <View style={{ flex: 1, gap: 3 }}><Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>Address detected</Text><Text style={{ color: theme.secondary, fontSize: 12, lineHeight: 17 }}>External address lookup is unavailable in this simulation.</Text></View>
           </View>
         ) : null}
 

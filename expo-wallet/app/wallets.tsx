@@ -84,7 +84,7 @@ export default function WalletsScreen() {
               setSheet(false);
               router.push({ pathname: "/add-wallet", params: { mode: "create" } });
             }}
-            subtitle="Testnet wallet"
+            subtitle="Simulation wallet"
             title="Create new wallet"
           />
           <SheetRow

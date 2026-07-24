@@ -124,7 +124,7 @@ export default function ReceiveScreen() {
         </View>
       </AppScreen>
 
-      <SheetModal visible={Boolean(unavailable)} title={unavailable ? `Receive ${unavailable.symbol}` : "Receive"} subtitle="Address unavailable on this testnet" onClose={() => setUnavailable(null)}>
+      <SheetModal visible={Boolean(unavailable)} title={unavailable ? `Receive ${unavailable.symbol}` : "Receive"} subtitle="Address unavailable for this simulated asset" onClose={() => setUnavailable(null)}>
         <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
           {unavailable ? <TokenLogo network={unavailable.networkSymbol} symbol={unavailable.symbol} uri={unavailable.logo} size={42} /> : null}
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>A receive QR appears only when this wallet has an address for the selected network.</Text>
@@ -156,7 +156,7 @@ function ReceiveDetail({ selection, wallet, onBack, onMessage }: { selection: Re
           <Pressable accessibilityLabel="Back to asset selection" accessibilityRole="button" onPress={onBack} style={{ position: "absolute", left: 0, width: 44, height: 44, justifyContent: "center" }}><TrustIcon color={theme.secondary} name="arrow-left" size={27} /></Pressable>
           <Text style={{ color: theme.text, fontSize: 20, fontWeight: "900" }}>Receive {asset.symbol}</Text>
         </View>
-        <View style={{ borderRadius: 16, backgroundColor: "#fff7dd", padding: 13, flexDirection: "row", gap: 9 }}><TrustIcon color="#9a6800" name="information-outline" size={19} /><Text style={{ flex: 1, color: theme.text, fontSize: 12, lineHeight: 17 }}>Testnet address. Do not send assets from a public blockchain.</Text></View>
+        <View style={{ borderRadius: 16, backgroundColor: "#fff7dd", padding: 13, flexDirection: "row", gap: 9 }}><TrustIcon color="#9a6800" name="information-outline" size={19} /><Text style={{ flex: 1, color: theme.text, fontSize: 12, lineHeight: 17 }}>Simulation address. Do not send assets from a public blockchain.</Text></View>
         <View style={{ alignItems: "center", gap: 15, paddingTop: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><TokenLogo network={asset.networkSymbol} symbol={asset.symbol} uri={asset.logo} size={34} /><Text style={{ color: theme.text, fontSize: 19, fontWeight: "900" }}>{asset.name}</Text></View>
           <View style={{ width: 238, height: 238, backgroundColor: "#ffffff", borderRadius: 12, padding: 10, alignItems: "center", justifyContent: "center" }}>

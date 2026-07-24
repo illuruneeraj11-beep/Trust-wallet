@@ -127,17 +127,17 @@ export default function SwapScreen() {
 
       <SheetModal visible={orderSheet} title="Options" onClose={() => setOrderSheet(false)}>
         <SheetOption active description="Indicative CoinMarketCap spot cross-rate" label="Market rate" onPress={() => setOrderSheet(false)} />
-        <SheetOption description="Unavailable on Testnet" label="Limit" onPress={() => setOrderSheet(false)} />
+        <SheetOption description="Unavailable in simulation" label="Limit" onPress={() => setOrderSheet(false)} />
         <SheetOption description="DEX routing and slippage are not calculated" label="Swap settings" onPress={() => setOrderSheet(false)} />
       </SheetModal>
       <SheetModal visible={previewSheet} title="Review swap" subtitle="Indicative CoinMarketCap spot estimate" onClose={() => setPreviewSheet(false)}>
         <View style={{ borderRadius: 17, backgroundColor: theme.background, padding: 15, gap: 8 }}>
           <Text style={{ color: theme.text, fontSize: 16, fontWeight: "900" }}>{payAmount} {payAsset?.symbol ?? "--"} → {receiveAmount} {receiveAsset?.symbol ?? "--"}</Text>
-          <Text style={{ color: theme.secondary, fontSize: 13, lineHeight: 19 }}>This Testnet cross-rate uses current CMC spot prices. It is not an executable DEX quote and includes no fees, spread, price impact, or slippage.</Text>
+          <Text style={{ color: theme.secondary, fontSize: 13, lineHeight: 19 }}>This simulated cross-rate uses current CMC spot prices. It is not an executable DEX quote and includes no fees, spread, price impact, or slippage.</Text>
         </View>
         <View style={{ borderRadius: 17, backgroundColor: "#fff7dd", padding: 14, flexDirection: "row", gap: 10 }}>
           <TrustIcon color="#9a6800" name="shield-alert-outline" size={22} />
-          <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Swaps are unavailable on Testnet.</Text>
+          <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Swaps are unavailable in this simulation.</Text>
         </View>
         <Pressable onPress={() => setPreviewSheet(false)} style={{ height: 52, borderRadius: 26, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "900" }}>Close</Text>

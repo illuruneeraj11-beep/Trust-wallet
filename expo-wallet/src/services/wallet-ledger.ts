@@ -288,6 +288,7 @@ function normalizeTransfer(value: unknown, assets: MockAsset[] = []): MockTransf
     counterparty_display_name: nullableString(row, ["counterpartyDisplayName", "counterparty_display_name", "counterparty_name"]) ?? nullableString(counterparty, ["displayName", "display_name", "name"]),
     counterparty_handle: nullableString(row, ["counterpartyHandle", "counterparty_handle", "handle"]) ?? nullableString(counterparty, ["handle"]),
     counterparty_address: nullableString(row, ["counterpartyAddress", "counterparty_address", "address"]) ?? nullableString(counterparty, ["address"]),
+    simulated_history: firstDefined(row, ["simulatedHistory", "simulated_history"]) === true,
     created_at: createdAt,
     updated_at: string(row, ["confirmedAt", "confirmed_at", "updatedAt", "updated_at"], createdAt),
     asset,
@@ -492,8 +493,10 @@ const demoAssets: MockAsset[] = [
 ];
 
 const demoTimestamp = "2026-07-18T12:00:00.000Z";
-export const MAX_ACTIVITY_ITEMS_PER_WALLET = 500;
-export const MAX_ACTIVITY_ITEMS = MAX_ACTIVITY_ITEMS_PER_WALLET;
+const SIMULATED_HISTORY_ITEMS_PER_WALLET = 500;
+export const MAX_ACTIVITY_ITEMS_PER_WALLET = 1000;
+/** The existing contract stress-test size. The UI can retain up to 1,000 rows per wallet. */
+export const MAX_ACTIVITY_ITEMS = 500;
 const ACTIVITY_PAGE_SIZE = 100;
 
 function demoBalance(walletId: string, asset: MockAsset, amount: string): MockWalletBalance {
@@ -588,6 +591,100 @@ async function clearConnectedTransferIntent(key: string) {
 function demoUniqueId(prefix: string) {
   demoMutationSequence += 1;
   return `${prefix}-${Date.now()}-${demoMutationSequence}`;
+}
+
+const visualHistoryNames = [
+  "Alex Wallet",
+  "Savings Wallet",
+  "Trading Wallet",
+  "Mobile Wallet",
+  "Cold Storage",
+  "Family Wallet",
+  "Exchange Wallet",
+  "Jordan Wallet",
+  "Taylor Wallet",
+  "Portfolio Wallet",
+];
+
+function deterministicHex(seed: number, length: number) {
+  let state = (seed + 1) >>> 0;
+  let value = "";
+  while (value.length < length) {
+    state = (Math.imul(state ^ (state >>> 15), 2246822519) + 3266489917) >>> 0;
+    value += state.toString(16).padStart(8, "0");
+  }
+  return value.slice(0, length);
+}
+
+function visualHistoryAddress(network: string, index: number) {
+  const hex = deterministicHex(index + network.length * 1009, 80);
+  const base58 = hex.replaceAll("0", "2").replaceAll("1", "3");
+  if (["ethereum", "bsc", "arbitrum", "avalanchec", "base", "optimism", "polygon"].includes(network)) {
+    return `0x${hex.slice(0, 40)}`;
+  }
+  if (network === "bitcoin") return `bc1q${hex.replaceAll("1", "2").replaceAll("b", "c").slice(0, 38)}`;
+  if (network === "solana") return base58.slice(0, 44);
+  if (network === "tron") return `T${base58.slice(0, 33)}`;
+  return `demo:${network}:${hex.slice(0, 24)}`;
+}
+
+function visualHistoryAmount(asset: MockAsset, index: number) {
+  const cycle = (index * 7919) % 100000;
+  if (asset.symbol === "BTC") return (0.0005 + cycle / 100000).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+  if (asset.symbol === "ETH") return (0.01 + cycle / 50000).toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  if (asset.symbol === "BNB") return (0.05 + cycle / 2000).toFixed(5).replace(/0+$/, "").replace(/\.$/, "");
+  if (asset.symbol === "SOL") return (0.25 + cycle / 1000).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  if (asset.symbol === "TRX") return String(50 + (cycle % 50000));
+  if (asset.symbol === "TWT") return (5 + cycle / 25).toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return (25 + cycle / 20).toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function ensureVisualActivityHistory(wallet: WalletWithBalances) {
+  const existing = demoTransfers.filter((item) => item.simulated_history && (item.from_wallet_id === wallet.id || item.to_wallet_id === wallet.id)).length;
+  if (existing >= SIMULATED_HISTORY_ITEMS_PER_WALLET) return;
+
+  const assets = demoAssets.filter((asset) => asset.network_slug !== "demo");
+  const anchor = Date.parse(demoTimestamp);
+  const generated = Array.from({ length: SIMULATED_HISTORY_ITEMS_PER_WALLET }, (_, offset): MockTransfer => {
+    const index = offset + 1;
+    const incoming = index % 2 === 0;
+    const asset = assets[offset % assets.length];
+    const counterparty = visualHistoryNames[offset % visualHistoryNames.length];
+    const amount = visualHistoryAmount(asset, index);
+    const timestamp = new Date(anchor - index * 13 * 60 * 60 * 1000).toISOString();
+    const hash = deterministicHex(index + wallet.id.length * 4093, 64);
+    const id = `visual-history-${wallet.id}-${index.toString().padStart(3, "0")}`;
+    return {
+      id,
+      transaction_id: id,
+      owner_id: wallet.owner_id,
+      from_wallet_id: incoming ? null : wallet.id,
+      to_wallet_id: incoming ? wallet.id : null,
+      asset_id: asset.id,
+      asset_code: asset.code,
+      amount,
+      amount_units: decimalToBaseUnits(amount, asset.decimals),
+      display_amount: amount,
+      fee_asset_code: null,
+      fee_symbol: null,
+      fee_decimals: null,
+      fee_units: "0",
+      display_fee: "0",
+      direction: incoming ? "incoming" : "outgoing",
+      type: "transfer",
+      note: null,
+      status: "confirmed",
+      mock_hash: `0x${hash}`,
+      counterparty_display_name: counterparty,
+      counterparty_handle: counterparty.toLowerCase().replaceAll(" wallet", "").replaceAll(" ", "."),
+      counterparty_address: visualHistoryAddress(asset.network_slug, index),
+      simulated_history: true,
+      created_at: timestamp,
+      updated_at: timestamp,
+      asset,
+    };
+  });
+  demoTransfers = [...demoTransfers, ...generated].sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at) || right.id.localeCompare(left.id));
 }
 
 function replayVisualMutation(idempotencyKey: string, request: JsonRecord) {
@@ -723,6 +820,7 @@ export async function archiveWallet(walletId: string) {
 
 export async function listTransfers() {
   if (walletRuntimeMode === "visual-demo") {
+    for (const wallet of demoWallets) ensureVisualActivityHistory(wallet);
     const visibleIds = new Set<string>();
     for (const wallet of demoWallets) {
       let count = 0;
@@ -806,10 +904,10 @@ export async function fundDemoWallet(params: FundDemoWalletInput) {
       display_fee: "0",
       direction: "funding",
       type: "funding",
-      note: params.cardLast4 ? `Testnet funding •••• ${params.cardLast4}` : "Testnet funding",
+      note: params.cardLast4 ? `Funds added •••• ${params.cardLast4}` : "Funds added",
       status: "confirmed",
       mock_hash: `0x${Math.random().toString(16).slice(2).padEnd(64, "0").slice(0, 64)}`,
-      counterparty_display_name: "Testnet Faucet",
+      counterparty_display_name: "Wallet funding",
       counterparty_handle: null,
       counterparty_address: null,
       created_at: createdAt,

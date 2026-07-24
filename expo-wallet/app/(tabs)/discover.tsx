@@ -107,7 +107,7 @@ export default function DiscoverScreen() {
       </AppScreen>
 
       <SheetModal visible={infoOpen} title="Browse safely" subtitle="Verify the URL and requested permissions before connecting a wallet." onClose={() => setInfoOpen(false)}>
-        <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}><TrustIcon color={theme.blue} name="shield-check-outline" size={30} /><Text style={{ flex: 1, color: theme.secondary, fontSize: 14, lineHeight: 20 }}>Testnet opens reviewed dApps in read-only mode. It never requests a signature, payment, or recovery phrase.</Text></View>
+        <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}><TrustIcon color={theme.blue} name="shield-check-outline" size={30} /><Text style={{ flex: 1, color: theme.secondary, fontSize: 14, lineHeight: 20 }}>Reviewed dApps open in read-only mode. This simulation never requests a signature, payment, or recovery phrase.</Text></View>
         <Pressable onPress={() => setInfoOpen(false)} style={{ height: 54, borderRadius: 27, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "900" }}>Got it</Text></Pressable>
       </SheetModal>
     </>

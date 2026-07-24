@@ -229,7 +229,7 @@ export default function FundScreen() {
             <>
               <DemoModeBanner />
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Text style={{ color: theme.secondary, fontSize: 10, fontWeight: "800" }}>{ledgerMode === "connected" ? "SECURE LEDGER" : "LOCAL TESTNET"}</Text>
+                <Text style={{ color: theme.secondary, fontSize: 10, fontWeight: "800" }}>{ledgerMode === "connected" ? "SECURE LEDGER" : "LOCAL SIMULATION"}</Text>
                 {loading ? <Text style={{ color: theme.blue, fontSize: 10, fontWeight: "800" }}>Refreshing...</Text> : null}
               </View>
               {displayedError ? <ErrorNotice message={displayedError} onRetry={() => void refreshLedger()} /> : null}
@@ -275,8 +275,8 @@ export default function FundScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
                   <TrustIcon color={theme.secondary} name="cash-plus" size={23} />
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>Testnet Faucet</Text>
-                    <Text style={{ color: theme.secondary, fontSize: 10 }}>Creates testnet balance · no payment required</Text>
+                    <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>Wallet funding</Text>
+                    <Text style={{ color: theme.secondary, fontSize: 10 }}>Creates simulated balance · no payment required</Text>
                   </View>
                   <TrustIcon color={theme.positive} name="shield-check-outline" size={20} />
                 </View>
@@ -296,7 +296,7 @@ export default function FundScreen() {
               <FlowCard>
                 <ReviewRow label="Wallet" value={wallet?.name ?? "—"} />
                 <ReviewRow label="Asset" value={`${asset?.name ?? "—"} (${asset?.symbol ?? ""})`} />
-                <ReviewRow label="Source" value="Testnet Faucet" />
+                <ReviewRow label="Source" value="Wallet funding" />
                 <ReviewRow label="Network fee" value="No fee" last />
               </FlowCard>
               {displayedError ? <ErrorNotice message={displayedError} onRetry={() => void submit()} /> : null}

@@ -39,7 +39,7 @@ export default function AddWalletScreen() {
             <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 42, height: 42, alignItems: "center", justifyContent: "center" }}><TrustIcon color={theme.secondary} name="arrow-left" size={24} /></Pressable>
             <Text style={{ color: theme.text, fontSize: 18, fontWeight: "900" }}>Add existing wallet</Text>
           </View>
-          <Text style={{ color: theme.secondary, fontSize: 12, lineHeight: 18 }}>This testnet build never asks for a recovery phrase or private key.</Text>
+          <Text style={{ color: theme.secondary, fontSize: 12, lineHeight: 18 }}>This simulation never asks for a recovery phrase or private key.</Text>
           <SafeOption icon="eye-outline" label="View-only address" subtitle="Track a public address without signing" onPress={() => router.push("/address-book")} />
           <SafeOption icon="wallet-connect" label="WalletConnect" subtitle="Open the documented connection entry state" onPress={() => router.push("/settings")} />
         </View>
@@ -59,7 +59,7 @@ export default function AddWalletScreen() {
             {error ? "Wallet creation needs attention" : ready ? "Brilliant, your wallet is ready!" : creating ? "Creating your wallet..." : "Create a new wallet"}
           </Text>
           <Text style={{ color: error ? theme.negative : theme.secondary, fontSize: 12, textAlign: "center" }}>
-            {error ?? (ready ? "Add funds to get started" : "Choose a name for this Testnet wallet")}
+            {error ?? (ready ? "Add funds to get started" : "Choose a name for this wallet")}
           </Text>
           {!ready ? <TextInput autoCapitalize="words" editable={!creating} maxLength={80} onChangeText={setName} placeholder="Wallet name" placeholderTextColor={theme.secondary} style={{ width: "100%", height: 48, borderRadius: 15, backgroundColor: theme.surface, color: theme.text, fontSize: 15, fontWeight: "800", paddingHorizontal: 15, textAlign: "center" }} value={name} /> : null}
         </View>

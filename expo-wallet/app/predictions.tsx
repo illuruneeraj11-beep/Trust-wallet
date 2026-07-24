@@ -55,7 +55,7 @@ export default function PredictionsScreen() {
         <SheetModal visible={restrictionSheet} title="Access restricted" subtitle="Prediction markets are unavailable in this recorded regional state." onClose={() => setRestrictionSheet(false)}>
           <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 16, flexDirection: "row", alignItems: "flex-start", gap: 11 }}>
             <TrustIcon color="#a56d00" name="map-marker-alert-outline" size={24} />
-            <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Availability is determined by each provider and local regulations. Testnet never bypasses regional eligibility.</Text>
+            <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>Availability is determined by each provider and local regulations. This simulation never bypasses regional eligibility.</Text>
           </View>
           <Pressable onPress={() => router.push({ pathname: "/dapp-browser", params: { name: "Unsupported regions", url: "https://trustwallet.com/blog/announcements/hyperliquid-hip-4-outcome-contracts-now-live-on-trust-wallet" } })} style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}><Text style={{ color: theme.blue, fontSize: 14, fontWeight: "900" }}>View unsupported regions information</Text></Pressable>
           <Pressable onPress={() => setRestrictionSheet(false)} style={{ height: 54, borderRadius: 27, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "900" }}>Ok, got it</Text></Pressable>
@@ -147,7 +147,7 @@ export default function PredictionsScreen() {
         </Pressable>
       </SheetModal>
 
-      <SheetModal visible={!!selected} title={selected?.title ?? "Prediction market"} subtitle="Testnet market information" onClose={() => setSelected(null)}>
+      <SheetModal visible={!!selected} title={selected?.title ?? "Prediction market"} subtitle="Provider market information" onClose={() => setSelected(null)}>
         {selected ? (
           <View style={{ gap: 12 }}>
             <View style={{ borderRadius: 17, backgroundColor: theme.background, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -157,7 +157,7 @@ export default function PredictionsScreen() {
             <UnavailableMarketData />
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 9 }}>
               <TrustIcon color={theme.secondary} name="map-marker-alert-outline" size={20} />
-              <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 18 }}>Trading and wallet signatures are unavailable on Testnet. Regional eligibility is determined by the selected provider.</Text>
+              <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 18 }}>Trading and wallet signatures are unavailable in this simulation. Regional eligibility is determined by the selected provider.</Text>
             </View>
             <Pressable onPress={() => setSelected(null)} style={{ height: 52, borderRadius: 26, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}>
               <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>Close</Text>
