@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BackHandler, Pressable, ScrollView, Share, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { TokenLogo } from "@/components/trust-assets";
@@ -23,6 +23,7 @@ export default function ReceiveScreen() {
   const [selected, setSelected] = useState<ReceiveSelection | null>(null);
   const [unavailable, setUnavailable] = useState<AssetDefinition | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const initialAssetHandled = useRef(false);
 
   const assets = useMemo(() => assetRegistry.filter((asset) => asset.availability !== "unavailable"), []);
   const popular = useMemo(() => popularIds.map((id) => assets.find((asset) => asset.assetId === id)).filter((asset): asset is AssetDefinition => Boolean(asset)), [assets]);
@@ -47,10 +48,12 @@ export default function ReceiveScreen() {
   }
 
   useEffect(() => {
-    if (!params.assetId || selected || unavailable) return;
+    if (initialAssetHandled.current) return;
+    initialAssetHandled.current = true;
+    if (!params.assetId) return;
     const requested = assets.find((asset) => asset.assetId === params.assetId);
     if (requested) openAsset(requested);
-  }, [assets, params.assetId, selected, unavailable]);
+  }, [assets, params.assetId]);
 
   useEffect(() => {
     if (!selected && !unavailable && !message) return undefined;
