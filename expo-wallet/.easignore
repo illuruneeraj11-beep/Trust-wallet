@@ -5,6 +5,7 @@
 .env.*
 !.env.example
 dist/
+dist-*/
 dist-all/
 dist-native/
 node_modules/
@@ -14,8 +15,11 @@ design-reference/
 design-qa*.png
 android/.gradle/
 android/.cxx/
+android/app/.cxx/
+android/app/.cxx-longpath-backup/
 android/build/
 android/app/build/
+android/.kotlin/
 android/local.properties
 ios/Pods/
 ios/build/

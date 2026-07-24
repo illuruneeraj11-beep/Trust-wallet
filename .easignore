@@ -16,6 +16,7 @@ node_modules/
 /screenshots/
 expo-wallet/node_modules/
 expo-wallet/dist/
+expo-wallet/dist-*/
 expo-wallet/dist-all/
 expo-wallet/dist-native/
 expo-wallet/.expo/
@@ -29,5 +30,15 @@ expo-wallet/design-qa*.png
 expo-wallet/.env
 expo-wallet/.env.*
 !expo-wallet/.env.example
+expo-wallet/android/.gradle/
+expo-wallet/android/.kotlin/
+expo-wallet/android/.cxx/
+expo-wallet/android/app/.cxx/
+expo-wallet/android/app/.cxx-longpath-backup/
+expo-wallet/android/build/
+expo-wallet/android/app/build/
+expo-wallet/android/local.properties
+expo-wallet/ios/Pods/
+expo-wallet/ios/build/
 expo-wallet/*.apk
 expo-wallet/*.aab
