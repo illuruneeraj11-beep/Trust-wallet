@@ -231,7 +231,7 @@ export default function HomeScreen() {
         ))}
       </SheetModal>
       {deletedToast ? (
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: 94, alignItems: "center" }}>
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 94, alignItems: "center", pointerEvents: "none" }}>
           <View style={{ minHeight: 44, borderRadius: 22, backgroundColor: "#858589", paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8 }}><BrandLogo brand="trust-wallet" size={25} /><Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }}>Wallet Deleted</Text></View>
         </View>
       ) : null}

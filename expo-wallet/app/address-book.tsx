@@ -1,30 +1,44 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { AppScreen, SearchInput, SheetModal } from "@/components/trust-ui";
 import { DemoFlowHeader, DemoModeBanner, FlowButton, FlowLabel, FlowTextInput, shortDemoId } from "@/components/demo-wallet-flow-ui";
 import { NetworkLogo } from "@/components/trust-assets";
 import { TrustIcon } from "@/components/trust-icon";
 import { useAppContext } from "@/context/app-context";
+import { assetNetworkName, assetNetworkSlug, canonicalWalletNetwork, walletNetworkName, walletNetworksMatch } from "@/lib/wallet-networks";
 
-type UiAsset = { network?: string; network_code?: string };
+type UiAsset = { id: string; symbol: string; network?: string; network_code?: string; network_slug?: string; network_name?: string };
+type NetworkChoice = { slug: string; name: string };
 
 export default function AddressBookScreen() {
-  const params = useLocalSearchParams<{ mode?: string; asset?: string; amount?: string; note?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; asset?: string; network?: string; amount?: string; note?: string }>();
   const { addAddressBookEntry, addressBook, assets: contextAssets, removeAddressBookEntry, theme } = useAppContext();
   const selecting = params.mode === "select";
-  const networks = useMemo(() => Array.from(new Set((contextAssets as unknown as UiAsset[]).map((asset) => asset.network_code ?? asset.network).filter((value): value is string => Boolean(value)))), [contextAssets]);
+  const assets = contextAssets as unknown as UiAsset[];
+  const networks = useMemo(() => uniqueNetworks(assets), [assets]);
+  const requestedAsset = assets.find((asset) => asset.id === params.asset);
+  const requestedNetwork = canonicalWalletNetwork(params.network || assetNetworkSlug(requestedAsset));
+  const allowedNetworks = useMemo(() => selecting && requestedNetwork
+    ? networks.filter((item) => item.slug === requestedNetwork)
+    : networks, [networks, requestedNetwork, selecting]);
   const [query, setQuery] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [name, setName] = useState("");
   const [recipient, setRecipient] = useState("");
-  const [network, setNetwork] = useState(networks[0] ?? "Testnet");
+  const [network, setNetwork] = useState(requestedNetwork || allowedNetworks[0]?.slug || "");
   const [networkSheet, setNetworkSheet] = useState(false);
-  const rows = useMemo(() => addressBook.filter((entry) => `${entry.name} ${entry.address} ${entry.network}`.toLowerCase().includes(query.trim().toLowerCase())), [addressBook, query]);
+  const selectedNetwork = allowedNetworks.find((item) => item.slug === network) ?? allowedNetworks[0] ?? { slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Testnet" };
+  const rows = useMemo(() => addressBook.filter((entry) => `${entry.name} ${entry.address} ${entry.network}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((entry) => !selecting || !requestedNetwork || walletNetworksMatch(entry.network, requestedNetwork)), [addressBook, query, requestedNetwork, selecting]);
+
+  useEffect(() => {
+    if (!network && allowedNetworks[0]) setNetwork(allowedNetworks[0].slug);
+  }, [allowedNetworks, network]);
 
   function save() {
     if (!name.trim() || !recipient.trim()) return;
-    addAddressBookEntry({ name: name.trim(), network, address: recipient.trim() });
+    addAddressBookEntry({ name: name.trim(), network: selectedNetwork.name, address: recipient.trim() });
     setName("");
     setRecipient("");
     setAddOpen(false);
@@ -32,7 +46,7 @@ export default function AddressBookScreen() {
 
   function selectRecipient(value: string) {
     if (!selecting) return;
-    router.replace({ pathname: "/send", params: { recipient: value, asset: params.asset ?? "", amount: params.amount ?? "", note: params.note ?? "" } });
+    router.replace({ pathname: "/send", params: { recipient: value, asset: params.asset ?? "", network: requestedNetwork, amount: params.amount ?? "", note: params.note ?? "" } });
   }
 
   return (
@@ -76,9 +90,9 @@ export default function AddressBookScreen() {
         <View style={{ gap: 7 }}><FlowLabel>Handle or wallet address</FlowLabel><FlowTextInput onChangeText={setRecipient} placeholder="@handle or wallet address" value={recipient} /></View>
         <View style={{ gap: 7 }}>
           <FlowLabel>Network</FlowLabel>
-          <Pressable onPress={() => setNetworkSheet(true)} style={{ minHeight: 52, borderRadius: 15, backgroundColor: theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <NetworkLogo network={network} size={30} />
-            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{network}</Text>
+          <Pressable accessibilityLabel={`Network, ${selectedNetwork.name}`} accessibilityRole="button" onPress={() => setNetworkSheet(true)} style={{ minHeight: 52, borderRadius: 15, backgroundColor: theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <NetworkLogo network={selectedNetwork.slug} size={30} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{selectedNetwork.name}</Text>
             <TrustIcon color={theme.secondary} name="menu-down" size={18} />
           </Pressable>
         </View>
@@ -86,14 +100,23 @@ export default function AddressBookScreen() {
       </SheetModal>
 
       <SheetModal onClose={() => setNetworkSheet(false)} title="Select network" visible={networkSheet}>
-        {(networks.length ? networks : ["Testnet"]).map((item) => (
-          <Pressable key={item} onPress={() => { setNetwork(item); setNetworkSheet(false); }} style={{ minHeight: 54, borderRadius: 15, backgroundColor: item === network ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <NetworkLogo network={item} size={30} />
-            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{item}</Text>
-            {item === network ? <TrustIcon color={theme.blue} name="check" size={19} /> : null}
+        {(allowedNetworks.length ? allowedNetworks : [{ slug: requestedNetwork || "demo", name: requestedNetwork ? walletNetworkName(requestedNetwork) : "Testnet" }]).map((item) => (
+          <Pressable accessibilityLabel={item.name} accessibilityRole="radio" accessibilityState={{ checked: item.slug === network }} key={item.slug} onPress={() => { setNetwork(item.slug); setNetworkSheet(false); }} style={{ minHeight: 54, borderRadius: 15, backgroundColor: item.slug === network ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <NetworkLogo network={item.slug} size={30} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "900" }}>{item.name}</Text>
+            {item.slug === network ? <TrustIcon color={theme.blue} name="check" size={19} /> : null}
           </Pressable>
         ))}
       </SheetModal>
     </>
   );
+}
+
+function uniqueNetworks(assets: UiAsset[]): NetworkChoice[] {
+  const choices = new Map<string, NetworkChoice>();
+  for (const asset of assets) {
+    const slug = assetNetworkSlug(asset);
+    if (slug && !choices.has(slug)) choices.set(slug, { slug, name: assetNetworkName(asset) });
+  }
+  return Array.from(choices.values());
 }

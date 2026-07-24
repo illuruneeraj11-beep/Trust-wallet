@@ -4,6 +4,19 @@ async function main() {
   process.env.EXPO_PUBLIC_WALLET_MODE = "visual-demo";
   const ledger = await import("../src/services/wallet-ledger");
   const { parseWalletQr } = await import("../src/lib/wallet-qr");
+  const { sanitizeStoredWalletPreferences } = await import("../src/lib/wallet-preferences");
+  const { canonicalWalletNetwork, findAssetVariant, walletNetworkName, walletNetworksMatch } = await import("../src/lib/wallet-networks");
+
+  const savedAddress = "0x1111111111111111111111111111111111111111";
+  const sanitizedPreferences = sanitizeStoredWalletPreferences({
+    trustedHandle: "legacy-owner",
+    addressBook: [
+      { id: "addr-2", name: "Legacy placeholder", network: "Ethereum", address: "0x123...789" },
+      { id: "user-contact", name: "Saved contact", network: "Ethereum", address: savedAddress },
+    ],
+  });
+  assert.equal("trustedHandle" in sanitizedPreferences, false, "legacy bundled identity must not survive preference migration");
+  assert.deepEqual(sanitizedPreferences.addressBook, [{ id: "user-contact", name: "Saved contact", network: "Ethereum", address: savedAddress }], "legacy placeholder contacts must be removed without deleting user contacts");
 
   assert.deepEqual(parseWalletQr("trust-testnet://receive?address=demo_eth_receiver123&network=ethereum&asset=USDT&amount=12.5"), {
     recipient: "demo_eth_receiver123",
@@ -20,6 +33,18 @@ async function main() {
   const sender = initial.wallets[0];
   assert.ok(sender, "a primary wallet must exist");
   assert.equal(initial.assets.length, 12, "the transfer registry must expose all 12 supported testnet assets");
+  assert.equal(canonicalWalletNetwork("BNB Smart Chain"), "bsc");
+  assert.equal(walletNetworkName("bsc"), "BNB Smart Chain");
+  assert.equal(walletNetworksMatch("ETH", "Ethereum"), true);
+  assert.equal(findAssetVariant(initial.assets, "USDT", "BNB Smart Chain")?.code, "bsc:USDT", "asset selection must preserve the requested network variant");
+  assert.equal(findAssetVariant(initial.assets, "ethereum-usdt", "BNB Smart Chain"), undefined, "an exact asset ID must never silently cross networks");
+  assert.equal(findAssetVariant(initial.assets, "USDT", "BNB Smart Chain")?.code, "bsc:USDT", "QR return by symbol and network must select the exact compatible variant");
+  assert.equal(ledger.looksLikeRecipientAddress("0x1111111111111111111111111111111111111111", "ethereum"), true);
+  assert.equal(ledger.looksLikeRecipientAddress("0x2222222222222222222222222222222222222222", "bsc"), true);
+  assert.equal(ledger.looksLikeRecipientAddress("bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", "bitcoin"), true);
+  assert.equal(ledger.looksLikeRecipientAddress("11111111111111111111111111111111", "solana"), true);
+  assert.equal(ledger.looksLikeRecipientAddress("T111111111111111111111111111111111", "tron"), true);
+  assert.equal(ledger.looksLikeRecipientAddress("0x1234", "ethereum"), false);
 
   const walletKey = "contract-wallet-create";
   const recipient = await ledger.createWallet("Savings", walletKey);
@@ -84,6 +109,30 @@ async function main() {
 
   await assert.rejects(ledger.fundDemoWallet({ walletId: sender.id, assetId: usdt.id, amount: "2", idempotencyKey: `contract-fund-${usdt.id}` }), /different transaction/);
   await assert.rejects(ledger.sendDemoTransfer({ fromWalletId: sender.id, recipient: recipient.id, assetId: usdt.id, amount: "8", note: `Move ${usdt.code}`, idempotencyKey: `contract-transfer-${usdt.id}` }), /different transaction/);
+
+  const externalAddress = "0x3333333333333333333333333333333333333333";
+  const externalAmount = "1.25";
+  const externalAmountUnits = BigInt(ledger.decimalToBaseUnits(externalAmount, usdt.decimals));
+  const senderBeforeExternal = balanceUnits(await ledger.getPortfolio(), sender.id, usdt.id);
+  const sinkBeforeExternal = BigInt(ledger.getVisualExternalSettlementUnits(usdt.id));
+  const externalRequest = {
+    fromWalletId: sender.id,
+    recipient: externalAddress,
+    assetId: usdt.id,
+    amount: externalAmount,
+    note: "External settlement",
+    idempotencyKey: "contract-external-usdt",
+  };
+  const externalTransfer = await ledger.sendDemoTransfer(externalRequest);
+  const externalReplay = await ledger.sendDemoTransfer(externalRequest);
+  assert.equal(externalReplay.transaction_id, externalTransfer.transaction_id, "external transfer retries must return the original receipt");
+  assert.equal(externalTransfer.transfer?.direction, "outgoing");
+  assert.equal(externalTransfer.transfer?.to_wallet_id, null);
+  assert.equal(externalTransfer.transfer?.counterparty_display_name, "External wallet");
+  assert.equal(externalTransfer.transfer?.counterparty_address, externalAddress);
+  assert.equal(senderBeforeExternal - balanceUnits(await ledger.getPortfolio(), sender.id, usdt.id), externalAmountUnits, "external sender debit must be exact");
+  assert.equal(BigInt(ledger.getVisualExternalSettlementUnits(usdt.id)) - sinkBeforeExternal, externalAmountUnits, "external settlement credit must match the sender debit");
+
   await assert.rejects(ledger.archiveWallet(recipient.id), /Move all balances/);
   await ledger.archiveWallet(disposable.id);
 
@@ -93,7 +142,29 @@ async function main() {
   }
   assert.equal(new Set(activity.map((item) => item.transaction_id)).size, activity.length, "activity transaction IDs must be unique");
 
-  console.log("Wallet contract OK: 3 wallets, 12 assets, billion-scale funding, address transfers, exact conservation, replay safety, validation, and archive guards.");
+  const usd = initial.assets.find((asset) => asset.code === "demo:USD");
+  assert.ok(usd, "Demo USD must exist");
+  const historyStartBalance = balanceUnits(await ledger.getPortfolio(), sender.id, usd.id);
+  const historyStartSink = BigInt(ledger.getVisualExternalSettlementUnits(usd.id));
+  for (let index = 0; index < ledger.MAX_ACTIVITY_ITEMS; index += 1) {
+    await ledger.sendDemoTransfer({
+      fromWalletId: sender.id,
+      recipient: "demo_external_history_sink",
+      assetId: usd.id,
+      amount: "0.01",
+      idempotencyKey: `contract-history-${index.toString().padStart(3, "0")}`,
+    });
+  }
+  const longHistory = await ledger.listTransfers();
+  const historyUnits = BigInt(ledger.MAX_ACTIVITY_ITEMS);
+  const generatedHistory = longHistory.filter((item) => item.id.startsWith("visual-transfer-") && item.counterparty_address === "demo_external_history_sink");
+  assert.ok(longHistory.length >= ledger.MAX_ACTIVITY_ITEMS, "the client must retain at least 500 activity records");
+  assert.equal(generatedHistory.length, ledger.MAX_ACTIVITY_ITEMS, "the latest 500 records for the sender wallet must remain available");
+  assert.equal(generatedHistory.every((item) => item.from_wallet_id === sender.id), true, "the 500-item activity test must remain attributable to the sender wallet");
+  assert.equal(historyStartBalance - balanceUnits(await ledger.getPortfolio(), sender.id, usd.id), historyUnits, "500 external sends must debit exactly 500 cents");
+  assert.equal(BigInt(ledger.getVisualExternalSettlementUnits(usd.id)) - historyStartSink, historyUnits, "500 external sends must credit exactly 500 cents to settlement");
+
+  console.log("Wallet contract OK: 3 wallets, 12 assets, billion-scale funding, registered and external address transfers, exact conservation, replay safety, validation, archive guards, and 500-item activity.");
 }
 
 function balanceUnits(portfolio: Awaited<ReturnType<typeof import("../src/services/wallet-ledger")["getPortfolio"]>>, walletId: string, assetId: string) {

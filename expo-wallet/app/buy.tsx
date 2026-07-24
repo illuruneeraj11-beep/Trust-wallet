@@ -25,6 +25,11 @@ export default function BuyScreen() {
   const cryptoAmount = quote?.price && numericAmount > 0 ? numericAmount / quote.price : null;
   const canContinue = tab === "Buy" && numericAmount > 0 && Boolean(quote?.price);
 
+  const cryptoFundingAmount = useMemo(() => {
+    if (cryptoAmount === null || !Number.isFinite(cryptoAmount) || cryptoAmount <= 0) return null;
+    return cryptoAmount.toFixed(8).replace(/\.?0+$/, "");
+  }, [cryptoAmount]);
+
   const cryptoLabel = useMemo(() => {
     if (cryptoAmount === null) return "Live quote unavailable";
     if (cryptoAmount >= 1) return cryptoAmount.toLocaleString("en-US", { maximumFractionDigits: 6 });
@@ -39,8 +44,18 @@ export default function BuyScreen() {
     setAmount((value) => {
       if (key === "." && value.includes(".")) return value;
       if (value === "0" && key !== ".") return key;
-      if (value.length >= 9) return value;
+      if (value.length >= 15) return value;
       return `${value}${key}`;
+    });
+  }
+
+  function openTestFunding() {
+    setSheet(null);
+    router.push({
+      pathname: "/fund",
+      params: cryptoFundingAmount
+        ? { amount: cryptoFundingAmount, symbol: asset.symbol }
+        : { symbol: asset.symbol },
     });
   }
 
@@ -157,7 +172,17 @@ export default function BuyScreen() {
           <TrustIcon color={theme.blue} name="shield-check-outline" size={29} />
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>No card details, payment, deposit, wallet signature, or seed phrase is requested.</Text>
         </View>
-        <Pressable onPress={() => setSheet(null)} style={{ height: 54, borderRadius: 27, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "900" }}>Close</Text></Pressable>
+        <Pressable
+          accessibilityLabel={`Add test funds for ${asset.symbol}`}
+          accessibilityRole="button"
+          onPress={openTestFunding}
+          style={{ height: 54, borderRadius: 27, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "900" }}>Add test funds</Text>
+        </Pressable>
+        <Pressable accessibilityLabel="Close payment options" accessibilityRole="button" onPress={() => setSheet(null)} style={{ height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: theme.text, fontSize: 16, fontWeight: "800" }}>Close</Text>
+        </Pressable>
       </SheetModal>
     </>
   );

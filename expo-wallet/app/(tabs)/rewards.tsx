@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, BackHandler, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { AppScreen, SearchInput, SheetModal } from "@/components/trust-ui";
 import { TrustIcon } from "@/components/trust-icon";
 import { MiniSparkline, ProviderBadge } from "@/components/secondary-flow-ui";
@@ -39,6 +39,21 @@ export default function PerpsTabScreen() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [sheet, setSheet] = useState<SheetState>(null);
   const [selectedMarket, setSelectedMarket] = useState<PerpsMarketItem | null>(null);
+
+  useEffect(() => {
+    if (!sheet && !searchOpen) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (sheet) {
+        setSheet(null);
+        setSelectedMarket(null);
+      } else {
+        setSearchOpen(false);
+        setQuery("");
+      }
+      return true;
+    });
+    return () => subscription.remove();
+  }, [searchOpen, sheet]);
 
   const visibleMarkets = useMemo(() => {
     const term = query.trim().toLowerCase();

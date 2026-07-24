@@ -21,6 +21,8 @@ export default function DappBrowserScreen() {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [sheet, setSheet] = useState<"blocked" | "menu" | "connect" | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(true);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const navigate = (next: DappDefinition) => {
     const nextHistory = history.slice(0, historyIndex + 1).concat(next);
@@ -126,6 +128,45 @@ export default function DappBrowserScreen() {
           <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 18 }}>Unknown URLs are never loaded. Only curated HTTPS entries can be opened.</Text>
         </View>
         <PrimaryButton label="Close" onPress={() => setSheet(null)} />
+      </SheetModal>
+
+      <SheetModal
+        visible={disclaimerOpen}
+        title="Before you continue"
+        subtitle="Third-party dApps are not controlled by Trust Wallet."
+        onClose={() => router.back()}
+      >
+        <View style={{ borderRadius: 18, backgroundColor: theme.background, padding: 15, gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 11 }}>
+            <TrustIcon color={theme.blue} name="shield-alert-outline" size={25} />
+            <Text style={{ flex: 1, color: theme.secondary, fontSize: 13, lineHeight: 19 }}>
+              Check the domain and every permission. This comparison build keeps connections, signatures, and transactions disabled.
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="I understand the risks"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: disclaimerAccepted }}
+            onPress={() => setDisclaimerAccepted((value) => !value)}
+            style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10 }}
+          >
+            <TrustIcon color={disclaimerAccepted ? theme.blue : theme.secondary} name={disclaimerAccepted ? "checkbox-marked" : "checkbox-blank-outline"} size={25} />
+            <Text style={{ flex: 1, color: theme.text, fontSize: 14, fontWeight: "700" }}>I understand the risks of third-party dApps.</Text>
+          </Pressable>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Pressable onPress={() => router.back()} style={{ flex: 1, height: 52, borderRadius: 26, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: theme.text, fontSize: 16, fontWeight: "800" }}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            accessibilityState={{ disabled: !disclaimerAccepted }}
+            disabled={!disclaimerAccepted}
+            onPress={() => setDisclaimerOpen(false)}
+            style={{ flex: 1, height: 52, borderRadius: 26, backgroundColor: theme.blue, opacity: disclaimerAccepted ? 1 : 0.35, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>Confirm</Text>
+          </Pressable>
+        </View>
       </SheetModal>
 
       <SheetModal visible={sheet === "connect"} title="Connection disabled" subtitle="Wallet data and signatures are unavailable on Testnet." onClose={() => setSheet(null)}>

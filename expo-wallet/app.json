@@ -3,20 +3,20 @@
     "name": "Trust Wallet Testnet",
     "slug": "trust-wallet-testnet",
     "scheme": "trustwallettestnet",
-    "version": "0.3.0",
+    "version": "0.3.2",
     "icon": "./assets/brands/trust-wallet-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.arunn7.trustwallet.testnet",
+      "bundleIdentifier": "com.tommy7s.trustwallet.testnet",
       "icon": "./assets/brands/trust-wallet-icon.png"
     },
     "android": {
-      "package": "com.arunn7.trustwallet.testnet",
-      "versionCode": 12,
+      "package": "com.tommy7s.trustwallet.testnet",
+      "versionCode": 14,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brands/trust-wallet-icon.png",
+        "foregroundImage": "./assets/brands/trust-wallet-adaptive-foreground.png",
         "backgroundColor": "#f4f4f7"
       },
       "permissions": [

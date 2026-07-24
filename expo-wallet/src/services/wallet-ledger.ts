@@ -458,6 +458,14 @@ export async function getDemoActivity(cursor: string | null = null, limit = 30, 
   return normalizeActivity(await rpc("get_activity", { p_cursor: cursor, p_limit: limit }), assets);
 }
 
+export async function getWalletActivity(walletId: string, cursor: string | null = null, limit = 100, assets: MockAsset[] = []) {
+  return normalizeActivity(await rpc("get_wallet_activity", {
+    p_wallet_id: walletId,
+    p_cursor: cursor,
+    p_limit: limit,
+  }), assets);
+}
+
 export async function getDemoTransaction(transactionId: string, assets: MockAsset[] = []) {
   return normalizeReceipt(await rpc("get_transaction", { p_transaction_id: transactionId }), assets);
 }
@@ -478,6 +486,9 @@ const demoAssets: MockAsset[] = [
 ];
 
 const demoTimestamp = "2026-07-18T12:00:00.000Z";
+export const MAX_ACTIVITY_ITEMS_PER_WALLET = 500;
+export const MAX_ACTIVITY_ITEMS = MAX_ACTIVITY_ITEMS_PER_WALLET;
+const ACTIVITY_PAGE_SIZE = 100;
 
 function demoBalance(walletId: string, asset: MockAsset, amount: string): MockWalletBalance {
   const units = /^0(?:\.0+)?$/.test(amount) ? "0" : decimalToBaseUnits(amount, asset.decimals);
@@ -530,6 +541,7 @@ const demoWallets: WalletWithBalances[] = [
 
 let demoTransfers: MockTransfer[] = [];
 let demoMutationSequence = 0;
+const demoExternalSettlementUnits = new Map<string, bigint>();
 const demoReceiptsByIdempotencyKey = new Map<string, { request: string; receipt: DemoTransactionReceipt }>();
 const demoWalletsByIdempotencyKey = new Map<string, { request: string; wallet: WalletWithBalances }>();
 type ConnectedTransferIntent = { request: string; quoteId: string };
@@ -699,9 +711,49 @@ export async function archiveWallet(walletId: string) {
 }
 
 export async function listTransfers() {
-  if (walletRuntimeMode === "visual-demo") return demoTransfers.map((item) => ({ ...item }));
+  if (walletRuntimeMode === "visual-demo") {
+    const visibleIds = new Set<string>();
+    for (const wallet of demoWallets) {
+      let count = 0;
+      for (const transfer of demoTransfers) {
+        if (transfer.from_wallet_id !== wallet.id && transfer.to_wallet_id !== wallet.id) continue;
+        visibleIds.add(transfer.id);
+        count += 1;
+        if (count >= MAX_ACTIVITY_ITEMS_PER_WALLET) break;
+      }
+    }
+    return demoTransfers.filter((item) => visibleIds.has(item.id)).map((item) => ({ ...item }));
+  }
   const portfolio = await getDemoPortfolio();
-  return (await getDemoActivity(null, 50, portfolio.assets)).items;
+  const perWallet = await Promise.all(portfolio.wallets.map(async (wallet) => {
+    const transfers: MockTransfer[] = [];
+    let cursor: string | null = null;
+    while (transfers.length < MAX_ACTIVITY_ITEMS_PER_WALLET) {
+      const page = await getWalletActivity(
+        wallet.id,
+        cursor,
+        Math.min(ACTIVITY_PAGE_SIZE, MAX_ACTIVITY_ITEMS_PER_WALLET - transfers.length),
+        portfolio.assets,
+      );
+      transfers.push(...page.items);
+      if (!page.next_cursor || page.next_cursor === cursor || !page.items.length) break;
+      cursor = page.next_cursor;
+    }
+    return transfers;
+  }));
+  const unique = new Map<string, MockTransfer>();
+  for (const transfers of perWallet) {
+    for (const transfer of transfers) {
+      if (!unique.has(transfer.id)) {
+        unique.set(transfer.id, transfer);
+      }
+    }
+  }
+
+  return Array.from(unique.values()).sort((left, right) => {
+    const byTime = Date.parse(right.created_at) - Date.parse(left.created_at);
+    return byTime || right.id.localeCompare(left.id);
+  });
 }
 
 export async function fundDemoWallet(params: FundDemoWalletInput) {
@@ -774,30 +826,49 @@ export async function resolveRecipient(query: string, assetId?: string) {
     }
     return {
       recipient_token: "00000000-0000-4000-8000-000000000002",
-      display_name: ownWallet?.name ?? handle ?? "Recipient",
+      display_name: ownWallet?.name ?? handle ?? "External wallet",
       handle,
       address: handle ? null : ownWallet?.addresses.find((address) => address.network_slug === asset.network_slug)?.address ?? recipientInput,
       network_slug: asset.network_slug,
       expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+      is_external: !ownWallet && !handle,
     } satisfies ResolvedRecipient;
   }
-  return resolveDemoRecipient(query, asset.network_slug);
+  try {
+    return await resolveDemoRecipient(query, asset.network_slug);
+  } catch (error) {
+    const recipientInput = query.trim();
+    const message = error instanceof Error ? error.message : "";
+    if (looksLikeRecipientAddress(recipientInput, asset.network_slug) && /recipient.*not found/i.test(message)) {
+      return {
+        recipient_token: "",
+        display_name: "External wallet",
+        handle: null,
+        address: recipientInput,
+        network_slug: asset.network_slug,
+        expires_at: null,
+        is_external: true,
+      } satisfies ResolvedRecipient;
+    }
+    throw error;
+  }
 }
 
-function looksLikeRecipientAddress(value: string, networkSlug: string) {
-  if (/^demo_[a-z0-9_]{8,}$/i.test(value)) return true;
+export function looksLikeRecipientAddress(value: string, networkSlug: string) {
   switch (networkSlug.toLowerCase()) {
     case "ethereum":
+      return /^0x[a-f0-9]{40}$/i.test(value) || /^demo_(?:eth|ethereum)_[a-z0-9_]{8,}$/i.test(value);
     case "bsc":
-      return /^0x[a-f0-9]{40}$/i.test(value);
+      return /^0x[a-f0-9]{40}$/i.test(value) || /^demo_bsc_[a-z0-9_]{8,}$/i.test(value);
     case "bitcoin":
-      return /^(?:bc1[ac-hj-np-z02-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(value);
+      return /^(?:bc1[ac-hj-np-z02-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(value)
+        || /^demo_(?:btc|bitcoin)_[a-z0-9_]{8,}$/i.test(value);
     case "solana":
-      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value) || /^demo_(?:sol|solana)_[a-z0-9_]{8,}$/i.test(value);
     case "tron":
-      return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value);
+      return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value) || /^demo_(?:trx|tron)_[a-z0-9_]{8,}$/i.test(value);
     case "demo":
-      return /^demo_[a-z0-9_]{8,}$/i.test(value);
+      return /^demo_(?:usd|demo|external)_[a-z0-9_]{8,}$/i.test(value);
     default:
       return false;
   }
@@ -833,7 +904,14 @@ export async function sendDemoTransfer(params: SendDemoTransferInput): Promise<D
       throw new WalletLedgerError("Choose a different destination wallet.", "SAME_WALLET");
     }
     mutateDemoBalance(params.fromWalletId, asset, `-${amountUnits}`);
-    if (destination) mutateDemoBalance(destination.id, asset, amountUnits);
+    if (destination) {
+      mutateDemoBalance(destination.id, asset, amountUnits);
+    } else {
+      demoExternalSettlementUnits.set(
+        asset.id,
+        (demoExternalSettlementUnits.get(asset.id) ?? 0n) + BigInt(amountUnits),
+      );
+    }
     const createdAt = new Date().toISOString();
     const id = demoUniqueId("visual-transfer");
     const transfer: MockTransfer = {
@@ -899,14 +977,33 @@ export async function sendDemoTransfer(params: SendDemoTransferInput): Promise<D
   if (intent && intent.request !== request) {
     throw new WalletLedgerError("That retry key was already used for a different transfer.", "IDEMPOTENCY_CONFLICT");
   }
+  if (intent) {
+    return submitDemoTransfer({ quoteId: intent.quoteId, idempotencyKey, note: params.note });
+  }
+
+  const resolvedRecipient = await resolveRecipient(recipientInput, asset.id);
+  if (resolvedRecipient.is_external || !resolvedRecipient.recipient_token) {
+    return normalizeReceipt(await rpc("send_to_external_address", {
+      p_from_wallet_id: params.fromWalletId,
+      p_recipient_address: recipientInput,
+      p_asset_code: asset.code,
+      p_amount_units: positiveUnits(amountUnits),
+      p_idempotency_key: idempotencyKey,
+      p_note: params.note?.trim() || null,
+    }), portfolio.assets);
+  }
+
   if (!intent) {
-    const recipient = await resolveRecipient(recipientInput, asset.id);
-    const quote = await createDemoTransferQuote({ fromWalletId: params.fromWalletId, recipient, asset, assets: portfolio.assets, amountUnits });
+    const quote = await createDemoTransferQuote({ fromWalletId: params.fromWalletId, recipient: resolvedRecipient, asset, assets: portfolio.assets, amountUnits });
     intent = { request, quoteId: quote.quote_id };
     await saveConnectedTransferIntent(intentCacheKey, intent);
   }
   const receipt = await submitDemoTransfer({ quoteId: intent.quoteId, idempotencyKey, note: params.note });
   return receipt;
+}
+
+export function getVisualExternalSettlementUnits(assetId: string) {
+  return (demoExternalSettlementUnits.get(assetId) ?? 0n).toString();
 }
 
 export async function clearTransferRecoveryIntent(idempotencyKey: string) {

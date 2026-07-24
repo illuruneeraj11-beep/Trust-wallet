@@ -9,6 +9,7 @@ expo-wallet/.env
 expo-wallet/.env.*
 !expo-wallet/.env.example
 expo-wallet/.expo/
+expo-wallet/android/
 expo-wallet/dist/
 expo-wallet/dist-check*/
 apk_outputs/
@@ -20,10 +21,11 @@ expo-wallet/audit-*/
 expo-wallet/design-qa*
 expo-wallet/design-reference/
 expo-wallet/dist-all/
-expo-wallet/dist-native/
+expo-wallet/dist-native*/
 expo-wallet/output/
 .local-tools/
 supabase/.temp/
+supabase/.branches/
 
 # 1. Ignore all reference screenshots and media
 screenshots/

@@ -146,12 +146,6 @@ export const rewardRedeemItems: RewardRedeemItem[] = [
   { id: "redeem-3", title: "Exclusive Trust merch drop", partner: "Trust Wallet", cost: 1200 },
 ];
 
-export const addressBookSeed: AddressBookEntry[] = [
-  { id: "addr-1", name: "Binance Hot Wallet", network: "BNB Smart Chain", address: "0x93d7E8F4...087A15" },
-  { id: "addr-2", name: "Arun Savings", network: "Ethereum", address: "0x1245A7c1...A87109" },
-  { id: "addr-3", name: "Solana Laptop", network: "Solana", address: "7zwDZqJj3...TCjtGS" },
-];
-
 export const networkOptions: NetworkItem[] = [
   { id: "btc", name: "Bitcoin", symbol: "BTC", popular: true },
   { id: "eth", name: "Ethereum", symbol: "ETH", popular: true },

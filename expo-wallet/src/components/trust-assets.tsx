@@ -7,6 +7,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { TrustBrandIcon, type TrustBrandIconName, TrustIcon } from "@/components/trust-icon";
 import { useAppContext } from "@/context/app-context";
 
@@ -138,6 +139,7 @@ const bundledDapps: Record<string, ImageSourcePropType> = {
   ORIGAMIFINANCE: require("../../assets/dapps/DAPP_Origami.png"),
   PANCAKESWAP: require("../../assets/dapps/DAPP_PancakeSwap.png"),
   PANCAKESWAPAMMV1: require("../../assets/dapps/DAPP_PancakeSwap.png"),
+  PANCAKESWAPAMMV3: require("../../assets/dapps/DAPP_PancakeSwap.png"),
   PANCAKESWAPPERPS: require("../../assets/dapps/DAPP_PancakeSwap.png"),
   PANCAKESWAPPREDICTION: require("../../assets/dapps/DAPP_PancakeSwap.png"),
   PENDLE: require("../../assets/dapps/DAPP_Pendle.png"),
@@ -208,8 +210,8 @@ const bundledNetworks: Record<string, ImageSourcePropType> = {
 // Native coins use the larger chain artwork bundled with the app. The token
 // thumbnails below are useful for provider-specific assets, but several native
 // coin files are only 96px exports and become visibly soft on high-density
-// phones. Ethereum's current Trust Wallet mark matches CoinMarketCap's blue
-// native-coin artwork, so load the 512px provider original instead.
+// phones. Ethereum is rendered as a licensed vector below so it keeps the blue
+// circular treatment visible in the recordings at every device density.
 const bundledNativeTokens: Record<string, ImageSourcePropType> = {
   AVAX: bundledNetworks.AVALANCHECCHAIN,
   BNB: bundledNetworks.BNBSMARTCHAIN,
@@ -226,7 +228,6 @@ const bundledNativeTokens: Record<string, ImageSourcePropType> = {
 
 const nativeTokenUris: Record<string, string> = {
   BTC: `${TRUST_ASSET_ROOT}/blockchains/bitcoin/info/logo.png`,
-  ETH: "https://s2.coinmarketcap.com/static/img/coins/128x128/1027.png",
 };
 
 const nativeTokenSlugs: Record<string, string> = {
@@ -371,7 +372,13 @@ export function TokenLogo({ symbol, network, uri, size = 48, style }: TokenLogoP
 
   return (
     <View style={[{ width: size, height: size }, style]}>
-      <LogoFrame fallbackSource={contractUri || nativeUri ? bundledSource : undefined} source={source} size={size} fallback="unavailable" />
+      {key === "ETH" ? (
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#627eea", alignItems: "center", justifyContent: "center" }}>
+          <TrustIcon color="#ffffff" name="ethereum" size={Math.round(size * 0.68)} />
+        </View>
+      ) : (
+        <LogoFrame fallbackSource={contractUri || nativeUri ? bundledSource : undefined} source={source} size={size} fallback="unavailable" />
+      )}
       {showNetworkBadge ? (
         <View
           style={{
@@ -400,7 +407,7 @@ export function NetworkLogo({ network, size = 48, style }: LogoProps & { network
   const key = normalizeKey(network);
   const canonicalKey = key === "BTC" ? "BITCOIN"
     : key === "ETH" ? "ETHEREUM"
-      : key === "BNB" || key === "SMARTCHAIN" ? "BNBSMARTCHAIN"
+      : key === "BNB" || key === "BSC" || key === "SMARTCHAIN" ? "BNBSMARTCHAIN"
         : key === "SOL" ? "SOLANA"
           : key === "TRX" ? "TRON"
             : key === "ZEC" ? "ZCASH"
@@ -409,18 +416,33 @@ export function NetworkLogo({ network, size = 48, style }: LogoProps & { network
     ? bundledTokens.BTC
     : key in { ETH: true, ETHEREUM: true }
       ? bundledTokens.ETH
-      : key in { BNB: true, BNBSMARTCHAIN: true, SMARTCHAIN: true }
+      : key in { BNB: true, BSC: true, BNBSMARTCHAIN: true, SMARTCHAIN: true }
         ? bundledTokens.BNB
         : key in { SOL: true, SOLANA: true }
           ? bundledTokens.SOL
           : undefined);
   const slug = networkSlugs[key];
-  const ethereumUri = canonicalKey === "ETHEREUM" ? nativeTokenUris.ETH : undefined;
-  const source = ethereumUri ? { uri: ethereumUri } : localSource ?? (slug ? { uri: `${TRUST_ASSET_ROOT}/blockchains/${slug}/info/logo.png` } : undefined);
+  const source = localSource ?? (slug ? { uri: `${TRUST_ASSET_ROOT}/blockchains/${slug}/info/logo.png` } : undefined);
+
+  if (canonicalKey === "ETHEREUM") {
+    return (
+      <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#627eea", alignItems: "center", justifyContent: "center" }, style]}>
+        <TrustIcon color="#ffffff" name="ethereum" size={Math.round(size * 0.68)} />
+      </View>
+    );
+  }
+
+  if (canonicalKey === "DEMO" || canonicalKey === "TESTNET") {
+    return (
+      <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#ecebff", alignItems: "center", justifyContent: "center" }, style]}>
+        <TrustIcon color="#1514ff" name="flask-outline" size={Math.round(size * 0.58)} />
+      </View>
+    );
+  }
 
   return (
     <View style={style}>
-      <LogoFrame fallbackSource={ethereumUri ? localSource : undefined} source={source} size={size} radius={Math.round(size * 0.24)} fallback="unavailable" />
+      <LogoFrame source={source} size={size} radius={Math.round(size * 0.24)} fallback="unavailable" />
     </View>
   );
 }
@@ -454,17 +476,36 @@ const brandGlyphs: Partial<Record<BrandName, TrustBrandIconName>> = {
   visa: "visa",
   mastercard: "mastercard",
   "google-pay": "google-pay",
-  coinbase: "coinbase",
 };
 
 const brandGlyphColors: Partial<Record<BrandName, string>> = {
   visa: "#1434cb",
   mastercard: "#eb001b",
   "google-pay": "#3c4043",
-  coinbase: "#0052ff",
 };
 
 export function BrandLogo({ brand, size = 48, style }: LogoProps & { brand: BrandName }) {
+  if (brand === "binance") {
+    return (
+      <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#0b0d10", alignItems: "center", justifyContent: "center" }, style]}>
+        <Image source={bundledBrands.BINANCE} resizeMode="contain" style={{ width: Math.round(size * 0.64), height: Math.round(size * 0.64) }} />
+      </View>
+    );
+  }
+
+  if (brand === "coinbase") {
+    return (
+      <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#1652f0", alignItems: "center", justifyContent: "center" }, style]}>
+        <Svg accessibilityLabel="Coinbase" height={size} viewBox="0 0 40 40" width={size}>
+          <Path
+            d="M20.032 28.5c-4.705 0-8.516-3.804-8.516-8.5s3.81-8.5 8.516-8.5a8.51 8.51 0 0 1 8.388 7.083H37C36.276 9.857 28.96 3 20.032 3 10.629 3 3 10.615 3 20s7.629 17 17.032 17C28.959 37 36.276 30.143 37 21.417h-8.58a8.51 8.51 0 0 1-8.388 7.083"
+            fill="#ffffff"
+          />
+        </Svg>
+      </View>
+    );
+  }
+
   const bundledBrandSource = brand === "visa"
     ? bundledBrands.VISA
     : brand === "mastercard"
@@ -492,15 +533,13 @@ export function BrandLogo({ brand, size = 48, style }: LogoProps & { brand: Bran
     );
   }
 
-  const source: ImageSourcePropType | undefined = brand === "binance"
-    ? bundledBrands.BINANCE
-    : brand === "hyperliquid"
+  const source: ImageSourcePropType | undefined = brand === "hyperliquid"
       ? bundledNetworks.HYPERLIQUID
       : brand === "aster"
         ? { uri: contractTokenUris.ASTER }
-    : brand === "walletconnect"
-            ? bundledBrands.WALLETCONNECT
-            : undefined;
+        : brand === "walletconnect"
+          ? bundledBrands.WALLETCONNECT
+          : undefined;
 
   return (
     <View style={style}>

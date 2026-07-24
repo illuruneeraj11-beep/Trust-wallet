@@ -34,11 +34,12 @@
       <div class="side-note">Generated from the repository, fresh automated checks, production API probes, Supabase audit results, and existing visual QA evidence on July 19, 2026.</div>
     </aside>
     <main>
+      <div class="banner" role="status"><span class="label">Superseded</span><div><strong>This July 19 guide is historical.</strong> It predates the verified universal internal-QA APK and the native 4-billion-USDT stress run. Use <a href="trust-wallet-apk-readiness-report.html">the current readiness report</a> for download metadata, evidence, and next steps.</div></div>
       <header id="status">
         <p class="eyebrow">Release handoff</p>
         <h1>Code-complete locally.<br>Signed APK still blocked.</h1>
         <p class="lede">The project bundles for Android and its wallet/market contracts pass. Do not download or share an APK yet: the signed-in Expo account cannot access the configured EAS project, so a signed build and the required two-phone acceptance run do not exist.</p>
-        <div class="banner" role="status"><span class="label">Do not download yet</span><div><strong>One owner decision unlocks the signed build.</strong> Log in to the Expo account that owns project <code>463c7e8a-2dbd-4ba2-9203-46d4e297bc10</code>, or intentionally relink the app to an EAS project you control. Then build the Preview APK and complete the physical checklist below.</div></div>
+        <div class="banner" role="status"><span class="label">Production signing blocked</span><div><strong>An internal debug-signed APK now exists, but an EAS/production-signed build still needs the project owner.</strong> Obtain access to project <code>8344d88c-423d-4f81-9fee-79c5296fa195</code>, or intentionally relink the app to an EAS project you control.</div></div>
       </header>
 
       <section>
@@ -46,7 +47,7 @@
         <div class="grid three">
           <article class="card"><span class="pill pass">Passed</span><h3>Code and packages</h3><span class="metric">20 / 20</span><p class="muted">Expo Doctor checks passed. Expo dependencies are aligned and direct packages are installed.</p></article>
           <article class="card"><span class="pill pass">Passed</span><h3>Wallet contract</h3><span class="metric">12 assets</span><p class="muted">Funding, transfers, conservation, fees, replay guards, validation, and archive guards pass in the deterministic suite.</p></article>
-          <article class="card"><span class="pill block">Blocked</span><h3>Signed Android build</h3><span class="metric">0 APK</span><p class="muted">The current Expo user cannot access the EAS project or its signing credentials.</p></article>
+          <article class="card"><span class="pill warn">Internal only</span><h3>Android build</h3><span class="metric">1 QA APK</span><p class="muted">A debug-signed universal APK exists; the current Expo user still cannot access EAS production signing credentials.</p></article>
         </div>
       </section>
 
@@ -85,7 +86,7 @@
       <section id="blockers">
         <p class="eyebrow">Acceptance blockers</p><h2>What is still lacking before sharing</h2>
         <div class="grid">
-          <article class="card"><span class="pill block">P0</span><h3>EAS project ownership</h3><p><code>eas whoami</code> is <code>aruun_chukkala</code>, while <code>eas project:info</code> returns <code>Entity not authorized</code>. No signed APK can be created from this account.</p></article>
+          <article class="card"><span class="pill block">P0</span><h3>EAS project ownership</h3><p><code>eas whoami</code> is <code>aruun_chukkala</code>, while <code>eas project:info</code> returns <code>Entity not authorized</code>. No EAS/production-signed APK can be created from this account; the existing APK is debug-signed for internal QA.</p></article>
           <article class="card"><span class="pill block">P0</span><h3>Distribution identity</h3><p>Sharing an unofficial APK under Trust Wallet's official identity can imply affiliation and resemble a fake wallet. Obtain written permission or use a distinct name/icon with a visible “Unofficial Testnet prototype” identity.</p></article>
           <article class="card"><span class="pill block">P0</span><h3>Physical Android acceptance</h3><p>No signed build has been installed on two phones. Camera, keyboard, safe areas, clipboard, resume, cellular access, network failures, and realtime recipient updates remain unobserved in the final binary.</p></article>
           <article class="card"><span class="pill warn">P1</span><h3>Authentication controls</h3><p>Disable anonymous sign-ins, enable leaked-password protection, and verify email confirmation, SMTP, CAPTCHA, rate limits, redirects, backups, and admin MFA. Password recovery, confirmation resend, account deletion, privacy, terms, and first-party support remain gaps.</p></article>
@@ -101,7 +102,7 @@
         <div class="steps">
           <article class="step"><h3>Choose a distributable identity</h3><p>Either obtain written permission for the Trust Wallet name/artwork or approve a distinct testnet identity. Keep the Testnet disclosure; the app must never request recovery phrases, private keys, real payments, or real signing.</p></article>
           <article class="step"><h3>Restore Expo project access</h3><p>Preferred: sign in to the Expo account that owns the configured project, then confirm access.</p>
-            <pre><button class="copy" type="button">Copy</button>cd "C:\Users\arunk\professional\trust wallet\expo-wallet"
+            <pre><button class="copy" type="button">Copy</button>cd "&lt;REPOSITORY_ROOT&gt;\expo-wallet"
 eas logout
 eas login
 eas whoami

@@ -3,7 +3,7 @@
   "generatedAt": "2026-07-19T00:00:00-07:00",
   "artifact": "docs/trust-wallet-apk-release-guide.html",
   "title": "Wallet Testnet APK Release Readiness",
-  "status": "blocked",
+  "status": "superseded",
   "deterministicExport": {
     "format": "standalone-html",
     "externalAssets": false,
@@ -26,7 +26,7 @@
   ],
   "releaseBlockers": [
     "Signed-in Expo account cannot read configured EAS project",
-    "No signed APK has been produced",
+    "No EAS/production-signed APK has been produced; one debug-signed internal-QA APK exists",
     "No final two-device physical Android acceptance run",
     "Unofficial distribution requires a distinct identity or written branding permission",
     "Supabase Auth release controls and Vercel Production environment require owner action",

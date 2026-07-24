@@ -4,8 +4,8 @@ Repeatable process to build the Trust Wallet Testnet APK, run it in an Android
 emulator on Windows, drive it like a human, capture evidence, and debug crashes.
 Written so Codex/Claude/any agent can follow it verbatim in a shell.
 
-Paths below assume Windows + Git Bash (`bash`) with the repo at
-`C:\Users\arunk\professional\trust wallet`. PowerShell equivalents noted where it matters.
+Paths below assume Windows + Git Bash (`bash`) with the shell already opened at
+the repository root. PowerShell equivalents are noted where it matters.
 
 ---
 
@@ -85,7 +85,7 @@ and grep for `ERROR|What went wrong`.
 ```bash
 "$ADB" install -r /tmp/app.apk
 "$ADB" logcat -c                                   # clear logs so crashes are fresh
-"$ADB" shell monkey -p com.arunn7.trustwallet.testnet -c android.intent.category.LAUNCHER 1
+"$ADB" shell monkey -p com.tommy7s.trustwallet.testnet -c android.intent.category.LAUNCHER 1
 ```
 
 ## 4. Drive the app like a human

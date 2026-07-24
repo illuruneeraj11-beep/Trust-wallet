@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Trust Wallet Testnet — APK Readiness Report</title>
+  <style>
+    :root { color-scheme: light; --ink:#111318; --muted:#646873; --line:#e7e8ec; --panel:#f6f7f9; --blue:#0500ff; --green:#08a84f; --amber:#9a6500; --red:#c42b31; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#eef0f4; color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 28px)); margin:28px auto; }
+    header,.card { background:#fff; border:1px solid var(--line); border-radius:22px; box-shadow:0 10px 30px rgba(16,24,40,.06); }
+    header { padding:34px; background:linear-gradient(135deg,#111318,#222737); color:#fff; }
+    h1 { margin:0 0 8px; font-size:clamp(30px,5vw,54px); line-height:1.04; }
+    h2 { margin:0 0 14px; font-size:24px; }
+    h3 { margin:20px 0 8px; font-size:17px; }
+    p { margin:8px 0; }
+    .sub { max-width:760px; color:#d6d8df; font-size:17px; }
+    .stamp { display:inline-block; margin-top:18px; padding:8px 12px; border:1px solid #555d70; border-radius:999px; font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; margin-top:16px; }
+    .card { grid-column:span 12; padding:24px; }
+    .half { grid-column:span 6; }
+    .third { grid-column:span 4; }
+    .metric { font-size:34px; font-weight:850; line-height:1; }
+    .label { margin-top:7px; color:var(--muted); }
+    .good { color:var(--green); } .warn { color:var(--amber); } .bad { color:var(--red); }
+    ul,ol { margin:10px 0 0; padding-left:22px; }
+    li + li { margin-top:7px; }
+    code { padding:2px 6px; border-radius:6px; background:#f0f1f4; font:13px ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+    .step { min-height:116px; padding:16px; border-radius:16px; background:var(--panel); border:1px solid var(--line); }
+    .step b { display:block; margin-bottom:6px; }
+    .shots { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+    figure { margin:0; padding:12px; border-radius:18px; background:var(--panel); }
+    img { display:block; width:100%; max-height:720px; object-fit:contain; border-radius:12px; background:#fff; }
+    figcaption { margin-top:9px; color:var(--muted); font-size:13px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td { padding:11px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    .callout { padding:16px; border-left:4px solid var(--blue); border-radius:10px; background:#f3f3ff; }
+    footer { padding:24px 4px 50px; color:var(--muted); }
+    @media (max-width:800px) { .half,.third { grid-column:span 12; } .flow { grid-template-columns:1fr; } .shots { grid-template-columns:1fr; } header,.card { padding:20px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>APK readiness report</h1>
+    <p class="sub">Evidence-backed handoff for the Expo + Supabase Trust Wallet testnet visual prototype after native Android, database, market API, and visual QA.</p>
+    <span class="stamp">Final Codex verification · July 20, 2026 · 360×880 logical Android target</span>
+  </header>
+
+  <section class="grid">
+    <article class="card third"><div class="metric good">$4B</div><div class="label">Exact native conservation stress run</div></article>
+    <article class="card third"><div class="metric good">Pass</div><div class="label">Authenticated idempotent replay</div></article>
+    <article class="card third"><div class="metric good">EAS</div><div class="label">Signed preview APK installed</div></article>
+
+    <article class="card">
+      <h2>Current verdict</h2>
+      <p>The app is ready for controlled Android QA as a <strong>testnet demonstration wallet</strong>. EAS preview version 0.3.1/build 13 was built for all four Android ABIs, downloaded, cryptographically verified, installed, cold-launched, and navigated against the connected Supabase and live-market configuration. It is not ready to be represented as the official Trust Wallet or as a real self-custody wallet: it does not hold private keys, sign blockchain transactions, or transfer redeemable cryptocurrency.</p>
+      <p class="callout"><strong>Important:</strong> keeping the Testnet/unofficial identity is a release requirement. Removing it to make users believe this is the official financial app would create a deceptive and unsafe product.</p>
+    </article>
+
+    <article class="card">
+      <h2>End-to-end user flow verified</h2>
+      <div class="flow">
+        <div class="step"><b>1. Account</b>Fresh synthetic user authenticated and bootstrapped in Supabase.</div>
+        <div class="step"><b>2. Fund</b>4,000,000,000 USDT added to Main Wallet 1 through the native Fund UI.</div>
+        <div class="step"><b>3. Wallet</b>Main Wallet 2 created from Wallets → Add Wallet.</div>
+        <div class="step"><b>4. Send</b>2,000,000,000 USDT sent wallet 1 → wallet 2, then 1,250,000,000 returned.</div>
+        <div class="step"><b>5. Prove</b>Final 3.25B/0.75B balances, zero holds, balanced journals, idempotent replay.</div>
+      </div>
+      <table>
+        <thead><tr><th>Proof</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Latest transaction</td><td><code>62989fb9-5fff-4627-bb80-55558f565a27</code>, confirmed</td></tr>
+          <tr><td>Value conservation</td><td>4,000,000,000 USDT total; final 3,250,000,000 + 750,000,000; 0 held</td></tr>
+          <tr><td>Journal integrity</td><td>Each funding/transfer transaction has 2 journal entries summing exactly to 0</td></tr>
+          <tr><td>Replay safety</td><td>Same authenticated request returned <code>replayed=true</code>; transactions 3→3; idempotency rows 5→5</td></tr>
+          <tr><td>Supabase API</td><td>4 transfer and 2 fund calls sampled; all HTTP 200; no matching non-2xx calls</td></tr>
+          <tr><td>Android logs</td><td>No matching fatal, React Native, PostgREST, permission, or unhandled-promise errors in the final 5,000-line sweep</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h2>Visual evidence</h2>
+      <div class="shots">
+        <figure><img src="../expo-wallet/audit-trustwallet1/flow/accepted/008-crypto-wallet-provider-choice.jpg" alt="Recorded provider selection reference"><figcaption>Recorded provider-selection reference.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/video-rebuild/emulator-db-visual-20260719-231323/screenshots/android-final-provider.png" alt="Final Android provider selection"><figcaption>Final rebuilt Android state: corrected Binance and Coinbase marks; no placeholder glyph.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/video-rebuild/emulator-db-visual-20260719-231323/screenshots/android-final-launch.png" alt="Final Android Home"><figcaption>Final Home at 1080×2640: blue Ethereum vector, live BTC/ETH/BNB, responsive bottom pill.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/video-rebuild/emulator-db-visual-20260719-231323/screenshots/android-billion-transfer-1_25b-result.png" alt="Billion-scale transfer receipt"><figcaption>Native 1.25-billion-USDT return-transfer receipt.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/video-rebuild/emulator-db-visual-20260719-231323/screenshots/android-billion-final-wallet1-3_25b.png" alt="Main Wallet 1 final billion balance"><figcaption>Main Wallet 1 final UI balance: $3,250,000,000.00.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/video-rebuild/emulator-db-visual-20260719-231323/screenshots/android-billion-final-wallet2-750m.png" alt="Main Wallet 2 final billion balance"><figcaption>Main Wallet 2 final UI balance: $750,000,000.00.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/eas-builds/20260720-v0.3.1-build13/eas-v0.3.1-build13-launch.png" alt="EAS build 13 cold launch"><figcaption>EAS v0.3.1/build 13 cold launch on emulator-5554.</figcaption></figure>
+        <figure><img src="../expo-wallet/output/eas-builds/20260720-v0.3.1-build13/eas-v0.3.1-build13-markets.png" alt="EAS build 13 live Markets"><figcaption>EAS build 13 Markets smoke test with current provider-backed prices and bundled token artwork.</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="card half">
+      <h2>What is complete</h2>
+      <ul>
+        <li>Supabase trigger-security repair applied live; its local migration file is present but not yet committed or pushed.</li>
+        <li>Native funding, wallet creation, address resolution, transfer, receipts, balance refresh, and activity.</li>
+        <li>Current market API with JSON routing, stale metadata, real provider quotes, and local persistence/fallback behavior.</li>
+        <li>High-quality BTC/ETH/network/provider artwork and semantic navigation/settings icons.</li>
+        <li>Android back handling for nested Receive, Swap, token AI, Discover, and Perps search states.</li>
+        <li>Typecheck, wallet contract, market contract, Expo Doctor, web export, release assembly, and emulator install.</li>
+      </ul>
+    </article>
+
+    <article class="card half">
+      <h2>What still lacks fidelity</h2>
+      <ol>
+        <li>Generic email/password first launch and gray splash differ from the recording.</li>
+        <li>Markets range chips still display 24-hour row changes.</li>
+        <li>Historical charts and recorded LIVE/1m/1H ranges are incomplete.</li>
+        <li>Home customization, Perps controls, and several Settings destinations remain simplified.</li>
+        <li>Receive/Buy loading states and Add Wallet illustration need another visual pass.</li>
+        <li>The dApp page remains deliberately read-only rather than an unrestricted Web3 browser.</li>
+        <li>Large-value receipts still show ungrouped digits, one long recipient-address state clips at the left edge, and the lowest review action is close to Android's gesture area.</li>
+        <li>The visual evidence samples Home, providers, and transaction states; it is not an exhaustive certification of every official-app screen.</li>
+      </ol>
+    </article>
+
+    <article class="card">
+      <h2>Market prices: Exa vs. CoinMarketCap</h2>
+      <p><strong>Do not use Exa for runtime prices.</strong> Exa is suitable for researching names, contracts, documentation, and official artwork. Current rates should continue coming from the deployed market endpoint.</p>
+      <ul>
+        <li>Verified now: <code>GET https://expo-wallet.vercel.app/api/markets?currency=USD</code> → HTTP 200, JSON, <code>stale=false</code>, 38 quotes.</li>
+        <li>For historical charts and faster streaming, add <code>COINMARKETCAP_API_KEY</code> only as a Vercel Preview/Production secret.</li>
+        <li>The APK should call <code>https://expo-wallet.vercel.app</code> through <code>EXPO_PUBLIC_MARKET_API_BASE_URL</code>; it must never contain the private CMC key.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2>Android artifact available now</h2>
+      <p><code>expo-wallet/output/eas-builds/20260720-v0.3.1-build13/trust-wallet-testnet-v0.3.1-build13-preview.apk</code></p>
+      <table>
+        <tbody>
+          <tr><th>EAS build</th><td><code>3ade2582-0a03-4684-b949-4d88b7806b23</code> · version 0.3.1 · version code 13</td></tr>
+          <tr><th>Package</th><td><code>com.tommy7s.trustwallet.testnet</code></td></tr>
+          <tr><th>Architectures</th><td>arm64-v8a + armeabi-v7a + x86 + x86_64</td></tr>
+          <tr><th>Size</th><td>141,577,433 bytes</td></tr>
+          <tr><th>SHA-256</th><td><code>F4C636B5D14525294CA0EAA416CF4AE9028E76743FC0E2A93A32B2A1EDD73291</code></td></tr>
+          <tr><th>Signing</th><td>EAS-signed internal-distribution APK; signature verification passed. It is not a Play Store production AAB.</td></tr>
+          <tr><th>Native smoke</th><td>Installed and cold-launched on <code>emulator-5554</code>; Home and Markets loaded; no matching fatal/RPC errors.</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h2>Next steps for sharing and production</h2>
+      <ol>
+        <li>Review the current dirty worktree, commit the intended app/assets/migration/report changes, and push that commit. A friend pulling <code>main</code> today would otherwise receive the older source, not this verified APK source.</li>
+        <li>Revoke and replace the Expo robot token supplied in chat after this session because it is visible in the conversation and screenshot. Store the replacement only in a protected CI secret as <code>EXPO_TOKEN</code>.</li>
+        <li>The EAS Preview environment is configured with connected wallet mode, Supabase URL/publishable key, and the market API base URL. Keep CMC and deployment tokens only in server secret stores.</li>
+        <li>Share the finished preview APK or its EAS internal-distribution page with the intended tester. The APK installs without a development server.</li>
+        <li>Repeat account → fund → second wallet → transfer → relaunch on at least one physical ARM64 Android device, including cellular/offline/resume and the gesture-area button check.</li>
+        <li>EAS Production currently has no project environment variables. Add and validate the production Supabase/market configuration before requesting a production build.</li>
+        <li>For Play Store distribution, use <code>npx eas build --platform android --profile production</code> to create a signed AAB only after the production environment and remaining security/fidelity gaps are accepted.</li>
+        <li>For iPhone, an APK cannot be used. Add Apple Developer credentials and run <code>npx eas build --platform ios --profile preview</code> to produce a provisioned iOS build.</li>
+      </ol>
+    </article>
+
+    <article class="card">
+      <h2>Security items before untrusted public access</h2>
+      <ul>
+        <li>Review Supabase advisor warnings for authenticated security-definer functions and policy roles.</li>
+        <li>Enable leaked-password protection in Supabase Auth.</li>
+        <li>Revoke the exposed Expo robot token after this build session and issue a replacement for future CI use.</li>
+        <li>Use organization-controlled production credentials for the eventual Play Store AAB.</li>
+        <li>Never accept recovery phrases/private keys or imply demonstration balances are redeemable.</li>
+      </ul>
+    </article>
+  </section>
+
+  <footer>Generated from sampled native replay, Supabase ledger verification, public API smoke tests, automated contracts, and recorded-screen visual comparison. This is not an exhaustive official-app parity certification.</footer>
+</main>
+</body>
+</html>
