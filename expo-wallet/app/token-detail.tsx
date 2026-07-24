@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, BackHandler, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { formatMarketChange, formatUsd, useMarketHistoryPoints } from "@/components/live-market-ui";
 import { MarketChart } from "@/components/market-chart";
 import { TokenLogo } from "@/components/trust-assets";
@@ -31,6 +31,15 @@ export default function TokenDetailScreen() {
   const recentTransfers = transfers.filter((transfer) => transfer.asset.symbol === asset.symbol
     && (!selectedWallet || transfer.from_wallet_id === selectedWallet.id || transfer.to_wallet_id === selectedWallet.id || transfer.type === "funding")).slice(0, 3);
 
+  useEffect(() => {
+    if (!aiOpen) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setAiOpen(false);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [aiOpen]);
+
   if (aiOpen) return <AiChat assetName={asset.name} onClose={() => setAiOpen(false)} price={quote?.price ?? null} />;
 
   return (
@@ -60,7 +69,7 @@ export default function TokenDetailScreen() {
           ) : (
             <View style={{ alignItems: "center", gap: 8 }}>
               <TrustIcon color={theme.secondary} name="chart-line-variant" size={36} />
-              <Text style={{ color: theme.secondary, fontSize: 11 }}>{historyError ?? "Historical chart unavailable"}</Text>
+              <Text style={{ color: theme.secondary, fontSize: 11 }}>Price history is temporarily unavailable.</Text>
             </View>
           )}
         </View>

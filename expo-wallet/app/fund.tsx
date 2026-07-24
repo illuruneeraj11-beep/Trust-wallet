@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import {
   AssetChoiceRow,
@@ -29,7 +29,14 @@ type PendingFunding = { walletId: string; assetId: string; amount: string; idemp
 const pendingFundingStoragePrefix = "trust-wallet:pending-funding:v2";
 const maxFundingUnits = 10n ** 24n;
 
+function firstRouteParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function FundScreen() {
+  const routeParams = useLocalSearchParams<{ amount?: string | string[]; symbol?: string | string[] }>();
+  const requestedAmount = firstRouteParam(routeParams.amount);
+  const requestedSymbol = firstRouteParam(routeParams.symbol)?.trim().toUpperCase();
   const { height: windowHeight } = useWindowDimensions();
   const { user, visualDemo } = useAuth();
   const {
@@ -46,13 +53,14 @@ export default function FundScreen() {
   } = useAppContext();
   const [walletId, setWalletId] = useState("");
   const [assetId, setAssetId] = useState("");
-  const [amount, setAmount] = useState("100");
-  const [step, setStep] = useState<Step>("methods");
+  const [amount, setAmount] = useState(() => normalizeDecimalInput(requestedAmount ?? "") || "100");
+  const [step, setStep] = useState<Step>(() => requestedSymbol ? "details" : "methods");
   const [sheet, setSheet] = useState<"wallet" | "asset" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ transaction_id: string; mock_hash: string | null } | null>(null);
   const [intentKey, setIntentKey] = useState(() => newIdempotencyKey("fund"));
+  const restoredFundingStorageKey = useRef<string | null>(null);
   const storageIdentity = visualDemo ? "visual-demo" : user && !user.is_anonymous ? user.id : null;
   const pendingFundingStorageKey = storageIdentity ? `${pendingFundingStoragePrefix}:${storageIdentity}` : null;
 
@@ -61,11 +69,20 @@ export default function FundScreen() {
   }, [selectedWallet, walletId]);
 
   useEffect(() => {
-    if (!assetId && assets.length) setAssetId((assets.find((item) => item.symbol === "USDT") ?? assets[0]).id);
-  }, [assetId, assets]);
+    if (!assetId && assets.length) {
+      setAssetId((assets.find((item) => item.symbol.toUpperCase() === requestedSymbol) ?? assets.find((item) => item.symbol === "USDT") ?? assets[0]).id);
+    }
+  }, [assetId, assets, requestedSymbol]);
 
   useEffect(() => {
-    if (!pendingFundingStorageKey || ledgerStatus !== "ready") return undefined;
+    if (
+      !pendingFundingStorageKey
+      || ledgerStatus !== "ready"
+      || !wallets.length
+      || !assets.length
+      || restoredFundingStorageKey.current === pendingFundingStorageKey
+    ) return undefined;
+    restoredFundingStorageKey.current = pendingFundingStorageKey;
     let active = true;
     void AsyncStorage.getItem(pendingFundingStorageKey).then((raw) => {
       if (!active || !raw) return;
@@ -132,8 +149,6 @@ export default function FundScreen() {
         walletId: wallet.id,
         assetId: asset.id,
         amount,
-        cardBrand: "Testnet",
-        cardLast4: "4242",
         idempotencyKey: intentKey,
       });
       setSelectedWalletId(wallet.id);
@@ -195,15 +210,16 @@ export default function FundScreen() {
                 <FundingMethodRow
                   grouped
                   icon="qrcode"
-                  onPress={() => router.push("/receive")}
+                  onPress={() => router.push("/deposit-wallet-provider" as never)}
                   title="Crypto wallet"
                 />
                 <FundingMethodRow
+                  detail="Any supported asset · no payment required"
                   grouped
-                  icon="cash-multiple"
+                  icon="cash-plus"
                   last
                   onPress={() => setStep("details")}
-                  title="Deposit cash"
+                  title="Test funds"
                 />
               </View>
             </View>
@@ -257,7 +273,7 @@ export default function FundScreen() {
 
               <FlowCard muted>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
-                  <TrustIcon color={theme.secondary} name="credit-card-outline" size={23} />
+                  <TrustIcon color={theme.secondary} name="cash-plus" size={23} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={{ color: theme.text, fontSize: 14, fontWeight: "900" }}>Testnet Faucet</Text>
                     <Text style={{ color: theme.secondary, fontSize: 10 }}>Creates testnet balance · no payment required</Text>

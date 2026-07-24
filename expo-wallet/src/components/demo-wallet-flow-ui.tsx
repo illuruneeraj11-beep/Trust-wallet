@@ -113,14 +113,21 @@ export function FlowButton({ label, onPress, disabled, loading, secondary, icon 
   );
 }
 
-export function AssetChoiceRow({ symbol, name, network, balance, active, onPress }: { symbol: string; name: string; network?: string; balance?: string; active?: boolean; onPress: () => void }) {
+export function AssetChoiceRow({ symbol, name, network, networkLabel, balance, active, onPress }: { symbol: string; name: string; network?: string; networkLabel?: string | null; balance?: string; active?: boolean; onPress: () => void }) {
   const { theme } = useAppContext();
+  const displayedNetwork = networkLabel === undefined ? network : networkLabel;
   return (
-    <Pressable onPress={onPress} style={{ minHeight: 64, borderRadius: 16, backgroundColor: active ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
+    <Pressable
+      accessibilityLabel={`${symbol}, ${name}${displayedNetwork ? `, ${displayedNetwork}` : ""}${balance ? `, balance ${balance}` : ""}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active) }}
+      onPress={onPress}
+      style={{ minHeight: 64, borderRadius: 16, backgroundColor: active ? theme.blueSoft : theme.cardSecondary, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 11 }}
+    >
       <TokenLogo network={network} symbol={symbol} size={38} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: theme.text, fontSize: 15, fontWeight: "900" }}>{symbol}</Text>
-        <Text style={{ color: theme.secondary, fontSize: 11 }}>{name}{network ? ` · ${network}` : ""}</Text>
+        <Text style={{ color: theme.secondary, fontSize: 11 }}>{name}{displayedNetwork ? ` · ${displayedNetwork}` : ""}</Text>
       </View>
       {balance ? <Text style={{ color: theme.text, fontSize: 13, fontWeight: "800" }}>{balance}</Text> : null}
       <TrustIcon color={active ? theme.blue : theme.secondary} name={active ? "check-circle" : "chevron-right"} size={20} />

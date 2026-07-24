@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState, Platform } from "react-native";
 import {
-  addressBookSeed,
   currencyOptions,
   dappCategories,
   marketFilters,
@@ -15,6 +14,7 @@ import {
   type CurrencyOption,
   type TrendingToken,
 } from "@/data/trust-wallet";
+import { sanitizeStoredWalletPreferences } from "@/lib/wallet-preferences";
 import {
   fetchLiveMarkets,
   isMarketsResponse,
@@ -81,7 +81,6 @@ type PersistedState = {
   pushIncoming: boolean;
   pushOutgoing: boolean;
   pushPromotions: boolean;
-  trustedHandle: string;
   addressBook: AddressBookEntry[];
   activeHomeTab: HomeTab;
   activeRewardsTab: RewardsTab;
@@ -123,7 +122,6 @@ type AppContextValue = {
   pushIncoming: boolean;
   pushOutgoing: boolean;
   pushPromotions: boolean;
-  trustedHandle: string;
   addressBook: AddressBookEntry[];
   activeHomeTab: HomeTab;
   activeRewardsTab: RewardsTab;
@@ -175,7 +173,6 @@ type AppContextValue = {
   setPushIncoming: (value: boolean) => void;
   setPushOutgoing: (value: boolean) => void;
   setPushPromotions: (value: boolean) => void;
-  setTrustedHandle: (value: string) => void;
   addAddressBookEntry: (entry: Omit<AddressBookEntry, "id">) => void;
   removeAddressBookEntry: (id: string) => void;
   setActiveHomeTab: (tab: HomeTab) => void;
@@ -228,8 +225,7 @@ const defaultState: PersistedState = {
   pushIncoming: true,
   pushOutgoing: true,
   pushPromotions: false,
-  trustedHandle: "arun.trust",
-  addressBook: addressBookSeed,
+  addressBook: [],
   activeHomeTab: "crypto",
   activeRewardsTab: "campaigns",
 };
@@ -283,7 +279,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void AsyncStorage.getItem(storageKey)
       .then((stored: string | null) => {
         if (!cancelled && stored) {
-          setPersisted({ ...defaultState, ...JSON.parse(stored) as PersistedState });
+          setPersisted({ ...defaultState, ...sanitizeStoredWalletPreferences(JSON.parse(stored)) } as PersistedState);
         }
       })
       .catch(() => undefined)
@@ -777,7 +773,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pushIncoming: persisted.pushIncoming,
     pushOutgoing: persisted.pushOutgoing,
     pushPromotions: persisted.pushPromotions,
-    trustedHandle: persisted.trustedHandle,
     addressBook: persisted.addressBook,
     activeHomeTab: persisted.activeHomeTab,
     activeRewardsTab: persisted.activeRewardsTab,
@@ -831,7 +826,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPushIncoming: (value) => setPersisted((current) => ({ ...current, pushIncoming: value })),
     setPushOutgoing: (value) => setPersisted((current) => ({ ...current, pushOutgoing: value })),
     setPushPromotions: (value) => setPersisted((current) => ({ ...current, pushPromotions: value })),
-    setTrustedHandle: (value) => setPersisted((current) => ({ ...current, trustedHandle: value })),
     addAddressBookEntry,
     removeAddressBookEntry,
     setActiveHomeTab: (tab) => setPersisted((current) => ({ ...current, activeHomeTab: tab })),

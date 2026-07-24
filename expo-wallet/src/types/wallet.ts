@@ -109,6 +109,7 @@ export type ResolvedRecipient = {
   address: string | null;
   network_slug: string;
   expires_at: string | null;
+  is_external?: boolean;
 };
 
 export type DemoTransferQuote = {

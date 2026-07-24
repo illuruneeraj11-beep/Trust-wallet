@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, Text, View } from "react-native";
+import { BackHandler, Pressable, ScrollView, Share, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { TokenLogo } from "@/components/trust-assets";
 import { TrustIcon } from "@/components/trust-icon";
@@ -51,6 +51,17 @@ export default function ReceiveScreen() {
     const requested = assets.find((asset) => asset.assetId === params.assetId);
     if (requested) openAsset(requested);
   }, [assets, params.assetId, selected, unavailable]);
+
+  useEffect(() => {
+    if (!selected && !unavailable && !message) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (message) setMessage(null);
+      else if (unavailable) setUnavailable(null);
+      else setSelected(null);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [message, selected, unavailable]);
 
   if (selected) {
     return (

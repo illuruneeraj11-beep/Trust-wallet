@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { BackHandler, Pressable, ScrollView, Text, View } from "react-native";
 import { DappLogo } from "@/components/secondary-flow-ui";
 import { TrustIcon, type TrustIconName } from "@/components/trust-icon";
 import { AppScreen, SearchInput, SheetModal } from "@/components/trust-ui";
@@ -26,6 +26,19 @@ export default function DiscoverScreen() {
       return (term || categoryMatch) && queryMatch;
     });
   }, [activeCategory, query, uniqueDapps]);
+
+  useEffect(() => {
+    if (!directoryOpen && !infoOpen) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (infoOpen) setInfoOpen(false);
+      else {
+        setDirectoryOpen(false);
+        setQuery("");
+      }
+      return true;
+    });
+    return () => subscription.remove();
+  }, [directoryOpen, infoOpen]);
 
   function openDapp(item: DappDefinition) {
     router.push({ pathname: "/dapp-browser", params: { dappId: item.id, name: item.name, url: item.url } });

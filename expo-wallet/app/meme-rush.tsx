@@ -12,7 +12,7 @@ const tabs: RushTab[] = ["Graduated", "Graduating", "New"];
 
 export default function MemeRushScreen() {
   const { theme } = useAppContext();
-  const [tab, setTab] = useState<RushTab>("Graduating");
+  const [tab, setTab] = useState<RushTab>("Graduated");
   const [introOpen, setIntroOpen] = useState(true);
   const [selected, setSelected] = useState<MemeRushDefinition | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);

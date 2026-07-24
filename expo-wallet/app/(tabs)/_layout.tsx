@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { router } from "expo-router";
 import { Tabs } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TrustIcon, type SemanticTrustIconName } from "@/components/trust-icon";
 
@@ -41,7 +41,6 @@ function WalletTabBar({ state, navigation }: RouterTabBarProps) {
 
   return (
     <View
-      pointerEvents="box-none"
       style={[
         styles.tabBarRow,
         { bottom: Math.max(insets.bottom, 10) },
@@ -94,18 +93,23 @@ function WalletTabBar({ state, navigation }: RouterTabBarProps) {
   );
 }
 
-const elevatedSurface = {
-  shadowColor: "#000000",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.1,
-  shadowRadius: 12,
-  elevation: 8,
-  boxShadow: "0 5px 16px rgba(0, 0, 0, 0.10)",
-} as const;
+const elevatedSurface = Platform.select({
+  web: {
+    boxShadow: "0 5px 16px rgba(0, 0, 0, 0.10)",
+  },
+  default: {
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+}) ?? {};
 
 const styles = StyleSheet.create({
   tabBarRow: {
     position: "absolute",
+    pointerEvents: "box-none",
     left: 16,
     right: 16,
     height: 62,

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APK Build — Call Walkthrough</title>
+<style>
+  :root{--ink:#15171b;--muted:#626976;--line:#dde2ea;--panel:#fff;--wash:#f5f7fa;--blue:#3375e8;--green:#117a45;--green-bg:#e8f7ef;--amber:#8b5a00;--amber-bg:#fff4d6;--red:#a22b34;--red-bg:#ffebed}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--wash);color:var(--ink);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  main{max-width:880px;margin:0 auto;padding:40px 20px 90px}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:-.03em;margin:0 0 10px}
+  h2{font-size:26px;margin:0 0 14px;letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:20px;margin:0 0 28px}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+  .done{background:var(--green-bg);color:var(--green)}
+  .todo{background:var(--amber-bg);color:var(--amber)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:0 10px 30px rgba(24,37,55,.06)}
+  section{margin-top:48px}
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .step{position:relative;padding:20px 20px 20px 72px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  .step:before{counter-increment:s;content:counter(s);position:absolute;left:20px;top:20px;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:var(--blue);color:#fff;font-weight:900}
+  .step h3{margin:0 0 6px;font-size:19px}
+  .step p{margin:0 0 6px;color:var(--muted)}
+  pre{position:relative;margin:12px 0 0;padding:14px 52px 14px 14px;border-radius:10px;background:#11151b;color:#e9edf3;overflow-x:auto;white-space:pre-wrap;word-break:break-word;font:14px/1.6 ui-monospace,Consolas,monospace}
+  .copy{position:absolute;top:8px;right:8px;padding:5px 9px;border:1px solid #465162;border-radius:7px;background:#232a35;color:#fff;cursor:pointer;font-size:11px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:12px;overflow:hidden}
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:15px;vertical-align:top}
+  th{background:#f0f3f7;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#4d5663}
+  tr:last-child td{border-bottom:0}
+  code{background:#eef1f6;padding:1px 6px;border-radius:6px;font-size:.9em;overflow-wrap:anywhere}
+  pre code{background:none;padding:0}
+  .callout{border-left:4px solid var(--blue);background:#eaf2ff;padding:14px 16px;border-radius:0 10px 10px 0;margin-top:14px}
+  .warnbox{border-left:4px solid #d99a00;background:var(--amber-bg);padding:14px 16px;border-radius:0 10px 10px 0;margin-top:14px}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  @media print{body{background:#fff}.copy{display:none}.card,.step{box-shadow:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Getting the APK built<br>— call walkthrough</h1>
+  <p class="lede">The app is finished, tested, and pushed to GitHub. The only thing left needs the <strong>Expo account that owns the project</strong> (your friend's login). This page is the script for that call.</p>
+
+  <section>
+    <h2>The situation in one minute</h2>
+    <div class="card">
+      <p><span class="pill done">Done</span>&nbsp; All code, tests, assets, database migrations, and live APIs work. Everything is pushed to <code>github.com/illuruneeraj11-beep/Trust-wallet</code> (branch <code>main</code>).</p>
+      <p><span class="pill todo">Blocked</span>&nbsp; Expo's build service (EAS) will only build for the account that owns project <code>463c7e8a-2dbd-4ba2-9203-46d4e297bc10</code>. My login (<code>aruun_chukkala</code>) gets "not authorized" — his account created it, so <strong>he runs the build</strong>. It's 6 copy-paste commands; the actual build happens in Expo's cloud, not on his computer.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Steps to do on the call (his computer)</h2>
+    <div class="steps">
+
+      <article class="step">
+        <h3>Pull the latest code</h3>
+        <p>In a terminal, inside his project folder:</p>
+        <pre><button class="copy" type="button">Copy</button>git pull origin main</pre>
+        <p>If he doesn't have the folder: <code>git clone https://github.com/illuruneeraj11-beep/Trust-wallet.git</code></p>
+      </article>
+
+      <article class="step">
+        <h3>Enter the app folder and install packages</h3>
+        <pre><button class="copy" type="button">Copy</button>cd expo-wallet
+npm ci</pre>
+        <p>Takes a few minutes. Needs Node.js installed (it was, if he built before).</p>
+      </article>
+
+      <article class="step">
+        <h3>Log in to HIS Expo account</h3>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli logout
+npx eas-cli login</pre>
+        <p>He types his Expo username and password (same account as his earlier APK attempt). Then verify:</p>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli whoami
+npx eas-cli project:info</pre>
+        <p><strong>Checkpoint:</strong> <code>project:info</code> must print project details with no error. If it says "Entity not authorized", it's the wrong account — log in with the other one. If he forgot the password: reset at expo.dev.</p>
+      </article>
+
+      <article class="step">
+        <h3>Add the 4 build settings (exact values — paste one line at a time)</h3>
+        <p>These tell the installed APK where the backend and live prices live. All are safe public values.</p>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli env:create --environment preview --name EXPO_PUBLIC_WALLET_MODE --value connected --visibility plaintext</pre>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value https://bgwsoyfsyoecsuemckel.supabase.co --visibility plaintext</pre>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli env:create --environment preview --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value sb_publishable_HX8YGOPXCZEh-hlTfrC10Q_IoPahOxz --visibility sensitive</pre>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli env:create --environment preview --name EXPO_PUBLIC_MARKET_API_BASE_URL --value https://expo-wallet.vercel.app --visibility plaintext</pre>
+        <p>Verify all four exist:</p>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli env:list --environment preview</pre>
+        <p>"Already exists" errors are fine — skip that one.</p>
+      </article>
+
+      <article class="step">
+        <h3>Start the build</h3>
+        <pre><button class="copy" type="button">Copy</button>npx eas-cli build --platform android --profile preview</pre>
+        <ul>
+          <li>If asked "Generate a new Android Keystore?" → <strong>Yes</strong>.</li>
+          <li>The build runs in Expo's cloud, ~10–20 minutes. He can close nothing — just wait.</li>
+          <li>At the end it prints a link like <code>https://expo.dev/accounts/…/builds/…</code> — that link IS the APK download. Have him send it to you.</li>
+        </ul>
+      </article>
+
+      <article class="step">
+        <h3>Install and test</h3>
+        <p>Open the build link on an Android phone → Install (allow "unknown sources" if asked). Test on <strong>two phones</strong>: create two accounts, fund wallets, send both directions, scan a QR, try airplane mode. Only share the link after that works.</p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>The 4 settings at a glance</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Value</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>EXPO_PUBLIC_WALLET_MODE</code></td><td><code>connected</code></td><td>Uses the real shared Supabase ledger instead of offline demo mode.</td></tr>
+        <tr><td><code>EXPO_PUBLIC_SUPABASE_URL</code></td><td><code>https://bgwsoyfsyoecsuemckel.supabase.co</code></td><td>Backend address (accounts, wallets, transfers).</td></tr>
+        <tr><td><code>EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code></td><td><code>sb_publishable_HX8YGOPXCZEh-hlTfrC10Q_IoPahOxz</code></td><td>Public client key for the backend (not a secret key).</td></tr>
+        <tr><td><code>EXPO_PUBLIC_MARKET_API_BASE_URL</code></td><td><code>https://expo-wallet.vercel.app</code></td><td>Where the app fetches live coin prices.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><strong>Why his old APK was broken:</strong> it was built from older code without these settings, so the installed app couldn't reach the backend. New code + these 4 values = the fix.</div>
+  </section>
+
+  <section>
+    <h2>How this actually works (for the curious)</h2>
+
+    <div class="card">
+      <h3>How the APK gets made</h3>
+      <p>Think of EAS Build as <strong>Vercel for mobile apps</strong>. When he runs <code>eas build</code>, the code is uploaded to Expo's cloud, where a build machine spins up — same idea as when you <code>git push</code> and Vercel/Render spins up a build container. The difference is what comes out the other end:</p>
+      <ul>
+        <li><strong>Vercel/Render:</strong> the build produces a website/server that stays <em>on their machines</em>, and users visit a URL. Deploy again → everyone instantly sees the new version.</li>
+        <li><strong>EAS:</strong> the build produces a <em>file</em> — the <code>.apk</code>. It compiles your React Native TypeScript into JavaScript bundles, packages them with real native Android code (camera, secure storage, UI engine), and wraps it all into one installable package. That file is <em>downloaded onto each phone</em>. Deploy again → you get a new file, and every phone must install it again. Nothing "stays running" in the cloud.</li>
+      </ul>
+      <p>The other new concept is <strong>signing</strong>. Android refuses to install unsigned apps, so EAS generates and stores a <em>keystore</em> — a digital signature proving every future build comes from the same publisher. That's why the account matters so much: the keystore lives inside his Expo account, and it has no equivalent in web deploys. (Closest analogy: the HTTPS certificate Vercel manages for you — except here losing it means phones treat the next build as a different app.)</p>
+      <p>And the env vars? Same idea as Vercel environment variables, with one twist: on Vercel they live on the server and can hold secrets. Anything named <code>EXPO_PUBLIC_*</code> gets <em>baked into the APK file itself</em> at build time — anyone can unzip an APK and read them. That's why only public values go there, and why changing one requires a rebuild, not just a redeploy.</p>
+    </div>
+
+    <div class="card">
+      <h3>How the app talks to Supabase</h3>
+      <p>Exactly like your web apps — there is no special "mobile backend". The APK contains the Supabase JS client, and the phone makes HTTPS calls straight to <code>https://bgwsoyfsyoecsuemckel.supabase.co</code>:</p>
+      <ul>
+        <li><strong>Auth:</strong> email sign-in via Supabase Auth; the session token is kept in Android's encrypted SecureStore (the mobile version of an httpOnly cookie).</li>
+        <li><strong>Ledger:</strong> wallets, balances, and transfers are rows in Postgres. The app never edits balances directly — it calls database functions (RPCs) that validate address, network, amount, and fees, then debit/credit atomically. Row-level security means a user can only ever see their own data, even though the API key is public.</li>
+        <li><strong>Realtime:</strong> the recipient's phone holds a websocket subscription to Supabase, so when phone A sends, phone B's balance updates without refreshing — same feature you'd use in a web app.</li>
+      </ul>
+      <p>So the "money" is just Postgres rows, which is why this is safely a mock: no blockchain, no keys, nothing real to lose.</p>
+    </div>
+
+    <div class="card">
+      <h3>Where your Vercel deployment fits — it's NOT just for web testing</h3>
+      <p>The Vercel project (<code>expo-wallet.vercel.app</code>) does two jobs:</p>
+      <ul>
+        <li><strong>Web preview of the app</strong> — the same Expo code exported as a website. Handy for quick testing, yes.</li>
+        <li><strong>Live price API for everyone, including the APK</strong> — the <code>/api/markets</code> and <code>/api/perps</code> routes run as serverless functions on Vercel (your familiar territory). The phone app calls them via <code>EXPO_PUBLIC_MARKET_API_BASE_URL</code>. This exists because the CoinMarketCap API key must stay secret, and as explained above an APK can't hold secrets — so the phone asks your Vercel server, and the server (which <em>can</em> hold the key) asks CoinMarketCap. A classic proxy, the same pattern you'd use in any web app to hide an API key.</li>
+      </ul>
+      <p><strong>So if the Vercel project is ever deleted or paused, installed APKs lose live prices</strong> (wallet features would still work — those hit Supabase directly).</p>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Vercel / Render (what you know)</th><th>EAS + APK (this project)</th></tr></thead>
+      <tbody>
+        <tr><td>Build output</td><td>Running site/server in their cloud</td><td>An installable <code>.apk</code> file</td></tr>
+        <tr><td>How users get it</td><td>Visit a URL</td><td>Download link → install on phone</td></tr>
+        <tr><td>Shipping an update</td><td>Push → everyone updated instantly</td><td>Rebuild → everyone reinstalls</td></tr>
+        <tr><td>Env vars</td><td>Live on server, can be secret</td><td>Baked into the file, must be public</td></tr>
+        <tr><td>Identity</td><td>Domain + HTTPS cert (managed)</td><td>Signing keystore in the Expo account</td></tr>
+        <tr><td>Runtime cost</td><td>Runs on their infra continuously</td><td>Nothing — runs on the phone; only Supabase + Vercel APIs stay hosted</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><strong>The full picture:</strong> phone app (built by EAS, running locally on Android) ⇄ Supabase (auth, mock money ledger, realtime) and ⇄ Vercel (live price proxy hiding the CoinMarketCap key). Three pieces, each doing the one job it's best at.</div>
+  </section>
+
+  <section>
+    <h2>If something goes wrong</h2>
+    <div class="card">
+      <ul>
+        <li><strong>"Entity not authorized"</strong> → wrong Expo account. <code>npx eas-cli logout</code>, log in with the account that created the project.</li>
+        <li><strong>He can't recover the old Expo account at all</strong> → fallback: any account can adopt the app with <code>npx eas-cli init --force</code> (creates a fresh project under that account), then continue from step 4. Nothing is lost — this is a fresh mock app.</li>
+        <li><strong>Build fails in the cloud</strong> → open the build link, copy the red error text, send it to me.</li>
+        <li><strong>App installs but shows no data</strong> → step 4 was skipped or a value was typo'd; run <code>env:list</code> and compare against the table above, then rebuild.</li>
+      </ul>
+    </div>
+    <div class="warnbox"><strong>Reminders:</strong> this is a testnet/mock app — no real money, keys, or crypto ever. Share the build link privately with testers only, and keep the "Testnet" name visible so nobody mistakes it for the official Trust Wallet.</div>
+  </section>
+</main>
+<script>
+document.querySelectorAll('.copy').forEach((b)=>{b.addEventListener('click',async()=>{const v=b.parentElement.textContent.replace('Copy','').trim();try{await navigator.clipboard.writeText(v);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1400)}catch{b.textContent='Select'}})});
+</script>
+</body>
+</html>

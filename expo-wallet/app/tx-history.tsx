@@ -129,7 +129,7 @@ export default function TxHistoryScreen() {
               <View style={{ flex: 1, minHeight: 430, alignItems: "center", justifyContent: "center", gap: 11, paddingHorizontal: 24 }}>
                 <View style={{ width: 76, height: 76, borderRadius: 28, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}><TrustIcon color={theme.secondary} name="history" size={36} /></View>
                 <Text style={{ color: theme.text, fontSize: 17, fontWeight: "900" }}>{ledgerError ? "Activity unavailable" : filter === "All" ? "No transactions yet" : `No ${filter.toLowerCase()} transactions`}</Text>
-                <Text style={{ color: ledgerError ? theme.negative : theme.secondary, fontSize: 12, textAlign: "center", lineHeight: 18 }}>{ledgerError ?? "Add funds or send to another registered wallet. Activity will appear here for both participants."}</Text>
+                <Text style={{ color: ledgerError ? theme.negative : theme.secondary, fontSize: 12, textAlign: "center", lineHeight: 18 }}>{ledgerError ?? "Add funds or send to a wallet address. Confirmed activity will appear here."}</Text>
                 <View style={{ width: "100%" }}><FlowButton label={ledgerError ? "Try again" : "Add funds"} onPress={() => ledgerError ? void refresh() : router.push("/fund")} secondary /></View>
               </View>
             ) : null}
@@ -185,6 +185,7 @@ function TransactionDetail({ row, onDone }: { row: UiRow; onDone: () => void }) 
       </View>
       <FlowCard>
         <DetailRow label={row.displayDirection === "outgoing" || self ? "To" : "From"} value={row.counterparty} />
+        {row.counterparty_address ? <DetailRow label="Recipient address" value={row.counterparty_address} /> : null}
         <DetailRow label="Direction" value={capitalize(row.displayDirection)} />
         <DetailRow label="Network" value={network} />
         <DetailRow label="Network fee" value={row.fee_units && BigInt(row.fee_units) > 0n ? `${row.display_fee ?? row.fee_units} ${row.fee_symbol ?? ""}`.trim() : "No fee"} />

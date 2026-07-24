@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { BackHandler, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { formatUsd } from "@/components/live-market-ui";
 import { TokenLogo } from "@/components/trust-assets";
 import { TrustIcon } from "@/components/trust-icon";
@@ -18,6 +18,17 @@ export default function SwapScreen() {
   const [selectorSide, setSelectorSide] = useState<"pay" | "receive" | null>(null);
   const [orderSheet, setOrderSheet] = useState(false);
   const [previewSheet, setPreviewSheet] = useState(false);
+
+  useEffect(() => {
+    if (!selectorSide && !orderSheet && !previewSheet) return undefined;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (previewSheet) setPreviewSheet(false);
+      else if (orderSheet) setOrderSheet(false);
+      else setSelectorSide(null);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [orderSheet, previewSheet, selectorSide]);
 
   if (selectorSide) {
     return (

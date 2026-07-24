@@ -436,8 +436,8 @@ select extensions.is(
       and p.prosecdef
       and pg_catalog.has_function_privilege('authenticated', p.oid, 'execute')
   ),
-  12,
-  'Exactly twelve public SECURITY DEFINER functions are authenticated APIs'
+  14,
+  'Exactly fourteen public SECURITY DEFINER functions are authenticated APIs'
 );
 
 select extensions.is(

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiveSparkline, formatMarketChange, formatUsd, MarketStateLabel } from "@/components/live-market-ui";
 import { TokenLogo } from "@/components/trust-assets";
@@ -21,6 +21,17 @@ const categories = [
 ];
 
 const featuredSymbols = ["ETH", "BNB", "XRP"];
+const marketFabShadow = Platform.select({
+  web: { boxShadow: "0 5px 14px rgba(0, 0, 0, 0.18)" },
+  default: {
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
+  },
+}) ?? {};
+
 export default function MarketsScreen() {
   const insets = useSafeAreaInsets();
   const { currency, marketByAssetId, marketError, marketStatus, refreshMarkets, theme } = useAppContext();
@@ -161,7 +172,7 @@ export default function MarketsScreen() {
         </View>
       </AppScreen>
 
-      <Pressable accessibilityLabel="Open Swap" onPress={() => router.push("/swap")} style={{ position: "absolute", right: 20, bottom: 96 + insets.bottom, width: 62, height: 62, borderRadius: 31, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } }}>
+      <Pressable accessibilityLabel="Open Swap" onPress={() => router.push("/swap")} style={{ position: "absolute", right: 20, bottom: 96 + insets.bottom, width: 62, height: 62, borderRadius: 31, backgroundColor: theme.blue, alignItems: "center", justifyContent: "center", ...marketFabShadow }}>
         <TrustIcon color="#ffffff" name="swap" size={28} />
       </Pressable>
 
