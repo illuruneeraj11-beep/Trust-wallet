@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { looksLikeWalletAddress } from "@/lib/wallet-addresses";
 import { requireSupabase, supabase, walletRuntimeMode } from "@/lib/supabase";
 import { baseUnitsToDecimal, decimalToBaseUnits } from "@/lib/wallet-amounts";
 import type {
@@ -90,8 +91,8 @@ function positiveUnits(value: unknown) {
 function displayLedgerLabel(value: string) {
   return value
     .replace(/US Dollar Demo Balance/gi, "US Dollar")
-    .replace(/Demo Dollar Network/gi, "Testnet")
-    .replace(/Demo Network/gi, "Testnet")
+    .replace(/Demo Dollar Network/gi, "Wallet")
+    .replace(/Demo Network/gi, "Wallet")
     .replace(/\s*\((?:Ethereum|BNB|Solana|Tron) Demo\)/gi, "")
     .replace(/\bDemo Wallet\b/gi, "Wallet")
     .trim();
@@ -105,7 +106,7 @@ function displayLedgerError(value: string) {
     .replace(/\bdemo transfer\b/gi, "transfer")
     .replace(/\bdemo transaction\b/gi, "transaction")
     .replace(/\bdemo balance\b/gi, "balance")
-    .replace(/\bdemo network\b/gi, "testnet")
+    .replace(/\bdemo network\b/gi, "wallet network")
     .replace(/\bdemo handle\b/gi, "wallet handle");
 }
 
@@ -471,7 +472,7 @@ export async function getDemoTransaction(transactionId: string, assets: MockAsse
 }
 
 const demoAssets: MockAsset[] = [
-  { id: "demo-usd", code: "demo:USD", symbol: "USD", name: "US Dollar", network: "demo", network_slug: "demo", network_name: "Testnet", decimals: 2, icon_key: null },
+  { id: "demo-usd", code: "demo:USD", symbol: "USD", name: "US Dollar", network: "demo", network_slug: "demo", network_name: "Wallet", decimals: 2, icon_key: null },
   { id: "ethereum-usdt", code: "ethereum:USDT", symbol: "USDT", name: "Tether USD", network: "ethereum", network_slug: "ethereum", network_name: "Ethereum", decimals: 6, icon_key: "usdt" },
   { id: "ethereum-eth", code: "ethereum:ETH", symbol: "ETH", name: "Ethereum", network: "ethereum", network_slug: "ethereum", network_name: "Ethereum", decimals: 18, icon_key: "eth" },
   { id: "bitcoin-btc", code: "bitcoin:BTC", symbol: "BTC", name: "Bitcoin", network: "bitcoin", network_slug: "bitcoin", network_name: "Bitcoin", decimals: 8, icon_key: "btc" },
@@ -483,6 +484,11 @@ const demoAssets: MockAsset[] = [
   { id: "bsc-usdt", code: "bsc:USDT", symbol: "USDT", name: "Tether USD", network: "bsc", network_slug: "bsc", network_name: "BNB Smart Chain", decimals: 18, icon_key: "usdt" },
   { id: "solana-usdc", code: "solana:USDC", symbol: "USDC", name: "USD Coin", network: "solana", network_slug: "solana", network_name: "Solana", decimals: 6, icon_key: "usdc" },
   { id: "tron-usdt", code: "tron:USDT", symbol: "USDT", name: "Tether USD", network: "tron", network_slug: "tron", network_name: "Tron", decimals: 6, icon_key: "usdt" },
+  { id: "arbitrum-usdc", code: "arbitrum:USDC", symbol: "USDC", name: "USD Coin", network: "arbitrum", network_slug: "arbitrum", network_name: "Arbitrum One", decimals: 6, icon_key: "usdc" },
+  { id: "avalanchec-usdc", code: "avalanchec:USDC", symbol: "USDC", name: "USD Coin", network: "avalanchec", network_slug: "avalanchec", network_name: "Avalanche C-Chain", decimals: 6, icon_key: "usdc" },
+  { id: "base-usdc", code: "base:USDC", symbol: "USDC", name: "USD Coin", network: "base", network_slug: "base", network_name: "Base", decimals: 6, icon_key: "usdc" },
+  { id: "optimism-usdc", code: "optimism:USDC", symbol: "USDC", name: "USD Coin", network: "optimism", network_slug: "optimism", network_name: "OP Mainnet", decimals: 6, icon_key: "usdc" },
+  { id: "polygon-usdc", code: "polygon:USDC", symbol: "USDC", name: "USD Coin", network: "polygon", network_slug: "polygon", network_name: "Polygon", decimals: 6, icon_key: "usdc" },
 ];
 
 const demoTimestamp = "2026-07-18T12:00:00.000Z";
@@ -529,6 +535,11 @@ const demoWallets: WalletWithBalances[] = [
       demoAddress("visual-main", "bsc", "demo_bsc_633b0bf4b23c42ca"),
       demoAddress("visual-main", "solana", "demo_sol_84f1595df02749b9"),
       demoAddress("visual-main", "tron", "demo_trx_74281e5bbc7d4c31"),
+      demoAddress("visual-main", "arbitrum", "demo_arbitrum_3218723557e44e9f"),
+      demoAddress("visual-main", "avalanchec", "demo_avalanchec_a6da39d09b534e8e"),
+      demoAddress("visual-main", "base", "demo_base_3f9567d5bbd04878"),
+      demoAddress("visual-main", "optimism", "demo_optimism_f85462f24271443b"),
+      demoAddress("visual-main", "polygon", "demo_polygon_319b897cdd8947dd"),
     ],
     balances: [
       demoBalance("visual-main", demoAssets[0], "12840.72"),
@@ -855,23 +866,7 @@ export async function resolveRecipient(query: string, assetId?: string) {
 }
 
 export function looksLikeRecipientAddress(value: string, networkSlug: string) {
-  switch (networkSlug.toLowerCase()) {
-    case "ethereum":
-      return /^0x[a-f0-9]{40}$/i.test(value) || /^demo_(?:eth|ethereum)_[a-z0-9_]{8,}$/i.test(value);
-    case "bsc":
-      return /^0x[a-f0-9]{40}$/i.test(value) || /^demo_bsc_[a-z0-9_]{8,}$/i.test(value);
-    case "bitcoin":
-      return /^(?:bc1[ac-hj-np-z02-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(value)
-        || /^demo_(?:btc|bitcoin)_[a-z0-9_]{8,}$/i.test(value);
-    case "solana":
-      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value) || /^demo_(?:sol|solana)_[a-z0-9_]{8,}$/i.test(value);
-    case "tron":
-      return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value) || /^demo_(?:trx|tron)_[a-z0-9_]{8,}$/i.test(value);
-    case "demo":
-      return /^demo_(?:usd|demo|external)_[a-z0-9_]{8,}$/i.test(value);
-    default:
-      return false;
-  }
+  return looksLikeWalletAddress(value, networkSlug);
 }
 
 export async function sendDemoTransfer(params: SendDemoTransferInput): Promise<DemoTransactionReceipt> {

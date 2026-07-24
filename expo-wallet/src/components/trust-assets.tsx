@@ -263,6 +263,7 @@ const networkSlugs: Record<string, string> = {
   ARBITRUM: "arbitrum",
   AURORA: "aurora",
   AVALANCHE: "avalanchec",
+  AVALANCHEC: "avalanchec",
   AVALANCHECCHAIN: "avalanchec",
   BASE: "base",
   BCH: "bitcoincash",
@@ -411,7 +412,9 @@ export function NetworkLogo({ network, size = 48, style }: LogoProps & { network
         : key === "SOL" ? "SOLANA"
           : key === "TRX" ? "TRON"
             : key === "ZEC" ? "ZCASH"
-              : key;
+              : key === "AVALANCHE" || key === "AVALANCHEC" ? "AVALANCHECCHAIN"
+                : key === "OP" || key === "OPTIMISM" ? "OPMAINNET"
+                  : key;
   const localSource = bundledNetworks[canonicalKey] ?? (key in { BTC: true, BITCOIN: true }
     ? bundledTokens.BTC
     : key in { ETH: true, ETHEREUM: true }
@@ -435,7 +438,7 @@ export function NetworkLogo({ network, size = 48, style }: LogoProps & { network
   if (canonicalKey === "DEMO" || canonicalKey === "TESTNET") {
     return (
       <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#ecebff", alignItems: "center", justifyContent: "center" }, style]}>
-        <TrustIcon color="#1514ff" name="flask-outline" size={Math.round(size * 0.58)} />
+        <TrustIcon color="#1514ff" name="wallet-outline" size={Math.round(size * 0.58)} />
       </View>
     );
   }
