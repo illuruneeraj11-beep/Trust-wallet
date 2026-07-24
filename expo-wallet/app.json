@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Tommy",
+    "name": "Trust Wallet",
     "slug": "trust-wallet-testnet",
     "scheme": "trustwallettestnet",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "icon": "./assets/brands/trust-wallet-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.tommy7s.trustwallet.testnet",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/brands/trust-wallet-adaptive-foreground.png",
         "backgroundColor": "#f4f4f7"
@@ -44,7 +44,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Tommy to scan wallet QR codes.",
+          "cameraPermission": "Allow Trust Wallet to scan wallet QR codes.",
           "recordAudioAndroid": false
         }
       ],

@@ -65,7 +65,7 @@ export default function QrScannerScreen() {
           <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={{ position: "absolute", left: 0, width: 42, height: 42, alignItems: "center", justifyContent: "center" }}><TrustIcon color="#ffffff" name="arrow-left" size={24} /></Pressable>
           <View style={{ alignItems: "center" }}>
             <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "900" }}>Scan QR code</Text>
-            <Text style={{ color: "#aaaab1", fontSize: 9, fontWeight: "700" }}>Tommy</Text>
+            <Text style={{ color: "#aaaab1", fontSize: 9, fontWeight: "700" }}>Trust Wallet</Text>
           </View>
         </View>
 
@@ -87,7 +87,7 @@ export default function QrScannerScreen() {
             {permission?.granted ? <View style={{ position: "absolute", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><TrustIcon color="rgba(255,255,255,0.9)" name="scanner" size={224} /></View> : null}
             {permission?.granted ? <Pressable accessibilityLabel={torch ? "Turn flash off" : "Turn flash on"} onPress={() => setTorch((value) => !value)} style={{ position: "absolute", right: 12, top: 12, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(16,16,18,0.72)", alignItems: "center", justifyContent: "center" }}><TrustIcon color="#ffffff" name={torch ? "flash" : "flash-off"} size={22} /></Pressable> : null}
           </View>
-          <Text style={{ color: "#d5d5da", fontSize: 13, lineHeight: 19, textAlign: "center", maxWidth: 290 }}>{scanned ? "QR code recognized. Review the recipient below." : "Position a Tommy receive QR inside the frame."}</Text>
+          <Text style={{ color: "#d5d5da", fontSize: 13, lineHeight: 19, textAlign: "center", maxWidth: 290 }}>{scanned ? "QR code recognized. Review the recipient below." : "Position a Trust Wallet receive QR inside the frame."}</Text>
           {scanned ? <Pressable onPress={() => { setScanned(false); setParsed(null); setPayload(""); setError(null); }}><Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "900" }}>Scan another code</Text></Pressable> : null}
         </View>
 

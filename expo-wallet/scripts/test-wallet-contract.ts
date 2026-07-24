@@ -27,7 +27,7 @@ async function main() {
   });
   assert.equal(parseWalletQr("trustdemo://receive?address=demo_btc_receiver123&network=bitcoin").network, "bitcoin", "saved legacy receive QR payloads must remain readable");
   assert.equal(parseWalletQr("bitcoin:bc1qexampleaddress?amount=1.25").amount, "1.25");
-  assert.throws(() => parseWalletQr("bad qr"), /Tommy receive QR/);
+  assert.throws(() => parseWalletQr("bad qr"), /Trust Wallet receive QR/);
 
   const initial = await ledger.getPortfolio();
   const sender = initial.wallets[0];
