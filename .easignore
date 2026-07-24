@@ -30,6 +30,8 @@ expo-wallet/design-qa*.png
 expo-wallet/.env
 expo-wallet/.env.*
 !expo-wallet/.env.example
+expo-wallet/android/
+expo-wallet/ios/
 expo-wallet/android/.gradle/
 expo-wallet/android/.kotlin/
 expo-wallet/android/.cxx/
